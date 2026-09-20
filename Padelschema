@@ -1309,16 +1309,19 @@
             const weekSelect = document.getElementById('weekSelect');
             if (!weekSelect) return;
 
-            const automatischeWeek = berekenHuidigeCyclusWeek();
-            const actieveWeek = localStorage.getItem('geselecteerdePadelWeek') || automatischeWeek;
-            
-            weekSelect.value = actieveWeek;
-            laadSchemaVoorWeek(actieveWeek);
+            const function berekenHuidigeCyclusWeek() {
+    const startDatum = new Date('2026-09-07T00:00:00'); // Startpunt voor week 39
+    const nu = new Date();
 
-            weekSelect.addEventListener('change', (event) => {
-                const gekozenWeek = event.target.value;
-                localStorage.setItem('geselecteerdePadelWeek', gekozenWeek);
-                laadSchemaVoorWeek(gekozenWeek);
+    const verschilInMs = nu - startDatum;
+    if (verschilInMs < 0) return '1';
+
+    const verschilInWeken = Math.floor(verschilInMs / (1000 * 60 * 60 * 24 * 7));
+    const huidigeWeek = (verschilInWeken % 6) + 1;
+
+    return huidigeWeek.toString();
+}
+
             });
         });
     </script>
