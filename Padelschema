@@ -982,7 +982,8 @@
 
                 const weekItem = {
                     weekIndex: absoluteIndex,
-                    displayWeekNum: getWeekNumber(tuesdayDate),
+                    displayWeekNum: 39 + i,
+
                     tuesdayDateStr: formatDateDDMMYY(tuesdayDate),
                     thursdayDateStr: formatDateDDMMYY(thursdayDate),
                     dinsdag: [...defaultTemplate[templateIndex].dinsdag],
