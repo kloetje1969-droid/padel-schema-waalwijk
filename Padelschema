@@ -966,7 +966,8 @@
             today.setHours(0, 0, 0, 0);
 
             const diffDays = Math.floor((today - baseStartDate) / (1000 * 60 * 60 * 24));
-            let startIndex = Math.floor(diffDays / 7);
+                        let startIndex = 1; // Forceer direct week 2 van de cyclus (week 39)
+
             if (startIndex < 0) startIndex = 0;
 
             for (let i = 0; i < 6; i++) {
