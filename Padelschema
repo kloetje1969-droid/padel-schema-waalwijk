@@ -960,7 +960,8 @@
                 { dinsdag: ["Sander", "Ronald", "Robert", "Mark"], donderdag: ["Marcel", "Dennis", "Mark", "Sander"] }
             ];
 
-            const baseStartDate = new Date(2026, 8,15);
+            const baseStartDate = new Date(2026, 8, 15);
+
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
