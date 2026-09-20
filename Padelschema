@@ -949,7 +949,7 @@
             });
         }
 
-        function getActiveDisplayWeeks() {
+                function getActiveDisplayWeeks() {
             const activeWeeks = [];
             const defaultTemplate = [
                 { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
@@ -967,9 +967,6 @@
             const diffDays = Math.floor((today - baseStartDate) / (1000 * 60 * 60 * 24));
             let startIndex = Math.floor(diffDays / 7);
             if (startIndex < 0) startIndex = 0;
-
-            const currentDayOfWeek = today.getDay();
-            if (currentDayOfWeek === 0) startIndex += 1;
 
             for (let i = 0; i < 6; i++) {
                 const absoluteIndex = startIndex + i;
@@ -1002,6 +999,7 @@
             }
             return activeWeeks;
         }
+
 
         function renderSchedule() {
             const list = document.getElementById("scheduleList");
