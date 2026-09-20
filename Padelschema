@@ -1230,5 +1230,100 @@
 
         window.handleKeyPress = function(e) { if (e.key === 'Enter') window.sendMessage(); };
     </script>
+    <!-- Handmatig menu om de week van de cyclus te kiezen -->
+    <div class="padel-week-selector" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6; display: inline-block;">
+        <label for="weekSelect" style="font-weight: bold; margin-right: 10px;">Selecteer cyclus week:</label>
+        <select id="weekSelect" style="padding: 6px 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 1rem;">
+            <option value="1">Cyclus Week 1</option>
+            <option value="2">Cyclus Week 2</option>
+            <option value="3">Cyclus Week 3</option>
+            <option value="4">Cyclus Week 4</option>
+            <option value="5">Cyclus Week 5</option>
+            <option value="6">Cyclus Week 6</option>
+        </select>
+    </div>
+
+    <!-- Plekken waar de schema's getoond worden -->
+    <div class="schema-container">
+        <h3>Dinsdag</h3>
+        <ul id="dinsdagLijst"></ul>
+
+        <h3>Donderdag</h3>
+        <ul id="donderdagLijst"></ul>
+    </div>
+
+    <!-- JavaScript voor de automatische berekening en het menu -->
+    <script>
+        const padelRooster = {
+            "1": {
+                dinsdag: ["Speler A", "Speler B", "Speler C", "Speler D"],
+                donderdag: ["Speler A", "Speler B", "Speler E", "Speler F"]
+            },
+            "2": {
+                dinsdag: ["Speler C", "Speler D", "Speler E", "Speler F"],
+                donderdag: ["Speler A", "Speler C", "Speler D", "Speler E"]
+            },
+            "3": {
+                dinsdag: ["Speler B", "Speler D", "Speler E", "Speler F"],
+                donderdag: ["Speler A", "Speler B", "Speler C", "Speler F"]
+            },
+            "4": {
+                dinsdag: ["Speler A", "Speler C", "Speler E", "Speler F"],
+                donderdag: ["Speler B", "Speler C", "Speler D", "Speler F"]
+            },
+            "5": {
+                dinsdag: ["Speler A", "Speler B", "Speler D", "Speler E"],
+                donderdag: ["Speler A", "Speler C", "Speler D", "Speler F"]
+            },
+            "6": {
+                dinsdag: ["Speler B", "Speler C", "Speler E", "Speler F"],
+                donderdag: ["Speler A", "Speler B", "Speler D", "Speler F"]
+            }
+        };
+
+        function berekenHuidigeCyclusWeek() {
+            const startDatum = new Date('2026-09-14T00:00:00');
+            const nu = new Date();
+            const verschilInMs = nu - startDatum;
+            if (verschilInMs < 0) return '1';
+            const verschilInWeken = Math.floor(verschilInMs / (1000 * 60 * 60 * 24 * 7));
+            return ((verschilInWeken % 6) + 1).toString();
+        }
+
+        function laadSchemaVoorWeek(weekNummer) {
+            const weekData = padelRooster[weekNummer];
+            if (!weekData) return;
+
+            const dinsdagContainer = document.getElementById('dinsdagLijst');
+            const donderdagContainer = document.getElementById('donderdagLijst');
+
+            if (dinsdagContainer) {
+                dinsdagContainer.innerHTML = weekData.dinsdag.map(naam => `<li>${naam}</li>`).join('');
+            }
+            if (donderdagContainer) {
+                donderdagContainer.innerHTML = weekData.donderdag.map(naam => `<li>${naam}</li>`).join('');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const weekSelect = document.getElementById('weekSelect');
+            if (!weekSelect) return;
+
+            const automatischeWeek = berekenHuidigeCyclusWeek();
+            const actieveWeek = localStorage.getItem('geselecteerdePadelWeek') || automatischeWeek;
+            
+            weekSelect.value = actieveWeek;
+            laadSchemaVoorWeek(actieveWeek);
+
+            weekSelect.addEventListener('change', (event) => {
+                const gekozenWeek = event.target.value;
+                localStorage.setItem('geselecteerdePadelWeek', gekozenWeek);
+                laadSchemaVoorWeek(gekozenWeek);
+            });
+        });
+    </script>
+</body>
+</html>
+
 </body>
 </html>
