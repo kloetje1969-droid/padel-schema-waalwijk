@@ -949,7 +949,7 @@
             });
         }
 
-                function getActiveDisplayWeeks() {
+                      function getActiveDisplayWeeks() {
             const activeWeeks = [];
             const defaultTemplate = [
                 { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
@@ -999,6 +999,7 @@
             }
             return activeWeeks;
         }
+  
 
 
         function renderSchedule() {
