@@ -1305,25 +1305,23 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const weekSelect = document.getElementById('weekSelect');
-            if (!weekSelect) return;
+       document.addEventListener('DOMContentLoaded', () => {
+    const weekSelect = document.getElementById('weekSelect');
+    if (!weekSelect) return;
 
-            const function berekenHuidigeCyclusWeek() {
-    const startDatum = new Date('2026-09-07T00:00:00'); // Startpunt voor week 39
-    const nu = new Date();
+    const berekenHuidigeCyclusWeek = () => {
+        const startDatum = new Date('2026-09-07T00:00:00'); // Startpunt voor week 39
+        const nu = new Date();
 
-    const verschilInMs = nu - startDatum;
-    if (verschilInMs < 0) return '1';
+        const verschilInMs = nu - startDatum;
+        if (verschilInMs < 0) return '1';
 
-    const verschilInWeken = Math.floor(verschilInMs / (1000 * 60 * 60 * 24 * 7));
-    const huidigeWeek = (verschilInWeken % 6) + 1;
+        const verschilInWeken = Math.floor(verschilInMs / (1000 * 60 * 60 * 24 * 7));
+        const huidigeWeek = (verschilInWeken % 6) + 1;
 
-    return huidigeWeek.toString();
-}
-
-            });
-        });
+        return huidigeWeek.toString();
+    };
+});
     </script>
 </body>
 </html>
