@@ -1309,18 +1309,24 @@
     const weekSelect = document.getElementById('weekSelect');
     if (!weekSelect) return;
 
-    const berekenHuidigeCyclusWeek = () => {
-        const startDatum = new Date('2026-09-07T00:00:00'); // Startpunt voor week 39
-        const nu = new Date();
+   const berekenHuidigeCyclusWeek = () => {
+    const startDatum = new Date('2026-09-07T00:00:00'); // Jouw startpunt
+    const nu = new Date();
 
-        const verschilInMs = nu - startDatum;
-        if (verschilInMs < 0) return '1';
+    const verschilInMs = nu - startDatum;
+    if (verschilInMs < 0) return '1';
 
-        const verschilInWeken = Math.floor(verschilInMs / (1000 * 60 * 60 * 24 * 7));
-        const huidigeWeek = (verschilInWeken % 6) + 1;
+    // We tellen bijvoorbeeld 3 dagen op bij het verschil, 
+    // zodat de week pas 'omklapt' nadat de donderdag is geweest.
+    // (1000 * 60 * 60 * 24 * 3 = 3 dagen in milliseconden)
+    const extraOffsetMs = 1000 * 60 * 60 * 24 * 3; 
+    const aangepastVerschil = verschilInMs + extraOffsetMs;
 
-        return huidigeWeek.toString();
-    };
+    const verschilInWeken = Math.floor(aangepastVerschil / (1000 * 60 * 60 * 24 * 7));
+    const huidigeWeek = (verschilInWeken % 6) + 1;
+
+    return huidigeWeek.toString();
+};
 });
     </script>
 </body>
