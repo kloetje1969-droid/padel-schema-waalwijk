@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Padelschema - Rooster & Chat</title>
+    <title>Padelschema - Rooster, Chat & Afwezigheid</title>
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <!-- Firebase Realtime Database -->
@@ -79,7 +79,6 @@
             text-align: center;
         }
 
-        /* Live klok en datum styling met oranje weeknummer (gecentreerd onder de titel) */
         .live-clock-badge {
             background: var(--bg-color);
             border: 1px solid var(--card-border);
@@ -168,27 +167,6 @@
             box-shadow: 0 0 6px var(--accent-green);
         }
 
-        .chat-btn {
-            background: var(--btn-bg);
-            color: var(--text-main);
-            border: 1px solid var(--card-border);
-            padding: 10px 16px;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s;
-            font-size: 0.95rem;
-        }
-
-        .chat-btn:hover {
-            background: var(--btn-hover);
-            border-color: var(--accent-blue);
-        }
-
         .section-title {
             font-size: 1.1rem;
             font-weight: 600;
@@ -197,6 +175,42 @@
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+
+        /* Navigatie tabs / knoppen tussen rooster, afwezigheid en chat */
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .nav-tab {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-tab.active {
+            background: var(--btn-bg);
+            color: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .app-section {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .app-section.active {
+            display: flex;
         }
 
         .week-card {
@@ -288,6 +302,114 @@
             background-color: var(--btn-hover);
         }
 
+        /* Chat sectie styling */
+        .chat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            height: 450px;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-msg {
+            background: var(--bg-color);
+            border: 1px solid var(--card-border);
+            padding: 10px 14px;
+            border-radius: 10px;
+            max-width: 85%;
+        }
+
+        .chat-msg.mine {
+            align-self: flex-end;
+            background: rgba(56, 189, 248, 0.1);
+            border-color: var(--accent-blue);
+        }
+
+        .chat-msg-header {
+            font-size: 0.75rem;
+            color: var(--accent-blue);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .chat-input-area {
+            display: flex;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.01);
+            border-top: 1px solid var(--card-border);
+            gap: 8px;
+        }
+
+        .chat-input-area input {
+            flex-grow: 1;
+            background: var(--bg-color);
+            border: 1px solid var(--card-border);
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: var(--text-main);
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .chat-input-area button {
+            background: var(--accent-green);
+            color: #0b0f19;
+            border: none;
+            padding: 0 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* Afwezigheid styling */
+        .absence-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .absence-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .absence-item {
+            background: var(--bg-color);
+            border: 1px solid var(--card-border);
+            padding: 10px 14px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-danger {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
         /* Modal */
         .modal {
             display: none;
@@ -371,18 +493,15 @@
 
 <div class="container">
     <header>
-        <!-- Titel zonder tennisballen als test -->
         <h1>Padelschema</h1>
         
-        <!-- Live klok en oranje weeknummer direct onder de titel -->
         <div id="liveClock" class="live-clock-badge">Laden...</div>
 
-        <!-- Gebruiker selectie & Database status rij -->
         <div class="user-select-row">
             <div class="user-select-container">
                 <label for="userSelect">Jij:</label>
                 <select id="userSelect" onchange="changeUser()">
-                    <!-- Wordt dynamisch gevuld -->
+                    <!-- Dynamisch gevuld -->
                 </select>
             </div>
             
@@ -397,13 +516,64 @@
         </div>
     </header>
 
-    <a href="chat.html" class="chat-btn">💬 Team Chat bekijken</a>
+    <!-- Navigatie knoppen -->
+    <div class="nav-tabs">
+        <button class="nav-tab active" onclick="switchTab('schedule')">📅 Speelschema</button>
+        <button class="nav-tab" onclick="switchTab('absence')">🏖️ Afwezigheid</button>
+        <button class="nav-tab" onclick="switchTab('chat')">💬 Team Chat</button>
+    </div>
 
-    <div class="section-title">📅 Speelschema (komende 6 weken)</div>
-    <div id="scheduleContainer" style="display: flex; flex-direction: column; gap: 16px;">Laden van schema...</div>
+    <!-- SECTIE 1: SPEELSCHEMA -->
+    <div id="section-schedule" class="app-section active">
+        <div class="section-title">📅 Speelschema (komende 6 weken)</div>
+        <div id="scheduleContainer" style="display: flex; flex-direction: column; gap: 16px;">Laden van schema...</div>
+    </div>
+
+    <!-- SECTIE 2: AFWEZIGHEID -->
+    <div id="section-absence" class="app-section">
+        <div class="section-title">🏖️ Afwezigheid melden & beheren</div>
+        <div class="absence-card">
+            <div class="player-select-group">
+                <label>Wie is er afwezig / op vakantie?</label>
+                <select id="absentPlayerSelect">
+                    <!-- Dynamisch gevuld -->
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <div class="player-select-group" style="flex: 1;">
+                    <label>Vanaf datum</label>
+                    <input type="date" id="absentStart">
+                </div>
+                <div class="player-select-group" style="flex: 1;">
+                    <label>Tot en met datum</label>
+                    <input type="date" id="absentEnd">
+                </div>
+            </div>
+            <button class="btn-save" onclick="addAbsence()">Afwezigheid opslaan</button>
+        </div>
+
+        <div class="section-title">📋 Overzicht afwezigheden</div>
+        <div id="absenceContainer" class="absence-list">
+            Geen afwezigheden gemeld.
+        </div>
+    </div>
+
+    <!-- SECTIE 3: CHAT -->
+    <div id="section-chat" class="app-section">
+        <div class="section-title">💬 Team Chat</div>
+        <div class="chat-card">
+            <div id="chatMessages" class="chat-messages">
+                Berichten laden...
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" placeholder="Typ een bericht..." onkeypress="checkChatEnter(event)">
+                <button onclick="sendChatMessage()">Verstuur</button>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Modal voor wijzigen -->
+<!-- Modal voor wijzigen schema -->
 <div id="replaceModal" class="modal">
     <div class="modal-content">
         <h3 id="modalSubTitle">Spelers wijzigen</h3>
@@ -460,6 +630,8 @@
 
     let liveOverrides = {};
     let allStatuses = {};
+    let chatMessages = {};
+    let absences = {};
 
     document.addEventListener('DOMContentLoaded', () => {
         initUserSelect();
@@ -476,10 +648,27 @@
             renderStatuses();
         });
 
+        db.ref('chat').on('value', (snapshot) => {
+            chatMessages = snapshot.val() || {};
+            renderChat();
+        });
+
+        db.ref('absences').on('value', (snapshot) => {
+            absences = snapshot.val() || {};
+            renderAbsences();
+        });
+
         setupOnlinePresence();
     });
 
-    // --- LIVE KLOK EN DATUM MET ORANJE WEEKNUMMER ---
+    function switchTab(tabName) {
+        document.querySelectorAll('.app-section').forEach(sec => sec.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+        
+        document.getElementById(`section-${tabName}`).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
     function updateLiveClock() {
         const now = new Date();
         const optionsDate = { weekday: 'short', day: 'numeric', month: 'short' };
@@ -500,6 +689,11 @@
     function initUserSelect() {
         const select = document.getElementById('userSelect');
         select.innerHTML = basePlayers.map(p => `<option value="${p}" ${p === currentUserName ? 'selected' : ''}>${p}</option>`).join('');
+        
+        const absentSelect = document.getElementById('absentPlayerSelect');
+        if (absentSelect) {
+            absentSelect.innerHTML = basePlayers.map(p => `<option value="${p}" ${p === currentUserName ? 'selected' : ''}>${p}</option>`).join('');
+        }
     }
 
     function changeUser() {
@@ -509,6 +703,7 @@
         setupOnlinePresence();
         renderStatuses();
         renderSchedule();
+        renderChat();
     }
 
     function setupOnlinePresence() {
@@ -632,6 +827,7 @@
 
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
+        if (!container) return;
         const weeks = getActiveDisplayWeeks();
         let html = '';
 
@@ -655,6 +851,97 @@
                         </div>
                         <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'donderdag')">Wijzig</button>
                     </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    // CHAT FUNCTIES
+    function renderChat() {
+        const container = document.getElementById('chatMessages');
+        if (!container) return;
+        let html = '';
+
+        const keys = Object.keys(chatMessages).sort((a,b) => a - b);
+        if (keys.length === 0) {
+            container.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding:20px;">Nog geen berichten in de chat. Stuur er eentje!</div>';
+            return;
+        }
+
+        keys.forEach(k => {
+            const msg = chatMessages[k];
+            const isMine = msg.sender === currentUserName;
+            const msgClass = isMine ? "chat-msg mine" : "chat-msg";
+
+            html += `
+                <div class="${msgClass}">
+                    <div class="chat-msg-header">${msg.sender} • ${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    <div>${msg.text}</div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function sendChatMessage() {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        db.ref('chat').push({
+            sender: currentUserName,
+            text: text,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+        input.value = '';
+    }
+
+    function checkChatEnter(e) {
+        if (e.key === 'Enter') sendChatMessage();
+    }
+
+    // AFWEZIGHEID FUNCTIES
+    function addAbsence() {
+        const player = document.getElementById('absentPlayerSelect').value;
+        const start = document.getElementById('absentStart').value;
+        const end = document.getElementById('absentEnd').value;
+
+        if (!start || !end) {
+            alert('Kies alstublieft een start- en einddatum.');
+            return;
+        }
+
+        db.ref('absences').push({
+            player, start, end
+        });
+
+        document.getElementById('absentStart').value = '';
+        document.getElementById('absentEnd').value = '';
+    }
+
+    function removeAbsence(key) {
+        db.ref(`absences/${key}`).remove();
+    }
+
+    function renderAbsences() {
+        const container = document.getElementById('absenceContainer');
+        if (!container) return;
+        let html = '';
+
+        const keys = Object.keys(absences);
+        if (keys.length === 0) {
+            container.innerHTML = '<div style="color:var(--text-muted); font-size:0.9rem;">Geen afwezigheden gemeld.</div>';
+            return;
+        }
+
+        keys.forEach(k => {
+            const item = absences[k];
+            html += `
+                <div class="absence-item">
+                    <div><strong>${item.player}</strong>: ${item.start} t/m ${item.end}</div>
+                    <button class="btn-danger" onclick="removeAbsence('${k}')">Verwijder</button>
                 </div>
             `;
         });
