@@ -329,7 +329,7 @@
         .player-chip {
             background: #374151;
             border: 1px solid #4b5563;
-            color: var(--text-main);
+            color: #d1d5db;
             padding: 3px 6px;
             border-radius: 5px;
             font-size: 0.78rem;
@@ -796,7 +796,7 @@
 
         setInterval(() => {
             renderStatuses();
-        }, 30000);
+        }, 10000);
     });
 
     function updateAlertUI() {
@@ -838,17 +838,17 @@
 
         setInterval(() => {
             userPresenceRef.set({ name: currentUserName, timestamp: Date.now() });
-        }, 10000);
+        }, 5000);
     }
 
     function formatLastSeen(timestamp) {
-        if (!timestamp) return "onbekend";
+        if (!timestamp) return "offline";
         const diffMs = Date.now() - timestamp;
         const diffMins = Math.floor(diffMs / (1000 * 60));
         const diffHours = Math.floor(diffMins / 60);
         const diffDays = Math.floor(diffHours / 24);
 
-        if (diffMins < 2) return "online";
+        if (diffMs < 20000) return "online";
         if (diffMins < 60) return `${diffMins}m geleden`;
         if (diffHours < 24) return `${diffHours}u geleden`;
         return `${diffDays}d geleden`;
@@ -870,7 +870,7 @@
 
         basePlayers.forEach(player => {
             const lastTime = activeMap[player];
-            const isOnline = lastTime && (Date.now() - lastTime < 90000);
+            const isOnline = lastTime && (Date.now() - lastTime < 20000);
             const statusText = formatLastSeen(lastTime);
             
             const isMe = player === currentUserName;
@@ -1116,7 +1116,6 @@
                     const btn = document.createElement("button");
                     btn.className = `absence-btn ${isAbsent ? 'absent' : ''}`;
                     
-                    // Aangepast: Aanw = groen (#34d399), Afw = rood (#f87171)
                     if (isAbsent) {
                         btn.style.borderColor = 'var(--danger)';
                         btn.style.color = 'var(--danger)';
