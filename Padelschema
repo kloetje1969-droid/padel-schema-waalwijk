@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
@@ -67,20 +67,45 @@
 
         .header-top {
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
-            gap: 12px;
             width: 100%;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         h1 {
-            font-size: 1.7rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: var(--accent-green);
             letter-spacing: -0.025em;
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        /* Live klok en datum styling */
+        .live-clock-badge {
+            background: var(--bg-color);
+            border: 1px solid var(--card-border);
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .live-clock-badge .week-highlight {
+            color: var(--accent-orange);
+            font-weight: 700;
+        }
+
+        .live-clock-badge strong {
+            color: var(--accent-blue);
+            font-weight: 600;
         }
 
         /* Actieve status van spelers */
@@ -300,6 +325,8 @@
     <header>
         <div class="header-top">
             <h1>🎾 Padelschema</h1>
+            <!-- Live klok, datum en weeknummer -->
+            <div id="liveClock" class="live-clock-badge">Laden...</div>
         </div>
     </header>
 
@@ -357,11 +384,9 @@
     }
     const db = firebase.database();
 
-    // Vaste spelersgroep
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
-    const currentUserName = "Robert"; // Huidige sessie gebruiker
+    const currentUserName = "Robert"; 
 
-    // Jouw juiste template (waarin Ronald en Robert in week 3 op dinsdag samen spelen)
     const defaultTemplate = [
         { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
         { dinsdag: ["Marcel", "Mark", "Dennis", "Robert"], donderdag: ["Ronald", "Sander", "Mark", "Dennis"] },
@@ -374,23 +399,40 @@
     let liveOverrides = {};
     let allStatuses = {};
 
-    // Initialiseer bij laden
     document.addEventListener('DOMContentLoaded', () => {
-        // Luister naar live updates uit Firebase voor schema
+        updateLiveClock();
+        setInterval(updateLiveClock, 1000);
+
         db.ref('scheduleOverrides').on('value', (snapshot) => {
             liveOverrides = snapshot.val() || {};
             renderSchedule();
         });
 
-        // Luister naar online statussen
         db.ref('status').on('value', (snapshot) => {
             allStatuses = snapshot.val() || {};
             renderStatuses();
         });
 
-        // Activeer eigen online status
         setupOnlinePresence();
     });
+
+    // --- LIVE KLOK EN DATUM FUNCTIE ---
+    function updateLiveClock() {
+        const now = new Date();
+        
+        const optionsDate = { weekday: 'short', day: 'numeric', month: 'short' };
+        const dateStr = now.toLocaleDateString('nl-NL', optionsDate);
+        const timeStr = now.toLocaleTimeString('nl-NL');
+        const weekNum = getWeekNumber(now);
+
+        const clockHtml = `
+            <span><span class="week-highlight">Week ${weekNum}</span> | <strong>${dateStr}</strong></span>
+            <strong>${timeStr}</strong>
+        `;
+        
+        const clockEl = document.getElementById('liveClock');
+        if (clockEl) clockEl.innerHTML = clockHtml;
+    }
 
     // --- ONLINE STATUS LOGICA ---
     function setupOnlinePresence() {
@@ -450,15 +492,14 @@
         container.innerHTML = html;
     }
 
-    // Jouw slimme functie om de automatische cyclusweek te berekenen (pas na donderdag omklappen)
     const berekenHuidigeCyclusWeek = () => {
-        const startDatum = new Date('2026-09-07T00:00:00'); // Jouw startpunt
+        const startDatum = new Date('2026-09-07T00:00:00');
         const nu = new Date();
 
         const verschilInMs = nu - startDatum;
-        if (verschilInMs < 0) return 0; // Index 0 voor de start
+        if (verschilInMs < 0) return 0;
 
-        const extraOffsetMs = 1000 * 60 * 60 * 24 * 3; // 3 dagen extra zodat hij na donderdag omklapt
+        const extraOffsetMs = 1000 * 60 * 60 * 24 * 3;
         const aangepastVerschil = verschilInMs + extraOffsetMs;
 
         const verschilInWeken = Math.floor(aangepastVerschil / (1000 * 60 * 60 * 24 * 7));
@@ -467,7 +508,6 @@
         return huidigeWeekIndex;
     };
 
-    // Hulpfunctie om ISO weeknummer te berekenen
     function getWeekNumber(d) {
         d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
         d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
@@ -483,11 +523,9 @@
         return `${d}-${m}-${y}`;
     }
 
-    // Bepaal de actieve weken om te tonen
     function getActiveDisplayWeeks() {
-        const startBaseDate = new Date(2026, 8, 7); // Maandag 7 september 2026
+        const startBaseDate = new Date(2026, 8, 7);
         let weeks = [];
-
         let startIndex = berekenHuidigeCyclusWeek();
 
         for (let i = 0; i < 6; i++) {
@@ -497,11 +535,10 @@
             const diDate = new Date(startBaseDate);
             diDate.setDate(startBaseDate.getDate() + ((startIndex + i) * 7));
             const doDate = new Date(diDate);
-            doDate.setDate(diDate.getDate() + 3); // Donderdag is 3 dagen na de maandag van die week
+            doDate.setDate(diDate.getDate() + 3);
 
             const currentTemplateWeek = defaultTemplate[currentCycleIndex];
 
-            // Check of er Firebase overrides zijn voor deze week
             let dinsdagPlayers = currentTemplateWeek.dinsdag;
             let donderdagPlayers = currentTemplateWeek.donderdag;
 
@@ -522,7 +559,6 @@
         return weeks;
     }
 
-    // Teken het schema op het scherm
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
         const weeks = getActiveDisplayWeeks();
@@ -555,7 +591,6 @@
         container.innerHTML = html;
     }
 
-    // --- MODAL & OVERRIDE LOGICA ---
     let currentEditingWeek = null;
     let currentEditingDay = null;
 
@@ -626,7 +661,6 @@
             newPlayers.push(val);
         }
 
-        // Opslaan in Firebase Realtime Database
         await db.ref(`scheduleOverrides/${currentEditingWeek}/${currentEditingDay}`).set(newPlayers);
         closeModal();
     };
