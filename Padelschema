@@ -43,6 +43,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
         }
 
         .container {
@@ -71,7 +72,7 @@
             align-items: center;
             width: 100%;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 12px;
         }
 
         h1 {
@@ -84,7 +85,7 @@
             gap: 10px;
         }
 
-        /* Live klok en datum styling */
+        /* Live klok en datum styling met oranje weeknummer */
         .live-clock-badge {
             background: var(--bg-color);
             border: 1px solid var(--card-border);
@@ -108,52 +109,91 @@
             font-weight: 600;
         }
 
-        /* Actieve status van spelers */
-        .status-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            padding: 14px 20px;
-            border-radius: 12px;
+        .user-select-container {
             display: flex;
-            flex-direction: column;
+            align-items: center;
             gap: 8px;
+            background: var(--bg-color);
+            padding: 6px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            font-size: 0.9rem;
         }
 
-        .status-title {
-            font-size: 0.85rem;
-            color: var(--text-muted);
+        .user-select-container select {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            padding: 4px 8px;
+            border-radius: 6px;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            outline: none;
+            cursor: pointer;
         }
 
-        .status-list {
+        .status-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
+            justify-content: center;
+            width: 100%;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--card-border);
+            padding-top: 12px;
         }
 
         .status-badge {
             background: var(--bg-color);
+            padding: 4px 10px;
+            border-radius: 12px;
             border: 1px solid var(--card-border);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: var(--text-muted);
         }
 
         .status-dot.online {
             background: var(--accent-green);
-            box-shadow: 0 0 8px var(--accent-green);
+            box-shadow: 0 0 6px var(--accent-green);
+        }
+
+        .chat-btn {
+            background: var(--btn-bg);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .chat-btn:hover {
+            background: var(--btn-hover);
+            border-color: var(--accent-blue);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .week-card {
@@ -162,31 +202,25 @@
             border-radius: 14px;
             overflow: hidden;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            transition: border-color 0.2s;
-        }
-
-        .week-card:hover {
-            border-color: var(--card-border-glow);
         }
 
         .week-header {
             background: rgba(255, 255, 255, 0.02);
-            padding: 14px 20px;
+            padding: 12px 16px;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: var(--accent-blue);
             border-bottom: 1px solid var(--card-border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         .match-row {
-            padding: 16px 20px;
+            padding: 14px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--card-border);
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .match-row:last-child {
@@ -200,36 +234,58 @@
         .match-title {
             font-weight: 600;
             color: var(--text-muted);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 6px;
         }
 
-        .players-list {
-            font-size: 1.05rem;
-            color: var(--text-main);
+        .players-container {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .player-chip {
+            background: var(--bg-color);
+            border: 1px solid var(--card-border);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.95rem;
             font-weight: 500;
+        }
+
+        .player-chip.me {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+            background: var(--accent-green-bg);
+        }
+
+        .vs-text {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 0 2px;
         }
 
         .btn-edit {
             background-color: var(--btn-bg);
             color: var(--text-main);
             border: 1px solid var(--card-border);
-            padding: 8px 14px;
+            padding: 6px 12px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            transition: background 0.2s, border-color 0.2s;
+            transition: background 0.2s;
         }
 
         .btn-edit:hover {
             background-color: var(--btn-hover);
-            border-color: var(--accent-blue);
         }
 
-        /* Modal Popup */
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -249,18 +305,16 @@
             border-radius: 16px;
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
 
         .modal-content h3 {
-            margin-top: 0;
             color: var(--accent-green);
-            font-size: 1.25rem;
+            font-size: 1.2rem;
             margin-bottom: 16px;
         }
 
         .player-select-group {
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
 
         .player-select-group label {
@@ -273,12 +327,12 @@
 
         .player-select-group select, .player-select-group input {
             width: 100%;
-            padding: 10px;
+            padding: 8px 10px;
             background: var(--bg-color);
             color: var(--text-main);
             border: 1px solid var(--card-border);
             border-radius: 8px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             outline: none;
         }
 
@@ -286,36 +340,27 @@
             display: flex;
             justify-content: flex-end;
             gap: 10px;
-            margin-top: 20px;
+            margin-top: 16px;
         }
 
         .btn-cancel {
-            background-color: transparent;
+            background: transparent;
             color: var(--text-muted);
             border: 1px solid var(--card-border);
-            padding: 9px 16px;
+            padding: 8px 14px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
         }
 
-        .btn-cancel:hover {
-            color: var(--text-main);
-            border-color: var(--text-muted);
-        }
-
         .btn-save {
-            background-color: var(--accent-green);
+            background: var(--accent-green);
             color: #0b0f19;
             border: none;
-            padding: 9px 16px;
+            padding: 8px 14px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 700;
-        }
-
-        .btn-save:hover {
-            opacity: 0.9;
         }
     </style>
 </head>
@@ -325,22 +370,30 @@
     <header>
         <div class="header-top">
             <h1>🎾 Padelschema</h1>
-            <!-- Live klok, datum en weeknummer -->
+            
+            <!-- Live klok en oranje weeknummer -->
             <div id="liveClock" class="live-clock-badge">Laden...</div>
+
+            <div class="user-select-container">
+                <label for="userSelect">Jij:</label>
+                <select id="userSelect" onchange="changeUser()">
+                    <!-- Wordt dynamisch gevuld -->
+                </select>
+            </div>
+        </div>
+
+        <div id="statusList" class="status-container">
+            Laden status...
         </div>
     </header>
 
-    <!-- Actieve status van spelers -->
-    <div class="status-card">
-        <div class="status-title">Spelers Status</div>
-        <div id="statusList" class="status-list">Laden status...</div>
-    </div>
+    <a href="chat.html" class="chat-btn">💬 Team Chat bekijken</a>
 
-    <!-- Hier komt het dynamische schema -->
+    <div class="section-title">📅 Speelschema (komende 6 weken)</div>
     <div id="scheduleContainer" style="display: flex; flex-direction: column; gap: 16px;">Laden van schema...</div>
 </div>
 
-<!-- Modal voor wijzigen spelers -->
+<!-- Modal voor wijzigen -->
 <div id="replaceModal" class="modal">
     <div class="modal-content">
         <h3 id="modalSubTitle">Spelers wijzigen</h3>
@@ -348,22 +401,22 @@
         <div class="player-select-group">
             <label>Speler 1</label>
             <select id="p0Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p0Custom" placeholder="Naam invaller" style="display:none; margin-top:6px;">
+            <input type="text" id="p0Custom" placeholder="Naam invaller" style="display:none; margin-top:4px;">
         </div>
         <div class="player-select-group">
             <label>Speler 2</label>
             <select id="p1Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p1Custom" placeholder="Naam invaller" style="display:none; margin-top:6px;">
+            <input type="text" id="p1Custom" placeholder="Naam invaller" style="display:none; margin-top:4px;">
         </div>
         <div class="player-select-group">
             <label>Speler 3</label>
             <select id="p2Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p2Custom" placeholder="Naam invaller" style="display:none; margin-top:6px;">
+            <input type="text" id="p2Custom" placeholder="Naam invaller" style="display:none; margin-top:4px;">
         </div>
         <div class="player-select-group">
             <label>Speler 4</label>
             <select id="p3Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p3Custom" placeholder="Naam invaller" style="display:none; margin-top:6px;">
+            <input type="text" id="p3Custom" placeholder="Naam invaller" style="display:none; margin-top:4px;">
         </div>
 
         <div class="modal-buttons">
@@ -374,7 +427,6 @@
 </div>
 
 <script>
-    // --- FIREBASE CONFIGURATIE ---
     const firebaseConfig = {
         databaseURL: "https://padelschema-default-rtdb.europe-west1.firebasedatabase.app/"
     };
@@ -385,7 +437,7 @@
     const db = firebase.database();
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
-    const currentUserName = "Robert"; 
+    let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
 
     const defaultTemplate = [
         { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
@@ -400,6 +452,7 @@
     let allStatuses = {};
 
     document.addEventListener('DOMContentLoaded', () => {
+        initUserSelect();
         updateLiveClock();
         setInterval(updateLiveClock, 1000);
 
@@ -416,10 +469,9 @@
         setupOnlinePresence();
     });
 
-    // --- LIVE KLOK EN DATUM FUNCTIE ---
+    // --- LIVE KLOK EN DATUM MET ORANJE WEEKNUMMER ---
     function updateLiveClock() {
         const now = new Date();
-        
         const optionsDate = { weekday: 'short', day: 'numeric', month: 'short' };
         const dateStr = now.toLocaleDateString('nl-NL', optionsDate);
         const timeStr = now.toLocaleTimeString('nl-NL');
@@ -434,25 +486,29 @@
         if (clockEl) clockEl.innerHTML = clockHtml;
     }
 
-    // --- ONLINE STATUS LOGICA ---
+    function initUserSelect() {
+        const select = document.getElementById('userSelect');
+        select.innerHTML = basePlayers.map(p => `<option value="${p}" ${p === currentUserName ? 'selected' : ''}>${p}</option>`).join('');
+    }
+
+    function changeUser() {
+        const select = document.getElementById('userSelect');
+        currentUserName = select.value;
+        localStorage.setItem('padel_current_user', currentUserName);
+        setupOnlinePresence();
+        renderStatuses();
+        renderSchedule();
+    }
+
     function setupOnlinePresence() {
         const userStatusRef = db.ref(`status/${currentUserName}`);
-
-        const isOfflineForDatabase = {
-            state: "offline",
-            lastChanged: firebase.database.ServerValue.TIMESTAMP
-        };
-
-        const isOnlineForDatabase = {
-            state: "online",
-            lastChanged: firebase.database.ServerValue.TIMESTAMP
-        };
+        const isOffline = { state: "offline", lastChanged: firebase.database.ServerValue.TIMESTAMP };
+        const isOnline = { state: "online", lastChanged: firebase.database.ServerValue.TIMESTAMP };
 
         db.ref('.info/connected').on('value', (snapshot) => {
             if (snapshot.val() === false) return;
-
-            userStatusRef.onDisconnect().set(isOfflineForDatabase).then(() => {
-                userStatusRef.set(isOnlineForDatabase);
+            userStatusRef.onDisconnect().set(isOffline).then(() => {
+                userStatusRef.set(isOnline);
             });
         });
     }
@@ -464,10 +520,10 @@
         const diffHours = Math.floor(diffMins / 60);
         const diffDays = Math.floor(diffHours / 24);
 
-        if (diffMins < 2) return "Online";
-        if (diffMins < 60) return `${diffMins} min geleden`;
-        if (diffHours < 24) return `${diffHours} uur geleden`;
-        return `${diffDays} dag(en) geleden`;
+        if (diffMins < 2) return "online";
+        if (diffMins < 60) return `${diffMins}u geleden`;
+        if (diffHours < 24) return `${diffHours}d geleden`;
+        return `${diffDays}d geleden`;
     }
 
     function renderStatuses() {
@@ -478,42 +534,36 @@
         basePlayers.forEach(player => {
             const statusData = allStatuses[player];
             const isOnline = statusData && statusData.state === "online" && (Date.now() - statusData.lastChanged < 120000);
-            const statusText = isOnline ? "Online" : formatLastSeen(statusData ? statusData.lastChanged : null);
+            const statusText = isOnline ? "online" : formatLastSeen(statusData ? statusData.lastChanged : null);
             const dotClass = isOnline ? "online" : "";
 
             html += `
                 <div class="status-badge">
                     <span class="status-dot ${dotClass}"></span>
-                    <span>${player}: <strong style="color:var(--text-main);">${statusText}</strong></span>
+                    <span>${player} (${statusText})</span>
                 </div>
             `;
         });
-
         container.innerHTML = html;
     }
 
     const berekenHuidigeCyclusWeek = () => {
         const startDatum = new Date('2026-09-07T00:00:00');
         const nu = new Date();
-
         const verschilInMs = nu - startDatum;
         if (verschilInMs < 0) return 0;
 
         const extraOffsetMs = 1000 * 60 * 60 * 24 * 3;
         const aangepastVerschil = verschilInMs + extraOffsetMs;
-
         const verschilInWeken = Math.floor(aangepastVerschil / (1000 * 60 * 60 * 24 * 7));
-        const huidigeWeekIndex = verschilInWeken % 6;
-
-        return huidigeWeekIndex;
+        return verschilInWeken % 6;
     };
 
     function getWeekNumber(d) {
         d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
         d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
         var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-        var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
-        return weekNo;
+        return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
     }
 
     function formatDateDDMMYY(date) {
@@ -538,9 +588,8 @@
             doDate.setDate(diDate.getDate() + 3);
 
             const currentTemplateWeek = defaultTemplate[currentCycleIndex];
-
-            let dinsdagPlayers = currentTemplateWeek.dinsdag;
-            let donderdagPlayers = currentTemplateWeek.donderdag;
+            let dinsdagPlayers = [...currentTemplateWeek.dinsdag];
+            let donderdagPlayers = [...currentTemplateWeek.donderdag];
 
             if (liveOverrides[weekIndex]) {
                 if (liveOverrides[weekIndex].dinsdag) dinsdagPlayers = liveOverrides[weekIndex].dinsdag;
@@ -559,6 +608,17 @@
         return weeks;
     }
 
+    function renderPlayersHtml(players) {
+        return players.map((p, idx) => {
+            const isMe = p === currentUserName;
+            const chipClass = isMe ? "player-chip me" : "player-chip";
+            let html = `<span class="${chipClass}">${p}</span>`;
+            if (idx === 1) html += ` <span class="vs-text">VS</span> `;
+            else if (idx < 3) html += ` `;
+            return html;
+        }).join('');
+    }
+
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
         const weeks = getActiveDisplayWeeks();
@@ -568,26 +628,25 @@
             html += `
                 <div class="week-card">
                     <div class="week-header">
-                        <span>Week ${w.weekNumber} (Cyclus Week ${w.weekIndex})</span>
+                        Week ${w.weekNumber}
                     </div>
                     <div class="match-row">
                         <div class="match-info">
-                            <div class="match-title">Dinsdag (${w.dinsdagDateStr})</div>
-                            <div class="players-list">${w.dinsdag.join(', ')}</div>
+                            <div class="match-title">Dinsdag ${w.dinsdagDateStr}</div>
+                            <div class="players-container">${renderPlayersHtml(w.dinsdag)}</div>
                         </div>
                         <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'dinsdag')">Wijzig</button>
                     </div>
                     <div class="match-row">
                         <div class="match-info">
-                            <div class="match-title">Donderdag (${w.donderdagDateStr})</div>
-                            <div class="players-list">${w.donderdag.join(', ')}</div>
+                            <div class="match-title">Donderdag ${w.donderdagDateStr}</div>
+                            <div class="players-container">${renderPlayersHtml(w.donderdag)}</div>
                         </div>
                         <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'donderdag')">Wijzig</button>
                     </div>
                 </div>
             `;
         });
-
         container.innerHTML = html;
     }
 
@@ -597,7 +656,6 @@
     window.openReplaceModal = function(weekIndex, day) {
         currentEditingWeek = weekIndex;
         currentEditingDay = day;
-
         document.getElementById("modalSubTitle").innerText = `Cyclus Week ${weekIndex} - ${day === 'dinsdag' ? 'Dinsdag' : 'Donderdag'}`;
         
         const activeWeeks = getActiveDisplayWeeks();
@@ -609,9 +667,7 @@
             const customInput = document.getElementById(`p${i}Custom`);
             
             let optionsHtml = `<option value="">-- Kies speler --</option>`;
-            basePlayers.forEach(p => {
-                optionsHtml += `<option value="${p}">${p}</option>`;
-            });
+            basePlayers.forEach(p => { optionsHtml += `<option value="${p}">${p}</option>`; });
             optionsHtml += `<option value="custom">-- Invaller (typ naam) --</option>`;
             select.innerHTML = optionsHtml;
 
@@ -630,7 +686,6 @@
                 customInput.value = "";
             }
         }
-
         document.getElementById("replaceModal").style.display = "flex";
     };
 
@@ -660,7 +715,6 @@
             if (!val) val = basePlayers[i];
             newPlayers.push(val);
         }
-
         await db.ref(`scheduleOverrides/${currentEditingWeek}/${currentEditingDay}`).set(newPlayers);
         closeModal();
     };
