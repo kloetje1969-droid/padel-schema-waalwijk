@@ -177,27 +177,38 @@
             gap: 8px;
         }
 
-        /* Navigatie tabs / knoppen tussen rooster, afwezigheid en chat */
-        .nav-tabs {
+        /* Navigatie menu onder elkaar */
+        .nav-menu {
             display: flex;
-            gap: 8px;
+            flex-direction: column;
+            gap: 10px;
             width: 100%;
         }
 
-        .nav-tab {
-            flex: 1;
+        .nav-btn {
+            width: 100%;
             background: var(--card-bg);
             border: 1px solid var(--card-border);
-            color: var(--text-muted);
-            padding: 10px;
-            border-radius: 10px;
+            color: var(--text-main);
+            padding: 14px 18px;
+            border-radius: 12px;
             font-weight: 600;
-            text-align: center;
+            font-size: 1rem;
+            text-align: left;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             transition: all 0.2s;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
 
-        .nav-tab.active {
+        .nav-btn:hover {
+            background: var(--btn-bg);
+            border-color: var(--card-border-glow);
+        }
+
+        .nav-btn.active {
             background: var(--btn-bg);
             color: var(--accent-green);
             border-color: var(--accent-green);
@@ -211,6 +222,19 @@
 
         .app-section.active {
             display: flex;
+        }
+
+        .btn-back {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--accent-blue);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            align-self: flex-start;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
         }
 
         .week-card {
@@ -302,7 +326,7 @@
             background-color: var(--btn-hover);
         }
 
-        /* Chat sectie styling */
+        /* Chat styling */
         .chat-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
@@ -516,22 +540,36 @@
         </div>
     </header>
 
-    <!-- Navigatie knoppen -->
-    <div class="nav-tabs">
-        <button class="nav-tab active" onclick="switchTab('schedule')">📅 Speelschema</button>
-        <button class="nav-tab" onclick="switchTab('absence')">🏖️ Afwezigheid</button>
-        <button class="nav-tab" onclick="switchTab('chat')">💬 Team Chat</button>
+    <!-- HOOFDMENU (Menu's onder elkaar) -->
+    <div id="section-menu" class="app-section active">
+        <div class="section-title">📌 Hoofdmenu</div>
+        <div class="nav-menu">
+            <button class="nav-btn" onclick="switchSection('schedule')">
+                <span>📅 Speelschema bekijken & wijzigen</span>
+                <span>➔</span>
+            </button>
+            <button class="nav-btn" onclick="switchSection('absence')">
+                <span>🏖️ Afwezigheid melden & overzicht</span>
+                <span>➔</span>
+            </button>
+            <button class="nav-btn" onclick="switchSection('chat')">
+                <span>💬 Team Chat</span>
+                <span>➔</span>
+            </button>
+        </div>
     </div>
 
     <!-- SECTIE 1: SPEELSCHEMA -->
-    <div id="section-schedule" class="app-section active">
+    <div id="section-schedule" class="app-section">
+        <button class="btn-back" onclick="switchSection('menu')">⬅️ Terug naar hoofdmenu</button>
         <div class="section-title">📅 Speelschema (komende 6 weken)</div>
         <div id="scheduleContainer" style="display: flex; flex-direction: column; gap: 16px;">Laden van schema...</div>
     </div>
 
     <!-- SECTIE 2: AFWEZIGHEID -->
     <div id="section-absence" class="app-section">
-        <div class="section-title">🏖️ Afwezigheid melden & beheren</div>
+        <button class="btn-back" onclick="switchSection('menu')">⬅️ Terug naar hoofdmenu</button>
+        <div class="section-title">🏖️ Afwezigheid melden</div>
         <div class="absence-card">
             <div class="player-select-group">
                 <label>Wie is er afwezig / op vakantie?</label>
@@ -560,6 +598,7 @@
 
     <!-- SECTIE 3: CHAT -->
     <div id="section-chat" class="app-section">
+        <button class="btn-back" onclick="switchSection('menu')">⬅️ Terug naar hoofdmenu</button>
         <div class="section-title">💬 Team Chat</div>
         <div class="chat-card">
             <div id="chatMessages" class="chat-messages">
@@ -661,12 +700,10 @@
         setupOnlinePresence();
     });
 
-    function switchTab(tabName) {
+    function switchSection(sectionName) {
         document.querySelectorAll('.app-section').forEach(sec => sec.classList.remove('active'));
-        document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-        
-        document.getElementById(`section-${tabName}`).classList.add('active');
-        event.currentTarget.classList.add('active');
+        document.getElementById(`section-${sectionName}`).classList.add('active');
+        window.scrollTo(0, 0);
     }
 
     function updateLiveClock() {
