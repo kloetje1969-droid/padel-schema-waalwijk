@@ -66,15 +66,6 @@
             box-shadow: var(--main-glow);
         }
 
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
         h1 {
             font-size: 1.5rem;
             font-weight: 700;
@@ -82,21 +73,26 @@
             letter-spacing: -0.025em;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 10px;
+            width: 100%;
+            text-align: center;
         }
 
-        /* Live klok en datum styling met oranje weeknummer */
+        /* Live klok en datum styling met oranje weeknummer (gecentreerd onder de titel) */
         .live-clock-badge {
             background: var(--bg-color);
             border: 1px solid var(--card-border);
-            padding: 6px 12px;
+            padding: 6px 16px;
             border-radius: 10px;
             font-size: 0.85rem;
             color: var(--text-muted);
             display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 2px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            text-align: center;
         }
 
         .live-clock-badge .week-highlight {
@@ -107,6 +103,15 @@
         .live-clock-badge strong {
             color: var(--accent-blue);
             font-weight: 600;
+        }
+
+        .user-select-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            border-top: 1px solid var(--card-border);
+            padding-top: 12px;
         }
 
         .user-select-container {
@@ -139,8 +144,6 @@
             width: 100%;
             font-size: 0.8rem;
             color: var(--text-muted);
-            border-top: 1px solid var(--card-border);
-            padding-top: 12px;
         }
 
         .status-badge {
@@ -368,17 +371,24 @@
 
 <div class="container">
     <header>
-        <div class="header-top">
-            <h1>🎾 Padelschema</h1>
-            
-            <!-- Live klok en oranje weeknummer -->
-            <div id="liveClock" class="live-clock-badge">Laden...</div>
+        <!-- Gecentreerde titel met tennisballen er omheen -->
+        <h1>🎾 Padelschema 🎾</h1>
+        
+        <!-- Live klok en oranje weeknummer direct onder de titel -->
+        <div id="liveClock" class="live-clock-badge">Laden...</div>
 
+        <!-- Gebruiker selectie & Database status rij -->
+        <div class="user-select-row">
             <div class="user-select-container">
                 <label for="userSelect">Jij:</label>
                 <select id="userSelect" onchange="changeUser()">
                     <!-- Wordt dynamisch gevuld -->
                 </select>
+            </div>
+            
+            <div style="font-size: 0.8rem; color: var(--accent-green); display: flex; align-items: center; gap: 6px;">
+                <span class="status-dot online"></span>
+                <span>Live verbonden</span>
             </div>
         </div>
 
@@ -479,6 +489,7 @@
 
         const clockHtml = `
             <span><span class="week-highlight">Week ${weekNum}</span> | <strong>${dateStr}</strong></span>
+            <span>•</span>
             <strong>${timeStr}</strong>
         `;
         
