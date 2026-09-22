@@ -270,8 +270,9 @@
         }
 
         .player-chip {
-            background: var(--bg-color);
-            border: 1px solid var(--card-border);
+            background: #273444; /* Mooie grijstint voor de namen */
+            border: 1px solid #374151; /* Subtiele grijze rand */
+            color: var(--text-main);
             padding: 4px 8px;
             border-radius: 6px;
             font-size: 0.85rem;
@@ -761,7 +762,6 @@
     }
 
     const berekenHuidigeCyclusWeek = () => {
-        // Vaste referentie: dinsdag 22 september 2026 = start van cyclus index 0 (week 39)
         const startDatum = new Date(2026, 8, 22); 
         startDatum.setHours(0,0,0,0);
         
@@ -771,9 +771,20 @@
         const verschilInMs = nu - startDatum;
         if (verschilInMs < 0) return 0;
         
-        const verschilInDagen = Math.floor(verschilInMs / (1000 * 60 * 60 * 24));
-        const verschilInWeken = Math.floor(verschilInDagen / 7);
-        return verschilInWeken % 6;
+        let adjustedWeken = 0;
+        for (let w = 0; ; w++) {
+            const donderdagVanDieWeek = new Date(startDatum);
+            donderdagVanDieWeek.setDate(startDatum.getDate() + (w * 7) + 2);
+            donderdagVanDieWeek.setHours(23, 59, 59, 999);
+
+            if (nu > donderdagVanDieWeek) {
+                adjustedWeken = w + 1;
+            } else {
+                break;
+            }
+        }
+
+        return adjustedWeken % 6;
     };
 
     function getWeekNumber(d) {
@@ -796,8 +807,6 @@
     }
 
     function getActiveDisplayWeeks() {
-        // Altijd beginnen op dinsdag 22 september 2026 voor week 39
-        const baseStartDate = new Date(2026, 8, 22); 
         let weeks = [];
         let startIndex = berekenHuidigeCyclusWeek();
 
@@ -805,11 +814,9 @@
             const currentCycleIndex = (startIndex + i) % defaultTemplate.length;
             const weekIndex = currentCycleIndex + 1;
             
-            // Bereken exacte dinsdag per week door dagen op te tellen bij 22 sep
             const totalDaysToAdd = ((startIndex + i) * 7);
             const diDate = new Date(2026, 8, 22 + totalDaysToAdd);
             
-            // Donderdag is 2 dagen na de dinsdag
             const doDate = new Date(diDate);
             doDate.setDate(diDate.getDate() + 2);
 
