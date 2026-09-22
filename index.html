@@ -658,7 +658,7 @@
     let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
 
     const defaultTemplate = [
-        { dinsdag: ["Yashin", "Robert", "Dennis", "Ronald"], donderdag: ["Sander", "Dennis", "Mark", "Ronald"] }, // Week 39 start op 22 sep 2026
+        { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] }, // Week 39 (start 22 sep 2026)
         { dinsdag: ["Marcel", "Mark", "Dennis", "Robert"], donderdag: ["Ronald", "Sander", "Mark", "Dennis"] },
         { dinsdag: ["Ronald", "Robert", "Marcel", "Sander"], donderdag: ["Mark", "Marcel", "Dennis", "Ronald"] },
         { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Ronald"] },
@@ -761,20 +761,31 @@
     }
 
     const berekenHuidigeCyclusWeek = () => {
-        const startDatum = new Date('2026-09-22T00:00:00'); // Dinsdag 22 sep 2026 is start week 39
+        // Vaste referentie: dinsdag 22 september 2026 = start van cyclus index 0 (week 39)
+        const startDatum = new Date(2026, 8, 22); 
+        startDatum.setHours(0,0,0,0);
+        
         const nu = new Date();
         nu.setHours(0,0,0,0);
+        
         const verschilInMs = nu - startDatum;
         if (verschilInMs < 0) return 0;
-        const verschilInWeken = Math.floor(verschilInMs / (1000 * 60 * 60 * 24 * 7));
+        
+        const verschilInDagen = Math.floor(verschilInMs / (1000 * 60 * 60 * 24));
+        const verschilInWeken = Math.floor(verschilInDagen / 7);
         return verschilInWeken % 6;
     };
 
     function getWeekNumber(d) {
-        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-        var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-        return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+        const target = new Date(d.valueOf());
+        const dayNr = (d.getDay() + 6) % 7;
+        target.setDate(target.getDate() - dayNr + 3);
+        const firstThursday = target.valueOf();
+        target.setMonth(0, 1);
+        if (target.getDay() !== 4) {
+            target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+        }
+        return Math.ceil((((firstThursday - target) / 86400000) + 1) / 7);
     }
 
     function formatDateDDMMYY(date) {
@@ -785,7 +796,8 @@
     }
 
     function getActiveDisplayWeeks() {
-        const startBaseDate = new Date(2026, 8, 22); // 22 september 2026 = Dinsdag week 39
+        // Altijd beginnen op dinsdag 22 september 2026 voor week 39
+        const baseStartDate = new Date(2026, 8, 22); 
         let weeks = [];
         let startIndex = berekenHuidigeCyclusWeek();
 
@@ -793,10 +805,13 @@
             const currentCycleIndex = (startIndex + i) % defaultTemplate.length;
             const weekIndex = currentCycleIndex + 1;
             
-            const diDate = new Date(startBaseDate);
-            diDate.setDate(startBaseDate.getDate() + ((startIndex + i) * 7));
+            // Bereken exacte dinsdag per week door dagen op te tellen bij 22 sep
+            const totalDaysToAdd = ((startIndex + i) * 7);
+            const diDate = new Date(2026, 8, 22 + totalDaysToAdd);
+            
+            // Donderdag is 2 dagen na de dinsdag
             const doDate = new Date(diDate);
-            doDate.setDate(diDate.getDate() + 2); // Donderdag is 2 dagen na dinsdag
+            doDate.setDate(diDate.getDate() + 2);
 
             const currentTemplateWeek = defaultTemplate[currentCycleIndex];
             let dinsdagPlayers = [...currentTemplateWeek.dinsdag];
