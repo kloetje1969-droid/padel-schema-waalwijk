@@ -4,11 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Padelschema</title>
-    <!-- Firebase App (compat) -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <!-- Firebase Realtime Database -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    
     <style>
         :root {
             --bg-color: #0f172a;
@@ -200,7 +195,31 @@
             justify-content: space-between;
             box-shadow: 0 4px 18px -2px var(--glow-color), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
-            text-decoration: none;
+        }
+        
+        .global-chat-alert-btn.has-new {
+            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+            color: white !important;
+            border-color: #f87171 !important;
+            box-shadow: 0 4px 22px rgba(239, 68, 68, 0.8) !important;
+            animation: red-pulse-blink 0.8s infinite ease-in-out !important;
+        }
+
+        .alert-badge-count {
+            background: white;
+            color: #dc2626;
+            font-size: 0.75rem;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        @keyframes red-pulse-blink {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.97); }
+            100% { opacity: 1; transform: scale(1); }
         }
 
         .card { display: flex; flex-direction: column; gap: 12px; }
@@ -232,12 +251,41 @@
         .player-tag.highlight { background: var(--accent); color: #0f172a; font-weight: 800; box-shadow: 0 0 10px rgba(52, 211, 153, 0.7); }
         .player-tag.sub { background: #ab47bc; color: white; }
 
+        .absence-alert { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: #fca5a5; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 500; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+        
         .replace-btn { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-muted); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 500; }
         .replace-btn:hover { background: var(--accent); color: #0f172a; border-color: var(--accent); font-weight: bold; box-shadow: 0 0 10px rgba(52, 211, 153, 0.6); }
 
-        .absence-alert { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: #fca5a5; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 500; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+        .table-scroll-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid var(--border); }
+        .stats-table, .absence-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; white-space: nowrap; background: var(--bg-color); }
+        .stats-table th, .stats-table td, .absence-table th, .absence-table td { padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border); }
+        .stats-table th, .absence-table th { color: var(--text-muted); font-weight: 600; background: rgba(0, 0, 0, 0.2); }
+        .stats-table tr:last-child td, .absence-table tr:last-child td { border-bottom: none; }
+        .stats-table tr.highlight-row, .absence-table tr.highlight-row { background-color: rgba(52, 211, 153, 0.18); font-weight: bold; }
+        .stats-table tr.highlight-row td { color: var(--accent); }
 
-        /* Modal */
+        .absence-btn { background: rgba(52, 211, 153, 0.2); color: var(--accent); border: 1px solid var(--accent); padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; transition: all 0.2s; box-shadow: 0 0 8px rgba(52, 211, 153, 0.3); }
+        .absence-btn.absent { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: var(--danger); box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
+
+        .chat-messages { height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--bg-color); display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; scroll-behavior: smooth; }
+        
+        .message { background: #334155; padding: 8px 12px; border-radius: 8px; max-width: 85%; display: flex; flex-direction: column; gap: 2px; }
+        .message.self { align-self: flex-end; background: #059669; box-shadow: 0 0 10px rgba(5, 150, 105, 0.5); }
+        .message-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .message .author { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; }
+        .message.self .author { color: #d1fae5; }
+        
+        .delete-msg-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.75rem; padding: 0; }
+        .delete-msg-btn:hover { color: var(--danger); }
+
+        .chat-input-row { display: flex; gap: 8px; margin-top: 8px; }
+        
+        .btn-primary { background: var(--accent); color: #0f172a; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.9rem; transition: background 0.2s, box-shadow 0.2s; box-shadow: 0 0 12px rgba(52, 211, 153, 0.4); }
+        .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 0 16px rgba(52, 211, 153, 0.7); }
+
+        .clear-chat-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
+        .clear-chat-btn:hover { color: white; background: var(--danger); border-color: var(--danger); box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 100; padding: 16px; backdrop-filter: blur(4px); }
         .modal-content { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: 14px; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 14px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 18px rgba(52, 211, 153, 0.3); }
         .team-group { background: var(--bg-color); padding: 12px; border-radius: 10px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
@@ -247,7 +295,6 @@
         .modal-actions button { flex: 1; }
         .btn-cancel { background: var(--border); color: var(--text-main); box-shadow: none; }
         .btn-cancel:hover { background: #475569; color: white; }
-        .btn-primary { background: var(--accent); color: #0f172a; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -278,19 +325,68 @@
         </div>
 
         <div class="sync-status" id="syncStatus">
-            <span class="live-dot"></span> Live verbonden met database
+            <span class="live-dot"></span> Live verbonden met cloud database
         </div>
     </div>
 
-    <a href="chat.html" class="global-chat-alert-btn" id="globalChatAlertBtn">
+    <button class="global-chat-alert-btn" id="globalChatAlertBtn" onclick="handleChatAlertClick()">
         <span id="chatBtnText">💬 Team Chat bekijken</span>
-    </a>
+        <span class="alert-badge-count" id="alertBadgeCount">0</span>
+    </button>
 
     <div class="card">
         <div class="card-header">
             <h2>🎾 Speelschema (Komende 6 Weken)</h2>
         </div>
-        <div class="schedule-list" id="scheduleList">Laden van schema...</div>
+        <div class="schedule-list" id="scheduleList"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>📊 Statistieken (Huidige Reeks)</h2>
+        </div>
+        <div class="table-scroll-wrapper">
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Speler</th>
+                        <th>Dinsdag</th>
+                        <th>Donderdag</th>
+                        <th>Totaal</th>
+                    </tr>
+                </thead>
+                <tbody id="statsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>📅 Afwezigheid / Vakantie</h2>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">Klik op je knop om aan of uit te zetten of je kunt spelen:</p>
+        <div class="table-scroll-wrapper">
+            <table class="absence-table">
+                <thead>
+                    <tr id="absenceHeaderRow">
+                        <th style="text-align: left; position: sticky; left: 0; background: #1e293b; z-index: 2;">Speler</th>
+                    </tr>
+                </thead>
+                <tbody id="absenceTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" id="chatCardSection">
+        <div class="card-header">
+            <h2>💬 Team Chat</h2>
+            <button class="clear-chat-btn" onclick="clearAllChat()">🗑️ Alles wissen</button>
+        </div>
+        <div class="chat-messages" id="chatWindow"></div>
+        <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="Typ een bericht voor het team..." onkeypress="handleKeyPress(event)">
+            <button class="btn-primary" onclick="sendMessage()">Verzend</button>
+        </div>
     </div>
 </div>
 
@@ -331,108 +427,137 @@
     </div>
 </div>
 
-<script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
     const firebaseConfig = {
         databaseURL: "https://padel-team-6-default-rtdb.europe-west1.firebasedatabase.app"
     };
-    
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    const db = firebase.database();
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
-    let currentUser = localStorage.getItem('padel_currentUser_stable') || "Robert";
+    
+    let customScheduleOverrides = {}; 
+    let messages = [];
+    let absenceData = {};
+    let onlineUsers = {};
+
+    let currentUser = localStorage.getItem("padel_currentUser_stable") || "Robert";
     document.getElementById("currentUser").value = currentUser;
 
     const sessionToken = 'sess_' + Math.random().toString(36).substring(2, 9);
-    let customScheduleOverrides = {};
-    let allStatuses = {};
-    let absences = {};
-
-    document.addEventListener('DOMContentLoaded', () => {
-        setupOnlinePresence();
-
-        db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
-            customScheduleOverrides = snapshot.val() || {};
-            renderSchedule();
-        });
-
-        db.ref('padelData/absence').on('value', (snapshot) => {
-            absences = snapshot.val() || {};
-            renderSchedule();
-        });
-    });
 
     function setupOnlinePresence() {
-        const userOnlineRef = db.ref(`onlineUsers/${currentUser}_${sessionToken}`);
-        userOnlineRef.set({ name: currentUser, timestamp: Date.now() });
-        userOnlineRef.onDisconnect().remove();
+        const userOnlineRef = ref(db, `onlineUsers/${currentUser}_${sessionToken}`);
+        
+        set(userOnlineRef, { name: currentUser, timestamp: Date.now() });
+        onDisconnect(userOnlineRef).remove();
 
-        db.ref('onlineUsers').on('value', (snapshot) => {
-            const container = document.getElementById("onlineUsersList");
-            container.innerHTML = "";
-            const val = snapshot.val() || {};
-
-            let activeMap = {};
-            Object.values(val).forEach(item => {
-                if (item && item.name) activeMap[item.name] = true;
-            });
-
-            basePlayers.forEach(player => {
-                const isOnline = !!activeMap[player];
-                const isCurrent = player === currentUser;
-                const tag = document.createElement("div");
-                tag.className = `online-tag ${isOnline ? 'active' : ''}`;
-                tag.innerHTML = `
-                    <span class="online-dot-mini"></span>
-                    <span>${player}${isCurrent ? ' (Jij)' : ''}</span>
-                `;
-                container.appendChild(tag);
-            });
+        const allOnlineRef = ref(db, 'onlineUsers');
+        onValue(allOnlineRef, (snapshot) => {
+            onlineUsers = {};
+            const val = snapshot.val();
+            if (val) {
+                Object.values(val).forEach(item => {
+                    if (item && item.name) {
+                        onlineUsers[item.name] = true;
+                    }
+                });
+            }
+            renderOnlineUsers();
         });
 
         setInterval(() => {
-            userOnlineRef.set({ name: currentUser, timestamp: Date.now() });
+            set(userOnlineRef, { name: currentUser, timestamp: Date.now() });
         }, 15000);
     }
 
-    window.changeUser = function() {
-        db.ref(`onlineUsers/${currentUser}_${sessionToken}`).remove();
-        currentUser = document.getElementById("currentUser").value;
-        localStorage.setItem("padel_currentUser_stable", currentUser);
-        setupOnlinePresence();
-        renderSchedule();
+    function renderOnlineUsers() {
+        const container = document.getElementById("onlineUsersList");
+        container.innerHTML = "";
+
+        basePlayers.forEach(player => {
+            const isOnline = !!onlineUsers[player];
+            const isCurrent = player === currentUser;
+            const tag = document.createElement("div");
+            tag.className = `online-tag ${isOnline ? 'active' : ''}`;
+            tag.innerHTML = `
+                <span class="online-dot-mini"></span>
+                <span>${player}${isCurrent ? ' (Jij)' : ''}</span>
+            `;
+            container.appendChild(tag);
+        });
     }
 
-    const defaultTemplate = [
-        { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
-        { dinsdag: ["Marcel", "Mark", "Dennis", "Robert"], donderdag: ["Ronald", "Sander", "Mark", "Dennis"] },
-        { dinsdag: ["Ronald", "Robert", "Marcel", "Sander"], donderdag: ["Mark", "Marcel", "Dennis", "Ronald"] },
-        { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Ronald"] },
-        { dinsdag: ["Mark", "Dennis", "Sander", "Robert"], donderdag: ["Marcel", "Sander", "Ronald", "Dennis"] },
-        { dinsdag: ["Sander", "Ronald", "Robert", "Mark"], donderdag: ["Marcel", "Dennis", "Mark", "Sander"] }
-    ];
+    function formatDateDDMMYY(dateObj) {
+        const dd = String(dateObj.getDate()).padStart(2, '0');
+        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const yy = String(dateObj.getFullYear()).slice(-2);
+        return `${dd}-${mm}-${yy}`;
+    }
 
     function getWeekNumber(d) {
-        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-        var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-        return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+        const target = new Date(d.valueOf());
+        const dayNr = (d.getDay() + 6) % 7;
+        target.setDate(target.getDate() - dayNr + 3);
+        const firstThursday = target.valueOf();
+        target.setMonth(0, 1);
+        if (target.getDay() !== 4) {
+            target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+        }
+        return Math.ceil((((firstThursday - target) / 86400000) + 1) / 7);
     }
 
-    function formatDateDDMMYY(date) {
-        const d = String(date.getDate()).padStart(2, '0');
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const y = String(date.getFullYear()).slice(-2);
-        return `${d}-${m}-${y}`;
+    let initialLoadDone = false;
+    let previousMessageCount = 0;
+    let previousScheduleString = "";
+    let previousAbsenceString = "";
+
+    const dbRef = ref(db, 'padelData');
+    onValue(dbRef, (snapshot) => {
+        const val = snapshot.val();
+        if (val) {
+            customScheduleOverrides = val.scheduleOverrides || {};
+            messages = val.messages ? Object.values(val.messages) : [];
+            absenceData = val.absence || {};
+        } else {
+            saveToCloud();
+        }
+        
+        refreshUIOnly(initialLoadDone);
+        initialLoadDone = true;
+    });
+
+    setupOnlinePresence();
+
+    function saveToCloud() {
+        previousMessageCount = messages.length;
+        previousScheduleString = JSON.stringify(customScheduleOverrides);
+        previousAbsenceString = JSON.stringify(absenceData);
+
+        const payload = { scheduleOverrides: customScheduleOverrides, messages, absence: absenceData };
+        set(ref(db, 'padelData'), payload).catch((error) => {
+            console.error("Opslaan mislukt: ", error);
+        });
     }
 
     function getActiveDisplayWeeks() {
-        const baseStartDate = new Date(2026, 8, 7);
-        let weeks = [];
+        const activeWeeks = [];
+        const defaultTemplate = [
+            { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
+            { dinsdag: ["Marcel", "Mark", "Dennis", "Robert"], donderdag: ["Ronald", "Sander", "Mark", "Dennis"] },
+            { dinsdag: ["Ronald", "Robert", "Marcel", "Sander"], donderdag: ["Mark", "Marcel", "Dennis", "Ronald"] },
+            { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Ronald"] },
+            { dinsdag: ["Mark", "Dennis", "Sander", "Robert"], donderdag: ["Marcel", "Sander", "Ronald", "Dennis"] },
+            { dinsdag: ["Sander", "Ronald", "Robert", "Mark"], donderdag: ["Marcel", "Dennis", "Mark", "Sander"] }
+        ];
+
+        const baseStartDate = new Date(2026, 8, 7); 
         const today = new Date();
-        today.setHours(0,0,0,0);
+        today.setHours(0, 0, 0, 0);
 
         const diffDays = Math.floor((today - baseStartDate) / (1000 * 60 * 60 * 24));
         let startIndex = Math.floor(diffDays / 7);
@@ -441,134 +566,328 @@
         for (let i = 0; i < 6; i++) {
             const absoluteIndex = startIndex + i;
             const templateIndex = absoluteIndex % 6;
-            
+
             const tuesdayDate = new Date(baseStartDate);
             tuesdayDate.setDate(baseStartDate.getDate() + (absoluteIndex * 7));
+            
             const thursdayDate = new Date(tuesdayDate);
             thursdayDate.setDate(thursdayDate.getDate() + 3);
 
-            let dinsdagPlayers = [...defaultTemplate[templateIndex].dinsdag];
-            let donderdagPlayers = [...defaultTemplate[templateIndex].donderdag];
-
-            if (customScheduleOverrides[absoluteIndex]) {
-                if (customScheduleOverrides[absoluteIndex].dinsdag) dinsdagPlayers = customScheduleOverrides[absoluteIndex].dinsdag;
-                if (customScheduleOverrides[absoluteIndex].donderdag) donderdagPlayers = customScheduleOverrides[absoluteIndex].donderdag;
-            }
-
-            weeks.push({
+            const weekItem = {
                 weekIndex: absoluteIndex,
                 displayWeekNum: getWeekNumber(tuesdayDate),
                 tuesdayDateStr: formatDateDDMMYY(tuesdayDate),
                 thursdayDateStr: formatDateDDMMYY(thursdayDate),
-                dinsdag: dinsdagPlayers,
-                donderdag: donderdagPlayers
-            });
+                dinsdag: [...defaultTemplate[templateIndex].dinsdag],
+                donderdag: [...defaultTemplate[templateIndex].donderdag]
+            };
+
+            if (customScheduleOverrides[absoluteIndex]) {
+                if (customScheduleOverrides[absoluteIndex].dinsdag) {
+                    weekItem.dinsdag = [...customScheduleOverrides[absoluteIndex].dinsdag];
+                }
+                if (customScheduleOverrides[absoluteIndex].donderdag) {
+                    weekItem.donderdag = [...customScheduleOverrides[absoluteIndex].donderdag];
+                }
+            }
+
+            activeWeeks.push(weekItem);
         }
-        return weeks;
+        return activeWeeks;
     }
 
-    function checkAbsence(player, weekIndex, day) {
-        return !!absences[`${player}_${weekIndex}_${day}`];
+    function refreshUIOnly(isLoaded) {
+        renderStats();
+        renderSchedule();
+        renderAbsenceTable();
+        renderOnlineUsers();
+        renderChat();
+
+        if (isLoaded) {
+            const currentScheduleString = JSON.stringify(customScheduleOverrides);
+            const currentAbsenceString = JSON.stringify(absenceData);
+
+            let newChatCount = 0;
+            let scheduleChanged = false;
+            let absenceChanged = false;
+
+            if (messages.length > previousMessageCount) {
+                const lastMsg = messages[messages.length - 1];
+                if (lastMsg && lastMsg.sender !== currentUser) {
+                    newChatCount = messages.length - previousMessageCount;
+                }
+            }
+
+            if (previousScheduleString !== "" && currentScheduleString !== previousScheduleString) {
+                scheduleChanged = true;
+            }
+
+            if (previousAbsenceString !== "" && currentAbsenceString !== previousAbsenceString) {
+                absenceChanged = true;
+            }
+
+            if (newChatCount > 0 || scheduleChanged || absenceChanged) {
+                triggerSmartAlerts({ chat: newChatCount, schedule: scheduleChanged ? 1 : 0, absence: absenceChanged ? 1 : 0 });
+            }
+        } else {
+            scrollToBottom(false);
+        }
+        
+        previousMessageCount = messages.length;
+        previousScheduleString = JSON.stringify(customScheduleOverrides);
+        previousAbsenceString = JSON.stringify(absenceData);
     }
 
-    function renderPlayersHtml(players) {
-        return players.map((p, idx) => {
-            const isMe = p === currentUser;
-            const isSub = !basePlayers.includes(p);
-            let chipClass = "player-tag";
-            if (isMe) chipClass += " highlight";
-            if (isSub) chipClass += " sub";
+    function triggerSmartAlerts(counts) {
+        const btn = document.getElementById("globalChatAlertBtn");
+        const textSpan = document.getElementById("chatBtnText");
+        const badge = document.getElementById("alertBadgeCount");
+        
+        btn.classList.add("has-new");
 
-            let html = `<span class="${chipClass}">${p}</span>`;
-            if (idx === 1) html += ` <span class="vs-divider">VS</span> `;
-            return html;
-        }).join('');
+        let summaryTexts = [];
+        let totalCount = 0;
+
+        if (counts.chat > 0) {
+            summaryTexts.push(`💬 Nieuw bericht (${counts.chat})`);
+            totalCount += counts.chat;
+        }
+        if (counts.schedule > 0) {
+            summaryTexts.push(`🔄 Opstelling gewijzigd`);
+            totalCount += 1;
+        }
+        if (counts.absence > 0) {
+            summaryTexts.push(`🚫 Afwezigheid gewijzigd`);
+            totalCount += 1;
+        }
+
+        if (summaryTexts.length > 0) {
+            textSpan.innerText = summaryTexts.join(' | ');
+        } else {
+            textSpan.innerText = "Nieuwe wijzigingen op ander apparaat!";
+        }
+
+        if (totalCount > 0) {
+            badge.innerText = totalCount;
+            badge.style.display = "inline-block";
+        }
+    }
+
+    window.handleChatAlertClick = function() {
+        const btn = document.getElementById("globalChatAlertBtn");
+        const textSpan = document.getElementById("chatBtnText");
+        const badge = document.getElementById("alertBadgeCount");
+
+        btn.classList.remove("has-new");
+        badge.style.display = "none";
+        textSpan.innerText = "💬 Team Chat bekijken";
+        
+        scrollToBottom(true);
+        document.getElementById("chatCardSection").scrollIntoView({ behavior: 'smooth' });
+    }
+
+    window.changeUser = function() {
+        currentUser = document.getElementById("currentUser").value;
+        localStorage.setItem("padel_currentUser_stable", currentUser);
+        refreshUIOnly(true);
+    }
+
+    function renderStats() {
+        const tbody = document.getElementById("statsTableBody");
+        tbody.innerHTML = "";
+        const activeWeeks = getActiveDisplayWeeks();
+        const allPlayersSet = new Set(basePlayers);
+        
+        activeWeeks.forEach(item => {
+            item.dinsdag.forEach(p => allPlayersSet.add(p));
+            item.donderdag.forEach(p => allPlayersSet.add(p));
+        });
+
+        Array.from(allPlayersSet).forEach(player => {
+            let diCount = 0, doCount = 0;
+            activeWeeks.forEach(item => {
+                item.dinsdag.forEach(p => {
+                    if (p === player && !absenceData[`${player}_${item.weekIndex}_dinsdag`]) diCount++;
+                });
+                item.donderdag.forEach(p => {
+                    if (p === player && !absenceData[`${player}_${item.weekIndex}_donderdag`]) doCount++;
+                });
+            });
+            const total = diCount + doCount;
+            const isCurrent = player === currentUser;
+            const tr = document.createElement("tr");
+            if (isCurrent) tr.className = "highlight-row";
+            tr.innerHTML = `<td style="text-align: left;">${player} ${isCurrent ? '(Jij)' : ''}</td><td>${diCount}x</td><td>${doCount}x</td><td><strong>${total}x</strong></td>`;
+            tbody.appendChild(tr);
+        });
     }
 
     function renderSchedule() {
-        const container = document.getElementById('scheduleList');
-        if (!container) return;
-        const weeks = getActiveDisplayWeeks();
-        let html = '';
+        const container = document.getElementById("scheduleList");
+        container.innerHTML = "";
+        const activeWeeks = getActiveDisplayWeeks();
 
-        weeks.forEach(w => {
+        activeWeeks.forEach(item => {
+            const weekCard = document.createElement("div");
+            weekCard.className = "week-card";
+
+            let diHtml = '';
+            item.dinsdag.forEach((p, idx) => {
+                const isMe = p === currentUser;
+                const isSub = !basePlayers.includes(p);
+                const tagClass = isMe ? 'player-tag highlight' : (isSub ? 'player-tag sub' : 'player-tag');
+                diHtml += `<span class="${tagClass}">${p}</span>`;
+                if (idx === 1) diHtml += `<span class="vs-divider">VS</span>`;
+            });
+
+            let doHtml = '';
+            item.donderdag.forEach((p, idx) => {
+                const isMe = p === currentUser;
+                const isSub = !basePlayers.includes(p);
+                const tagClass = isMe ? 'player-tag highlight' : (isSub ? 'player-tag sub' : 'player-tag');
+                doHtml += `<span class="${tagClass}">${p}</span>`;
+                if (idx === 1) doHtml += `<span class="vs-divider">VS</span>`;
+            });
+
             let diAlert = '';
-            w.dinsdag.forEach(p => {
-                if (checkAbsence(p, w.weekIndex, 'dinsdag')) {
+            item.dinsdag.forEach(p => {
+                if (absenceData[`${p}_${item.weekIndex}_dinsdag`]) {
                     diAlert = `<div class="absence-alert">⚠️ Let op: ${p} afwezig!</div>`;
                 }
             });
 
             let doAlert = '';
-            w.donderdag.forEach(p => {
-                if (checkAbsence(p, w.weekIndex, 'donderdag')) {
+            item.donderdag.forEach(p => {
+                if (absenceData[`${p}_${item.weekIndex}_donderdag`]) {
                     doAlert = `<div class="absence-alert">⚠️ Let op: ${p} afwezig!</div>`;
                 }
             });
 
-            html += `
-                <div class="week-card">
-                    <div class="week-title">Week ${w.displayWeekNum}</div>
-                    <div class="day-box">
-                        <div class="day-header-row">
-                            <span class="day-label di">Dinsdag</span>
-                            <span class="day-date di">${w.tuesdayDateStr}</span>
-                            <button class="replace-btn" onclick="openReplaceModal(${w.weekIndex}, 'dinsdag')">Wijzig</button>
-                        </div>
-                        <div class="player-tags">${renderPlayersHtml(w.dinsdag)}</div>
+            weekCard.innerHTML = `
+                <div class="week-title">Week ${item.displayWeekNum}</div>
+                <div class="day-box">
+                    <div class="day-header-row">
+                        <span class="day-label di">Dinsdag</span>
+                        <span class="day-date di">${item.tuesdayDateStr}</span>
+                        <button class="replace-btn" onclick="openReplaceModal(${item.weekIndex}, 'dinsdag')">Wijzig</button>
                     </div>
-                    ${diAlert}
-                    <div class="day-box" style="margin-top: 6px;">
-                        <div class="day-header-row">
-                            <span class="day-label do">Donderdag</span>
-                            <span class="day-date do">${w.thursdayDateStr}</span>
-                            <button class="replace-btn" onclick="openReplaceModal(${w.weekIndex}, 'donderdag')">Wijzig</button>
-                        </div>
-                        <div class="player-tags">${renderPlayersHtml(w.donderdag)}</div>
-                    </div>
-                    ${doAlert}
+                    <div class="player-tags">${diHtml}</div>
                 </div>
+                ${diAlert}
+                <div class="day-box" style="margin-top: 6px;">
+                    <div class="day-header-row">
+                        <span class="day-label do">Donderdag</span>
+                        <span class="day-date do">${item.thursdayDateStr}</span>
+                        <button class="replace-btn" onclick="openReplaceModal(${item.weekIndex}, 'donderdag')">Wijzig</button>
+                    </div>
+                    <div class="player-tags">${doHtml}</div>
+                </div>
+                ${doAlert}
             `;
+            container.appendChild(weekCard);
         });
-        container.innerHTML = html;
     }
 
-    let currentEditingWeek = null;
-    let currentEditingDay = null;
+    function renderAbsenceTable() {
+        const headerRow = document.getElementById("absenceHeaderRow");
+        const tbody = document.getElementById("absenceTableBody");
+        
+        while (headerRow.cells.length > 1) {
+            headerRow.deleteCell(1);
+        }
+        tbody.innerHTML = "";
 
-    window.openReplaceModal = function(weekIndex, day) {
-        currentEditingWeek = weekIndex;
-        currentEditingDay = day;
         const activeWeeks = getActiveDisplayWeeks();
-        const wObj = activeWeeks.find(w => w.weekIndex === weekIndex);
-        const players = wObj[day];
 
-        document.getElementById("modalSubTitle").innerText = `Week ${wObj.displayWeekNum} - ${day === 'dinsdag' ? 'Dinsdag' : 'Donderdag'}`;
+        activeWeeks.forEach(item => {
+            const thDi = document.createElement("th");
+            thDi.className = "di";
+            thDi.innerHTML = `Di<br><span style="font-size:0.65rem; opacity:0.8">${item.tuesdayDateStr}</span>`;
+            headerRow.appendChild(thDi);
+
+            const thDo = document.createElement("th");
+            thDo.className = "do";
+            thDo.innerHTML = `Do<br><span style="font-size:0.65rem; opacity:0.8">${item.thursdayDateStr}</span>`;
+            headerRow.appendChild(thDo);
+        });
+
+        basePlayers.forEach(player => {
+            const tr = document.createElement("tr");
+            if (player === currentUser) tr.className = "highlight-row";
+
+            const tdName = document.createElement("td");
+            tdName.style.cssText = "text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2; font-weight: bold;";
+            tdName.innerText = `${player}${player === currentUser ? ' (Jij)' : ''}`;
+            tr.appendChild(tdName);
+
+            activeWeeks.forEach(item => {
+                ['dinsdag', 'donderdag'].forEach(day => {
+                    const td = document.createElement("td");
+                    const key = `${player}_${item.weekIndex}_${day}`;
+                    const isAbsent = !!absenceData[key];
+
+                    const btn = document.createElement("button");
+                    btn.className = `absence-btn ${isAbsent ? 'absent' : ''}`;
+                    btn.innerText = isAbsent ? 'Afwezig' : 'Aanwezig';
+                    
+                    btn.onclick = () => {
+                        if (absenceData[key]) {
+                            delete absenceData[key];
+                        } else {
+                            absenceData[key] = true;
+                        }
+                        saveToCloud();
+                    };
+
+                    td.appendChild(btn);
+                    tr.appendChild(td);
+                });
+            });
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    let editingWeekIndex = null;
+    let editingDayKey = null;
+
+    window.openReplaceModal = function(weekIndex, dayKey) {
+        editingWeekIndex = weekIndex;
+        editingDayKey = dayKey;
+
+        const activeWeeks = getActiveDisplayWeeks();
+        const weekObj = activeWeeks.find(w => w.weekIndex === weekIndex);
+        const players = weekObj ? weekObj[dayKey] : ["", "", "", ""];
+
+        document.getElementById("modalSubTitle").innerText = `Week ${weekObj.displayWeekNum} (${dayKey === 'dinsdag' ? 'Dinsdag' : 'Donderdag'})`;
 
         for (let i = 0; i < 4; i++) {
             const select = document.getElementById(`p${i}Select`);
             const customInput = document.getElementById(`p${i}Custom`);
-            
+
             let opts = `<option value="">-- Kies speler --</option>`;
-            basePlayers.forEach(p => { opts += `<option value="${p}">${p}</option>`; });
+            basePlayers.forEach(p => {
+                opts += `<option value="${p}">${p}</option>`;
+            });
             opts += `<option value="custom">-- Invaller (typ naam) --</option>`;
             select.innerHTML = opts;
 
-            const pName = players[i] || "";
-            if (basePlayers.includes(pName)) {
-                select.value = pName;
+            const currentPlayer = players[i] || "";
+            if (basePlayers.includes(currentPlayer)) {
+                select.value = currentPlayer;
                 customInput.style.display = "none";
                 customInput.value = "";
-            } else if (pName) {
+            } else if (currentPlayer) {
                 select.value = "custom";
                 customInput.style.display = "block";
-                customInput.value = pName;
+                customInput.value = currentPlayer;
             } else {
                 select.value = "";
                 customInput.style.display = "none";
                 customInput.value = "";
             }
         }
+
         document.getElementById("replaceModal").style.display = "flex";
     };
 
@@ -590,7 +909,7 @@
     };
 
     window.confirmReplacement = function() {
-        let newPlayers = [];
+        const newPlayers = [];
         for (let i = 0; i < 4; i++) {
             const select = document.getElementById(`p${i}Select`);
             const customInput = document.getElementById(`p${i}Custom`);
@@ -598,9 +917,94 @@
             if (!val) val = basePlayers[i];
             newPlayers.push(val);
         }
-        db.ref(`padelData/scheduleOverrides/${currentEditingWeek}/${currentEditingDay}`).set(newPlayers);
+
+        if (!customScheduleOverrides[editingWeekIndex]) {
+            const activeWeeks = getActiveDisplayWeeks();
+            const weekObj = activeWeeks.find(w => w.weekIndex === editingWeekIndex);
+            customScheduleOverrides[editingWeekIndex] = {
+                dinsdag: [...weekObj.dinsdag],
+                donderdag: [...weekObj.donderdag]
+            };
+        }
+
+        customScheduleOverrides[editingWeekIndex][editingDayKey] = newPlayers;
+        saveToCloud();
         closeModal();
     };
+
+    function renderChat() {
+        const chatWindow = document.getElementById("chatWindow");
+        chatWindow.innerHTML = "";
+
+        if (messages.length === 0) {
+            chatWindow.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">Nog geen berichten. Stuur als eerste een bericht!</div>`;
+            return;
+        }
+
+        messages.forEach((msg, index) => {
+            const isSelf = msg.sender === currentUser;
+            const div = document.createElement("div");
+            div.className = `message ${isSelf ? 'self' : ''}`;
+
+            const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            div.innerHTML = `
+                <div class="message-header">
+                    <span class="author">${msg.sender} • ${timeStr}</span>
+                    <button class="delete-msg-btn" onclick="deleteMessage(${index})">✕</button>
+                </div>
+                <div style="word-break: break-word;">${escapeHtml(msg.text)}</div>
+            `;
+            chatWindow.appendChild(div);
+        });
+    }
+
+    window.sendMessage = function() {
+        const input = document.getElementById("chatInput");
+        const text = input.value.trim();
+        if (!text) return;
+
+        messages.push({
+            sender: currentUser,
+            text: text,
+            timestamp: Date.now()
+        });
+
+        input.value = "";
+        saveToCloud();
+        scrollToBottom(true);
+    };
+
+    window.handleKeyPress = function(e) {
+        if (e.key === "Enter") {
+            sendMessage();
+        }
+    };
+
+    window.deleteMessage = function(index) {
+        messages.splice(index, 1);
+        saveToCloud();
+    };
+
+    window.clearAllChat = function() {
+        if (confirm("Weet je zeker dat je alle chatberichten wilt wissen?")) {
+            messages = [];
+            saveToCloud();
+        }
+    };
+
+    function scrollToBottom(smooth) {
+        const chatWindow = document.getElementById("chatWindow");
+        chatWindow.scrollTo({
+            top: chatWindow.scrollHeight,
+            behavior: smooth ? 'smooth' : 'auto'
+        });
+    }
+
+    function escapeHtml(text) {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
 </script>
 
 </body>
