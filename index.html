@@ -124,19 +124,28 @@
             justify-content: center;
             width: 100%;
             font-size: 0.75rem;
-            color: var(--text-muted);
             border-top: 1px solid var(--card-border);
             padding-top: 10px;
         }
 
         .status-badge {
-            background: var(--bg-color);
+            background: #374151;
+            border: 1px solid #4b5563;
+            color: var(--text-main);
             padding: 4px 8px;
-            border-radius: 10px;
-            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 5px;
+        }
+
+        .status-badge.me {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+            background: var(--accent-green-bg);
+            box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
         }
 
         .status-dot {
@@ -146,6 +155,7 @@
             background: var(--text-muted);
         }
 
+        .status-badge.me .status-dot,
         .status-dot.online {
             background: var(--accent-green);
             box-shadow: 0 0 5px var(--accent-green);
@@ -647,7 +657,7 @@
 <!-- Modal voor wijzigen -->
 <div id="replaceModal" class="modal">
     <div class="modal-content">
-        <h3 id="modalSubTitle">Spelers wijzigen</h3>
+        <h3 id="modalSubTitle">Wijzig</h3>
         
         <div class="player-select-group">
             <label>Speler 1</label>
@@ -781,11 +791,14 @@
             const lastTime = activeMap[player];
             const isOnline = lastTime && (Date.now() - lastTime < 120000);
             const statusText = isOnline ? "online" : formatLastSeen(lastTime);
-            const dotClass = isOnline ? "online" : "";
+            
+            const isMe = player === currentUserName;
+            let badgeClass = "status-badge";
+            if (isMe) badgeClass += " me";
 
             html += `
-                <div class="status-badge">
-                    <span class="status-dot ${dotClass}"></span>
+                <div class="${badgeClass}">
+                    <span class="status-dot"></span>
                     <span>${player} (${statusText})</span>
                 </div>
             `;
@@ -1022,11 +1035,27 @@
                     btn.className = `absence-btn ${isAbsent ? 'absent' : ''}`;
                     btn.innerText = isAbsent ? 'Afw' : 'Aanw';
                     btn.onclick = () => {
-                        if (absences[key]) {
+                        const nowAbsent = !absences[key];
+                        if (!nowAbsent) {
                             db.ref(`padelData/absence/${key}`).remove();
                         } else {
                             db.ref(`padelData/absence/${key}`).set(true);
                         }
+
+                        // Automatisch chatbericht toevoegen bij afwezigheidswijziging
+                        const dayName = day === 'dinsdag' ? 'Dinsdag' : 'Donderdag';
+                        const dateStr = day === 'dinsdag' ? w.dinsdagDateStr : w.donderdagDateStr;
+                        const statusDesc = nowAbsent ? '❌ Afwezig' : '✅ Aanwezig (beschikbaar)';
+                        
+                        let chatMsgText = `📅 ${currentUserName} heeft de status gewijzigd voor Week ${w.weekNumber} (${dayName} ${dateStr}):\n• ${player} staat nu op **${statusDesc}**`;
+
+                        messages.push({ 
+                            sender: currentUserName, 
+                            text: chatMsgText, 
+                            timestamp: Date.now(), 
+                            isSystem: true 
+                        });
+                        db.ref('padelData/messages').set(messages);
                     };
                     td.appendChild(btn);
                     tr.appendChild(td);
@@ -1092,7 +1121,7 @@
     window.openReplaceModal = function(weekIndex, day) {
         currentEditingWeek = weekIndex;
         currentEditingDay = day;
-        document.getElementById("modalSubTitle").innerText = `Cyclus Week ${weekIndex} - ${day === 'dinsdag' ? 'Dinsdag' : 'Donderdag'}`;
+        document.getElementById("modalSubTitle").innerText = "Wijzig";
         
         const activeWeeks = getActiveDisplayWeeks();
         const currentWeekData = activeWeeks.find(w => w.weekIndex === weekIndex);
