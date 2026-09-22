@@ -21,7 +21,7 @@
             --accent-blue: #38bdf8;
             --accent-orange: #fb923c;
             --accent-green: #34d399;
-            --accent-green-bg: rgba(52, 211, 153, 0.1);
+            --accent-green-bg: rgba(52, 211, 153, 0.12);
             --danger: #f87171;
             --danger-bg: rgba(248, 113, 113, 0.15);
             --main-glow: 0 16px 60px rgba(52, 211, 153, 0.22), 0 0 40px rgba(52, 211, 153, 0.12);
@@ -142,10 +142,10 @@
         }
 
         .status-badge.me {
-            border-color: var(--accent-green);
-            color: var(--accent-green);
-            background: var(--accent-green-bg);
-            box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
+            border-color: #6ee7b7;
+            color: #6ee7b7;
+            background: rgba(16, 185, 129, 0.25);
+            box-shadow: 0 0 8px rgba(110, 231, 183, 0.4);
         }
 
         .status-dot {
@@ -157,8 +157,8 @@
 
         .status-badge.me .status-dot,
         .status-dot.online {
-            background: var(--accent-green);
-            box-shadow: 0 0 5px var(--accent-green);
+            background: #6ee7b7;
+            box-shadow: 0 0 5px #6ee7b7;
         }
 
         .chat-btn {
@@ -255,13 +255,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
         }
 
         .match-info {
             flex-grow: 1;
-            min-width: 200px;
+            min-width: 0;
         }
 
         .match-title {
@@ -275,13 +274,22 @@
             gap: 8px;
         }
 
-        .match-date {
+        .match-title.dinsdag-title {
+            color: var(--accent-green);
+        }
+
+        .match-title.donderdag-title {
             color: var(--accent-orange);
+        }
+
+        .match-date {
+            color: var(--text-muted);
+            opacity: 0.8;
         }
 
         .players-container {
             display: flex;
-            gap: 4px;
+            gap: 3px;
             flex-wrap: wrap;
             align-items: center;
         }
@@ -290,17 +298,19 @@
             background: #374151;
             border: 1px solid #4b5563;
             color: var(--text-main);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.85rem;
+            padding: 3px 6px;
+            border-radius: 5px;
+            font-size: 0.78rem;
             font-weight: 500;
+            white-space: nowrap;
         }
 
         .player-chip.me {
-            border-color: var(--accent-green);
-            color: var(--accent-green);
-            background: var(--accent-green-bg);
-            box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
+            background: #047857;
+            border: 1px solid #10b981;
+            color: #6ee7b7;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            font-weight: 700;
         }
 
         .player-chip.sub {
@@ -309,32 +319,38 @@
             color: #fed7aa;
         }
 
+        .player-chip.absent-player {
+            background: var(--danger-bg);
+            border-color: var(--danger);
+            color: var(--danger);
+            text-decoration: line-through;
+        }
+
         .vs-text {
             color: var(--text-muted);
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 600;
-            margin: 0 2px;
+            margin: 0 1px;
         }
 
         .match-action-container {
-            display: flex;
-            justify-content: flex-end;
-            width: 100%;
+            flex-shrink: 0;
         }
 
         .btn-edit {
             background-color: var(--btn-bg);
             color: var(--text-main);
             border: 1px solid var(--card-border);
-            padding: 6px 12px;
+            padding: 6px 10px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.75rem;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             transition: background 0.2s;
+            white-space: nowrap;
         }
 
         .btn-edit:hover {
@@ -345,7 +361,6 @@
         .absence-alert {
             background: var(--danger-bg);
             border-top: 1px solid rgba(248, 113, 113, 0.3);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.3);
             color: #fca5a5;
             padding: 8px 14px;
             font-size: 0.75rem;
@@ -384,12 +399,12 @@
         }
         
         .stats-table tr.highlight-row, .absence-table tr.highlight-row { 
-            background-color: rgba(52, 211, 153, 0.18); 
+            background-color: rgba(16, 185, 129, 0.2); 
             font-weight: bold; 
         }
         
         .stats-table tr.highlight-row td { 
-            color: var(--accent-green); 
+            color: #6ee7b7; 
         }
 
         .absence-btn { 
@@ -434,8 +449,8 @@
         
         .message.self { 
             align-self: flex-end; 
-            background: #059669; 
-            box-shadow: 0 0 10px rgba(5, 150, 105, 0.4);
+            background: #047857; 
+            box-shadow: 0 0 10px rgba(4, 120, 87, 0.5);
         }
         
         .message.system-update {
@@ -461,7 +476,7 @@
         }
         
         .message.self .author { 
-            color: #d1fae5; 
+            color: #6ee7b7; 
         }
         
         .delete-msg-btn { 
@@ -490,7 +505,7 @@
         }
         
         .btn-primary { 
-            background: var(--accent-green); 
+            background: #10b981; 
             color: #0b0f19; 
             border: none; 
             padding: 8px 12px; 
@@ -498,10 +513,9 @@
             cursor: pointer; 
             font-weight: 800; 
             font-size: 0.85rem; 
-            box-shadow: 0 0 10px rgba(52, 211, 153, 0.4);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
         }
 
-        /* Modal */
         .modal { 
             display: none; 
             position: fixed; 
@@ -521,11 +535,11 @@
             border-radius: 14px; 
             width: 100%; 
             max-width: 380px; 
-            box-shadow: 0 0 25px rgba(52, 211, 153, 0.3);
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.3);
         }
         
         .modal-content h3 { 
-            color: var(--accent-green); 
+            color: #6ee7b7; 
             font-size: 1.05rem; 
             margin-bottom: 12px; 
         }
@@ -586,7 +600,7 @@
                 </select>
             </div>
             
-            <div style="font-size: 0.75rem; color: var(--accent-green); display: flex; align-items: center; gap: 5px;">
+            <div style="font-size: 0.75rem; color: #6ee7b7; display: flex; align-items: center; gap: 5px;">
                 <span class="status-dot online"></span>
                 <span>Live verbonden met database</span>
             </div>
@@ -701,7 +715,7 @@
     let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
 
     const defaultTemplate = [
-        { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] }, // Week 39 (start 22 sep 2026)
+        { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
         { dinsdag: ["Marcel", "Mark", "Dennis", "Robert"], donderdag: ["Ronald", "Sander", "Mark", "Dennis"] },
         { dinsdag: ["Ronald", "Robert", "Marcel", "Sander"], donderdag: ["Mark", "Marcel", "Dennis", "Ronald"] },
         { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Ronald"] },
@@ -890,13 +904,16 @@
         return !!absences[`${player}_${weekIndex}_${day}`];
     }
 
-    function renderPlayersHtml(players) {
+    function renderPlayersHtml(players, weekIndex, day) {
         return players.map((p, idx) => {
             const isMe = p === currentUserName;
             const isSub = !basePlayers.includes(p);
+            const isAbsent = basePlayers.includes(p) && checkAbsence(p, weekIndex, day);
+            
             let chipClass = "player-chip";
             if (isMe) chipClass += " me";
             if (isSub) chipClass += " sub";
+            if (isAbsent) chipClass += " absent-player";
 
             let html = `<span class="${chipClass}">${p}</span>`;
             if (idx === 1) html += ` <span class="vs-text">VS</span> `;
@@ -945,11 +962,9 @@
                     <div class="match-row-wrapper">
                         <div class="match-row">
                             <div class="match-info">
-                                <div class="match-title"><span>Dinsdag</span> <span class="match-date">${w.dinsdagDateStr}</span></div>
-                                <div class="players-container">${renderPlayersHtml(w.dinsdag)}</div>
+                                <div class="match-title dinsdag-title"><span>Dinsdag</span> <span class="match-date">${w.dinsdagDateStr}</span></div>
+                                <div class="players-container">${renderPlayersHtml(w.dinsdag, w.weekIndex, 'dinsdag')}</div>
                             </div>
-                        </div>
-                        <div class="match-row" style="padding-top: 0; padding-bottom: 10px;">
                             <div class="match-action-container">
                                 <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'dinsdag')">✏️ Wijzig</button>
                             </div>
@@ -960,11 +975,9 @@
                     <div class="match-row-wrapper">
                         <div class="match-row">
                             <div class="match-info">
-                                <div class="match-title"><span>Donderdag</span> <span class="match-date">${w.donderdagDateStr}</span></div>
-                                <div class="players-container">${renderPlayersHtml(w.donderdag)}</div>
+                                <div class="match-title donderdag-title"><span>Donderdag</span> <span class="match-date">${w.donderdagDateStr}</span></div>
+                                <div class="players-container">${renderPlayersHtml(w.donderdag, w.weekIndex, 'donderdag')}</div>
                             </div>
-                        </div>
-                        <div class="match-row" style="padding-top: 0; padding-bottom: 10px;">
                             <div class="match-action-container">
                                 <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'donderdag')">✏️ Wijzig</button>
                             </div>
@@ -1009,10 +1022,11 @@
 
         weeks.forEach(w => {
             const thDi = document.createElement("th");
-            thDi.innerHTML = `Di<br><span style="font-size:0.6rem; opacity:0.8">${w.dinsdagDateStr}</span>`;
+            thDi.innerHTML = `Wk ${w.weekNumber}<br><span style="font-size:0.6rem; color:var(--accent-green);">Di</span> <span style="font-size:0.6rem; opacity:0.7">(${w.dinsdagDateStr})</span>`;
             headerRow.appendChild(thDi);
+
             const thDo = document.createElement("th");
-            thDo.innerHTML = `Do<br><span style="font-size:0.6rem; opacity:0.8">${w.donderdagDateStr}</span>`;
+            thDo.innerHTML = `Wk ${w.weekNumber}<br><span style="font-size:0.6rem; color:var(--accent-orange);">Do</span> <span style="font-size:0.6rem; opacity:0.7">(${w.donderdagDateStr})</span>`;
             headerRow.appendChild(thDo);
         });
 
@@ -1042,7 +1056,6 @@
                             db.ref(`padelData/absence/${key}`).set(true);
                         }
 
-                        // Automatisch chatbericht toevoegen bij afwezigheidswijziging
                         const dayName = day === 'dinsdag' ? 'Dinsdag' : 'Donderdag';
                         const dateStr = day === 'dinsdag' ? w.dinsdagDateStr : w.donderdagDateStr;
                         const statusDesc = nowAbsent ? '❌ Afwezig' : '✅ Aanwezig (beschikbaar)';
