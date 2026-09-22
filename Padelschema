@@ -1,9 +1,14 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Padelschema - Rooster & Chat</title>
+    <!-- Firebase App (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <!-- Firebase Realtime Database -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    
     <style>
         :root {
             --bg-color: #0b0f19;
@@ -78,1259 +83,554 @@
             gap: 10px;
         }
 
-        .user-selector-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: var(--btn-bg);
-            padding: 6px 14px;
-            border-radius: 10px;
-            border: 1px solid var(--card-border-glow);
-        }
-
-        select, input, button {
-            background: var(--btn-bg);
-            color: var(--text-main);
-            border: 1px solid var(--card-border-glow);
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            outline: none;
-            transition: border-color 0.15s ease, background-color 0.15s ease;
-        }
-
-        select:focus, input:focus {
-            border-color: var(--accent-green);
-        }
-
-        button {
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        button:hover {
-            background: var(--btn-hover);
-        }
-
-        .online-status-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            width: 100%;
-        }
-
-        .online-bar {
-            display: flex;
-            flex-direction: row;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 6px;
-            width: 100%;
-        }
-
-        .online-tag {
-            background: var(--btn-bg);
-            border: 1px solid var(--card-border);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.7rem;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            color: var(--text-muted);
-            white-space: nowrap;
-            flex-shrink: 1;
-        }
-
-        .db-pulse-dot, .online-tag.active .online-dot-mini {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--accent-green);
-            animation: db-pulse 2s infinite ease-in-out;
-            flex-shrink: 0;
-        }
-
-        .online-dot-mini {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--text-muted);
-            flex-shrink: 0;
-        }
-
-        .online-tag.active {
-            color: var(--text-main);
-            border-color: rgba(52, 211, 153, 0.3);
-        }
-
-        .online-tag.active .online-dot-mini {
-            background: var(--accent-green);
-            box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
-        }
-
-        .online-lastseen {
-            color: var(--text-muted);
-            font-size: 0.65rem;
-        }
-
-        .db-live-indicator {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            letter-spacing: 0.02em;
-        }
-
-        @keyframes db-pulse {
-            0% { transform: scale(0.95); opacity: 0.4; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4); }
-            50% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 8px rgba(52, 211, 153, 0.8); }
-            100% { transform: scale(0.95); opacity: 0.4; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
-        }
-
-        .global-alert-btn {
+        /* Actieve status van spelers */
+        .status-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
-            color: var(--text-main);
-            padding: 14px 16px;
+            padding: 14px 20px;
             border-radius: 12px;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            width: 100%;
-            box-shadow: var(--main-glow);
-            transition: all 0.2s ease;
-        }
-
-        .global-alert-btn.has-new {
-            border-color: var(--danger);
-            background: rgba(248, 113, 113, 0.08);
-            animation: subtle-red-pulse 2s infinite;
-        }
-
-        @keyframes subtle-red-pulse {
-            0% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.4); }
-            70% { box-shadow: 0 0 0 14px rgba(248, 113, 113, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0); }
-        }
-
-        .alert-badge-count {
-            background: var(--danger);
-            color: #0b0f19;
-            padding: 2px 7px;
-            border-radius: 10px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            display: none;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 14px;
-            padding: 20px;
-            width: 100%;
-            display: flex;
             flex-direction: column;
-            gap: 14px;
-            box-shadow: var(--main-glow);
+            gap: 8px;
         }
 
-        .card h2 {
-            font-size: 1.1rem;
+        .status-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
             font-weight: 600;
-            color: var(--accent-green);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .status-badge {
+            background: var(--bg-color);
+            border: 1px solid var(--card-border);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .status-dot.online {
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
         }
 
         .week-card {
-            background: #161e2e;
+            background: var(--card-bg);
             border: 1px solid var(--card-border);
-            border-radius: 10px;
-            padding: 14px;
-            margin-bottom: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            transition: border-color 0.2s;
         }
 
-        .week-card:last-child {
-            margin-bottom: 0;
+        .week-card:hover {
+            border-color: var(--card-border-glow);
         }
 
-        .week-title {
+        .week-header {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 14px 20px;
             font-weight: 600;
-            font-size: 0.95rem;
-            color: rgba(249, 250, 251, 0.85);
-            letter-spacing: -0.01em;
+            font-size: 1rem;
+            color: var(--accent-blue);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .day-box {
+        .match-row {
+            padding: 16px 20px;
             display: flex;
-            flex-direction: column;
-            gap: 8px;
-            padding-bottom: 10px;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 1px solid var(--card-border);
         }
 
-        .day-box:last-child {
-            padding-bottom: 0;
+        .match-row:last-child {
             border-bottom: none;
         }
 
-        .day-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .match-info {
+            flex-grow: 1;
         }
 
-        .day-label {
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .day-label.di { color: var(--accent-blue); }
-        .day-label.do { color: var(--accent-orange); }
-
-        .day-date {
-            font-size: 0.75rem;
+        .match-title {
+            font-weight: 600;
             color: var(--text-muted);
-            margin-left: 6px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
         }
 
-        .replace-btn {
-            background: var(--btn-bg);
-            border: 1px solid var(--card-border-glow);
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            padding: 4px 8px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .replace-btn:hover {
+        .players-list {
+            font-size: 1.05rem;
             color: var(--text-main);
-            background: var(--btn-hover);
-        }
-
-        .player-tags {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
-            font-size: 0.85rem;
-        }
-
-        .player-tag {
-            background: var(--btn-bg);
-            border: 1px solid var(--card-border);
-            padding: 4px 8px;
-            border-radius: 6px;
-            color: var(--text-muted);
-        }
-
-        .player-tag.highlight {
-            border-color: rgba(52, 211, 153, 0.4);
-            background: var(--accent-green-bg);
-            font-weight: 600;
-            color: var(--accent-green);
-        }
-
-        .player-tag.sub {
-            border-color: rgba(251, 146, 60, 0.4);
-            color: var(--accent-orange);
-            background: rgba(251, 146, 60, 0.1);
-        }
-
-        .vs-divider {
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin: 0 2px;
-        }
-
-        .alert-badge {
-            background: var(--danger-bg);
-            border: 1px solid rgba(248, 113, 113, 0.3);
-            color: var(--danger);
-            font-size: 0.75rem;
-            padding: 6px 10px;
-            border-radius: 6px;
-        }
-
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-            text-align: left;
-        }
-
-        th, td {
-            padding: 10px 8px;
-            border-bottom: 1px solid var(--card-border);
-        }
-
-        th {
-            color: var(--text-muted);
             font-weight: 500;
-            font-size: 0.8rem;
         }
 
-        tr.highlight-row {
-            background: var(--accent-green-bg);
-            color: var(--accent-green);
-            font-weight: 600;
-        }
-
-        .absence-btn {
-            background: var(--btn-bg);
-            border: 1px solid var(--card-border-glow);
-            color: var(--text-muted);
-            padding: 4px 8px;
-            font-size: 0.75rem;
-            border-radius: 6px;
-        }
-
-        .absence-btn:hover {
-            background: var(--btn-hover);
-        }
-
-        .absence-btn.absent {
-            background: var(--danger-bg);
-            border-color: rgba(248, 113, 113, 0.4);
-            color: var(--danger);
-        }
-
-        .chat-window {
-            background: #0d1322;
+        .btn-edit {
+            background-color: var(--btn-bg);
+            color: var(--text-main);
             border: 1px solid var(--card-border);
-            border-radius: 10px;
-            height: 260px;
-            overflow-y: auto;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .message {
-            background: var(--btn-bg);
-            border: 1px solid var(--card-border);
-            padding: 10px 12px;
+            padding: 8px 14px;
             border-radius: 8px;
-            max-width: 85%;
-            align-self: flex-start;
-            font-size: 0.85rem;
-        }
-
-        .message.self {
-            background: #11261f;
-            border-color: rgba(52, 211, 153, 0.3);
-            align-self: flex-start;
-        }
-
-        .message-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-            gap: 12px;
-        }
-
-        .message-header .author {
-            font-weight: 600;
-            color: var(--accent-green);
-        }
-
-        .delete-msg-btn {
-            background: none;
-            border: none;
             cursor: pointer;
-            font-size: 0.75rem;
-            opacity: 0.5;
-            padding: 0;
-        }
-        .delete-msg-btn:hover { opacity: 1; background: none; }
-
-        .chat-input-row {
-            display: flex;
-            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: background 0.2s, border-color 0.2s;
         }
 
-        .chat-input-row input {
-            flex: 1;
+        .btn-edit:hover {
+            background-color: var(--btn-hover);
+            border-color: var(--accent-blue);
         }
 
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(11, 15, 25, 0.8);
+        /* Modal Popup */
+        .modal {
             display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
             justify-content: center;
             align-items: center;
             z-index: 1000;
             padding: 16px;
-            backdrop-filter: blur(4px);
         }
 
         .modal-content {
             background: var(--card-bg);
-            border: 1px solid var(--card-border-glow);
+            border: 1px solid var(--card-border);
             padding: 24px;
-            border-radius: 14px;
+            border-radius: 16px;
             width: 100%;
-            max-width: 380px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: var(--accent-green);
+            font-size: 1.25rem;
+            margin-bottom: 16px;
+        }
+
+        .player-select-group {
+            margin-bottom: 14px;
+        }
+
+        .player-select-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .player-select-group select, .player-select-group input {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-color);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
         }
 
         .modal-buttons {
             display: flex;
             justify-content: flex-end;
-            gap: 8px;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-cancel {
+            background-color: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+            padding: 9px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-cancel:hover {
+            color: var(--text-main);
+            border-color: var(--text-muted);
+        }
+
+        .btn-save {
+            background-color: var(--accent-green);
+            color: #0b0f19;
+            border: none;
+            padding: 9px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .btn-save:hover {
+            opacity: 0.9;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <!-- Header -->
-        <header>
-            <div class="header-top">
-                <h1>🎾 Padelschema 🎾</h1>
-                <div class="user-selector-wrapper">
-                    <label for="currentUser" style="font-size: 0.8rem; color: var(--text-muted);">Jij:</label>
-                    <select id="currentUser" onchange="changeUser()">
-                        <option value="Marcel">Marcel</option>
-                        <option value="Mark">Mark</option>
-                        <option value="Ronald">Ronald</option>
-                        <option value="Sander">Sander</option>
-                        <option value="Dennis">Dennis</option>
-                        <option value="Robert">Robert</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Online Status Bar & Database Live Indicator -->
-            <div class="online-status-container">
-                <div class="online-bar" id="onlineUsersList"></div>
-                <div class="db-live-indicator">
-                    <span class="db-pulse-dot"></span>
-                    <span>Live verbonden met database</span>
-                </div>
-            </div>
-        </header>
-
-        <!-- Notificatie Knop -->
-        <button id="globalChatAlertBtn" class="global-alert-btn" onclick="handleChatAlertClick()">
-            <span id="chatBtnText">💬 Team Chat bekijken</span>
-            <span id="alertBadgeCount" class="alert-badge-count">0</span>
-        </button>
-
-        <!-- Schema Kaart -->
-        <div class="card">
-            <h2>📅 Speelschema (komende 6 weken)</h2>
-            <div id="scheduleList" style="width: 100%;"></div>
+<div class="container">
+    <header>
+        <div class="header-top">
+            <h1>🎾 Padelschema</h1>
         </div>
+    </header>
 
-        <!-- Afwezigheid Kaart -->
-        <div class="card">
-            <h2>🚫 Afwezigheid doorgeven</h2>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr id="absenceHeaderRow">
-                            <th>Speler</th>
-                        </tr>
-                    </thead>
-                    <tbody id="absenceTableBody"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Stats Kaart -->
-        <div class="card">
-            <h2>📊 Aantal keer gespeeld</h2>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Speler</th>
-                            <th>Di</th>
-                            <th>Do</th>
-                            <th>Totaal</th>
-                        </tr>
-                    </thead>
-                    <tbody id="statsTableBody"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Chat Kaart -->
-        <div class="card" id="chatCardSection">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 style="margin-bottom: 0;">💬 Team Chat</h2>
-                <button onclick="clearAllChat()" style="font-size: 0.75rem; padding: 4px 8px; color: var(--danger); border-color: rgba(248, 113, 113, 0.3); background: var(--danger-bg);">Leegmaken</button>
-            </div>
-            <div class="chat-window" id="chatWindow"></div>
-            <div class="chat-input-row">
-                <input type="text" id="chatInput" placeholder="Typ een bericht..." onkeypress="handleKeyPress(event)">
-                <button onclick="sendMessage()">Stuur</button>
-            </div>
-        </div>
+    <!-- Actieve status van spelers -->
+    <div class="status-card">
+        <div class="status-title">Spelers Status</div>
+        <div id="statusList" class="status-list">Laden status...</div>
     </div>
 
-    <!-- Modal voor Wijzigen Opstelling -->
-    <div class="modal-overlay" id="replaceModal">
-        <div class="modal-content">
-            <h3 id="modalSubTitle" style="font-size: 1.05rem; font-weight: 600;">Opstelling wijzigen</h3>
-            <p style="font-size: 0.8rem; color: var(--text-muted);">Kies per positie de speler of invaller:</p>
-            
-            <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-                <div>
-                    <label style="font-size: 0.75rem; color: var(--text-muted);">Speler 1</label>
-                    <select id="p0Select" onchange="checkCustomInputs()" style="width:100%; margin-top: 4px;"></select>
-                    <input type="text" id="p0Custom" placeholder="Naam invaller..." style="display:none; margin-top:4px; width:100%;">
-                </div>
-                <div>
-                    <label style="font-size: 0.75rem; color: var(--text-muted);">Speler 2</label>
-                    <select id="p1Select" onchange="checkCustomInputs()" style="width:100%; margin-top: 4px;"></select>
-                    <input type="text" id="p1Custom" placeholder="Naam invaller..." style="display:none; margin-top:4px; width:100%;">
-                </div>
-                <div>
-                    <label style="font-size: 0.75rem; color: var(--text-muted);">Speler 3</label>
-                    <select id="p2Select" onchange="checkCustomInputs()" style="width:100%; margin-top: 4px;"></select>
-                    <input type="text" id="p2Custom" placeholder="Naam invaller..." style="display:none; margin-top:4px; width:100%;">
-                </div>
-                <div>
-                    <label style="font-size: 0.75rem; color: var(--text-muted);">Speler 4</label>
-                    <select id="p3Select" onchange="checkCustomInputs()" style="width:100%; margin-top: 4px;"></select>
-                    <input type="text" id="p3Custom" placeholder="Naam invaller..." style="display:none; margin-top:4px; width:100%;">
-                </div>
-            </div>
+    <!-- Hier komt het dynamische schema -->
+    <div id="scheduleContainer" style="display: flex; flex-direction: column; gap: 16px;">Laden van schema...</div>
+</div>
 
-            <div class="modal-buttons">
-                <button onclick="closeModal()">Annuleren</button>
-                <button onclick="confirmReplacement()" style="background: var(--accent-green-bg); border-color: rgba(52, 211, 153, 0.4); color: var(--accent-green); font-weight: 600;">Opslaan</button>
-            </div>
+<!-- Modal voor wijzigen spelers -->
+<div id="replaceModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalSubTitle">Spelers wijzigen</h3>
+        
+        <div class="player-select-group">
+            <label>Speler 1</label>
+            <select id="p0Select" onchange="checkCustomInputs()"></select>
+            <input type="text" id="p0Custom" placeholder="Naam invaller" style="display:none; margin-top:6px;">
+        </div>
+        <div class="player-select-group">
+            <label>Speler 2</label>
+            <select id="p1Select" onchange="checkCustomInputs()"></select>
+            <input type="text" id="p1Custom" placeholder="Naam invaller" style="display:none; margin-top:6px;">
+        </div>
+        <div class="player-select-group">
+            <label>Speler 3</label>
+            <select id="p2Select" onchange="checkCustomInputs()"></select>
+            <input type="text" id="p2Custom" placeholder="Naam invaller" style="display:none; margin-top:6px;">
+        </div>
+        <div class="player-select-group">
+            <label>Speler 4</label>
+            <select id="p3Select" onchange="checkCustomInputs()"></select>
+            <input type="text" id="p3Custom" placeholder="Naam invaller" style="display:none; margin-top:6px;">
+        </div>
+
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeModal()">Annuleren</button>
+            <button class="btn-save" onclick="confirmReplacement()">Opslaan</button>
         </div>
     </div>
+</div>
 
-    <!-- Firebase Script -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { 
-            getDatabase, ref, set, onValue, onDisconnect, 
-            push, remove, update 
-        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+<script>
+    // --- FIREBASE CONFIGURATIE ---
+    const firebaseConfig = {
+        databaseURL: "https://padelschema-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
+    
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDEB3KMSJQk56LI7BUdVTZjwQA3_AHXbZg",
-            authDomain: "padel-team-6.firebaseapp.com",
-            databaseURL: "https://padel-team-6-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "padel-team-6",
-            storageBucket: "padel-team-6.firebasestorage.app",
-            messagingSenderId: "261253266150",
-            appId: "1:261253266150:web:f81caf78d57e4f1e7c5927"
-        };
+    // Vaste spelersgroep
+    const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
+    const currentUserName = "Robert"; // Huidige sessie gebruiker
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+    // Jouw juiste template (waarin Ronald en Robert in week 3 op dinsdag samen spelen)
+    const defaultTemplate = [
+        { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
+        { dinsdag: ["Marcel", "Mark", "Dennis", "Robert"], donderdag: ["Ronald", "Sander", "Mark", "Dennis"] },
+        { dinsdag: ["Ronald", "Robert", "Marcel", "Sander"], donderdag: ["Mark", "Marcel", "Dennis", "Ronald"] },
+        { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Ronald"] },
+        { dinsdag: ["Mark", "Dennis", "Sander", "Robert"], donderdag: ["Marcel", "Sander", "Ronald", "Dennis"] },
+        { dinsdag: ["Sander", "Ronald", "Robert", "Mark"], donderdag: ["Marcel", "Dennis", "Mark", "Sander"] }
+    ];
 
-        const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
+    let liveOverrides = {};
+    let allStatuses = {};
 
-        let customScheduleOverrides = {};
-        let messages = [];         
-        let absenceData = {};
-        let onlineUsers = {};      
-
-        let currentUser = localStorage.getItem("padel_currentUser_stable") || basePlayers[0];
-        document.getElementById("currentUser").value = currentUser;
-
-        const sessionToken = 'sess_' + Math.random().toString(36).substring(2, 9);
-        const ONLINE_TIMEOUT_MS = 30000; 
-
-        function setupOnlinePresence() {
-            const userOnlineRef = ref(db, `onlineUsers/${currentUser}_${sessionToken}`);
-            const heartbeat = () => {
-                set(userOnlineRef, { name: currentUser, timestamp: Date.now() });
-            };
-            heartbeat();
-            
-            // AANGEPAST: Slaat bij verbroken verbinding de laatste tijdstempel op in plaats van het record te wissen
-            onDisconnect(userOnlineRef).set({ 
-                name: currentUser, 
-                timestamp: Date.now() 
-            });
-
-            const hbInterval = setInterval(heartbeat, 15000);
-            window._padelHeartbeat = hbInterval;
-
-            window.addEventListener('beforeunload', () => {
-                try { 
-                    set(userOnlineRef, { name: currentUser, timestamp: Date.now() }); 
-                } catch(e) {}
-            });
-
-            const allOnlineRef = ref(db, 'onlineUsers');
-            onValue(allOnlineRef, (snapshot) => {
-                onlineUsers = {};
-                const val = snapshot.val() || {};
-                const now = Date.now();
-
-                Object.values(val).forEach(item => {
-                    if (!item || !item.name) return;
-                    const ts = item.timestamp || 0;
-                    const isOnline = (now - ts) < ONLINE_TIMEOUT_MS;
-                    const prev = onlineUsers[item.name];
-                    if (!prev || ts > prev.lastSeen) {
-                        onlineUsers[item.name] = { lastSeen: ts, isOnline };
-                    }
-                });
-                renderOnlineUsers();
-            });
-        }
-
-        function formatLastSeen(ts) {
-            if (!ts) return "off";
-            const diffSec = Math.floor((Date.now() - ts) / 1000);
-            if (diffSec < 30) return "nu";
-            if (diffSec < 60) return "zojuist";
-            const diffMin = Math.floor(diffSec / 60);
-            if (diffMin < 60) return `${diffMin}m`;
-            const diffUur = Math.floor(diffMin / 60);
-            if (diffUur < 24) return `${diffUur}u`;
-            const diffDag = Math.floor(diffUur / 24);
-            if (diffDag === 1) return "gist.";
-            if (diffDag < 7) return `${diffDag}d`;
-            return new Date(ts).toLocaleDateString('nl-NL', { day:'numeric', month:'short' });
-        }
-
-        function renderOnlineUsers() {
-            const container = document.getElementById("onlineUsersList");
-            container.innerHTML = "";
-
-            basePlayers.forEach(player => {
-                const info = onlineUsers[player];
-                const isOnline = info && info.isOnline;
-                const lastSeenText = isOnline ? "online" : formatLastSeen(info ? info.lastSeen : null);
-
-                const tag = document.createElement("div");
-                tag.className = `online-tag ${isOnline ? 'active' : ''}`;
-                tag.innerHTML = `
-                    <span class="online-dot-mini"></span>
-                    <span>${player}</span>
-                    <span class="online-lastseen">(${lastSeenText})</span>
-                `;
-                container.appendChild(tag);
-            });
-        }
-
-        setInterval(renderOnlineUsers, 30000);
-
-        function formatDateDDMMYY(dateObj) {
-            const dd = String(dateObj.getDate()).padStart(2, '0');
-            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const yy = String(dateObj.getFullYear()).slice(-2);
-            return `${dd}-${mm}-${yy}`;
-        }
-
-        function getWeekNumber(d) {
-            const target = new Date(d.valueOf());
-            const dayNr = (d.getDay() + 6) % 7;
-            target.setDate(target.getDate() - dayNr + 3);
-            const firstThursday = target.valueOf();
-            target.setMonth(0, 1);
-            if (target.getDay() !== 4) {
-                target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
-            }
-            return Math.ceil((((firstThursday - target) / 86400000) + 1) / 7);
-        }
-
-        let initialLoadDone = false;
-        let lastKnownMessageKey = null;
-        let previousScheduleString = "";
-        let previousAbsenceString = "";
-
-        const dbRef = ref(db, 'padelData');
-        onValue(dbRef, (snapshot) => {
-            const val = snapshot.val() || {};
-            customScheduleOverrides = val.scheduleOverrides || {};
-            absenceData = val.absence || {};
-
-            messages = val.messages
-                ? Object.entries(val.messages)
-                    .map(([key, msg]) => ({ ...msg, _key: key }))
-                    .sort((a, b) => (a.id || 0) - (b.id || 0))
-                : [];
-
-            refreshUIOnly(initialLoadDone);
-            initialLoadDone = true;
+    // Initialiseer bij laden
+    document.addEventListener('DOMContentLoaded', () => {
+        // Luister naar live updates uit Firebase voor schema
+        db.ref('scheduleOverrides').on('value', (snapshot) => {
+            liveOverrides = snapshot.val() || {};
+            renderSchedule();
         });
 
+        // Luister naar online statussen
+        db.ref('status').on('value', (snapshot) => {
+            allStatuses = snapshot.val() || {};
+            renderStatuses();
+        });
+
+        // Activeer eigen online status
         setupOnlinePresence();
+    });
 
-        async function pushMessage(sender, text) {
-            const msgRef = push(ref(db, 'padelData/messages'));
-            await set(msgRef, { id: Date.now(), sender, text });
+    // --- ONLINE STATUS LOGICA ---
+    function setupOnlinePresence() {
+        const userStatusRef = db.ref(`status/${currentUserName}`);
+
+        const isOfflineForDatabase = {
+            state: "offline",
+            lastChanged: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        const isOnlineForDatabase = {
+            state: "online",
+            lastChanged: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        db.ref('.info/connected').on('value', (snapshot) => {
+            if (snapshot.val() === false) return;
+
+            userStatusRef.onDisconnect().set(isOfflineForDatabase).then(() => {
+                userStatusRef.set(isOnlineForDatabase);
+            });
+        });
+    }
+
+    function formatLastSeen(lastChanged) {
+        if (!lastChanged) return "Offline";
+        const diffMs = Date.now() - lastChanged;
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMins < 2) return "Online";
+        if (diffMins < 60) return `${diffMins} min geleden`;
+        if (diffHours < 24) return `${diffHours} uur geleden`;
+        return `${diffDays} dag(en) geleden`;
+    }
+
+    function renderStatuses() {
+        const container = document.getElementById('statusList');
+        if (!container) return;
+        let html = '';
+
+        basePlayers.forEach(player => {
+            const statusData = allStatuses[player];
+            const isOnline = statusData && statusData.state === "online" && (Date.now() - statusData.lastChanged < 120000);
+            const statusText = isOnline ? "Online" : formatLastSeen(statusData ? statusData.lastChanged : null);
+            const dotClass = isOnline ? "online" : "";
+
+            html += `
+                <div class="status-badge">
+                    <span class="status-dot ${dotClass}"></span>
+                    <span>${player}: <strong style="color:var(--text-main);">${statusText}</strong></span>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // Jouw slimme functie om de automatische cyclusweek te berekenen (pas na donderdag omklappen)
+    const berekenHuidigeCyclusWeek = () => {
+        const startDatum = new Date('2026-09-07T00:00:00'); // Jouw startpunt
+        const nu = new Date();
+
+        const verschilInMs = nu - startDatum;
+        if (verschilInMs < 0) return 0; // Index 0 voor de start
+
+        const extraOffsetMs = 1000 * 60 * 60 * 24 * 3; // 3 dagen extra zodat hij na donderdag omklapt
+        const aangepastVerschil = verschilInMs + extraOffsetMs;
+
+        const verschilInWeken = Math.floor(aangepastVerschil / (1000 * 60 * 60 * 24 * 7));
+        const huidigeWeekIndex = verschilInWeken % 6;
+
+        return huidigeWeekIndex;
+    };
+
+    // Hulpfunctie om ISO weeknummer te berekenen
+    function getWeekNumber(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+        var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+        var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+        return weekNo;
+    }
+
+    function formatDateDDMMYY(date) {
+        const d = String(date.getDate()).padStart(2, '0');
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const y = String(date.getFullYear()).slice(-2);
+        return `${d}-${m}-${y}`;
+    }
+
+    // Bepaal de actieve weken om te tonen
+    function getActiveDisplayWeeks() {
+        const startBaseDate = new Date(2026, 8, 7); // Maandag 7 september 2026
+        let weeks = [];
+
+        let startIndex = berekenHuidigeCyclusWeek();
+
+        for (let i = 0; i < 6; i++) {
+            const currentCycleIndex = (startIndex + i) % defaultTemplate.length;
+            const weekIndex = currentCycleIndex + 1;
+            
+            const diDate = new Date(startBaseDate);
+            diDate.setDate(startBaseDate.getDate() + ((startIndex + i) * 7));
+            const doDate = new Date(diDate);
+            doDate.setDate(diDate.getDate() + 3); // Donderdag is 3 dagen na de maandag van die week
+
+            const currentTemplateWeek = defaultTemplate[currentCycleIndex];
+
+            // Check of er Firebase overrides zijn voor deze week
+            let dinsdagPlayers = currentTemplateWeek.dinsdag;
+            let donderdagPlayers = currentTemplateWeek.donderdag;
+
+            if (liveOverrides[weekIndex]) {
+                if (liveOverrides[weekIndex].dinsdag) dinsdagPlayers = liveOverrides[weekIndex].dinsdag;
+                if (liveOverrides[weekIndex].donderdag) donderdagPlayers = liveOverrides[weekIndex].donderdag;
+            }
+
+            weeks.push({
+                weekIndex,
+                weekNumber: getWeekNumber(diDate),
+                dinsdagDateStr: formatDateDDMMYY(diDate),
+                donderdagDateStr: formatDateDDMMYY(doDate),
+                dinsdag: dinsdagPlayers,
+                donderdag: donderdagPlayers
+            });
         }
+        return weeks;
+    }
 
-        async function deleteMessageByKey(key) {
-            await remove(ref(db, `padelData/messages/${key}`));
-        }
+    // Teken het schema op het scherm
+    function renderSchedule() {
+        const container = document.getElementById('scheduleContainer');
+        const weeks = getActiveDisplayWeeks();
+        let html = '';
 
-        async function clearAllMessages() {
-            await set(ref(db, 'padelData/messages'), null);
-        }
+        weeks.forEach(w => {
+            html += `
+                <div class="week-card">
+                    <div class="week-header">
+                        <span>Week ${w.weekNumber} (Cyclus Week ${w.weekIndex})</span>
+                    </div>
+                    <div class="match-row">
+                        <div class="match-info">
+                            <div class="match-title">Dinsdag (${w.dinsdagDateStr})</div>
+                            <div class="players-list">${w.dinsdag.join(', ')}</div>
+                        </div>
+                        <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'dinsdag')">Wijzig</button>
+                    </div>
+                    <div class="match-row">
+                        <div class="match-info">
+                            <div class="match-title">Donderdag (${w.donderdagDateStr})</div>
+                            <div class="players-list">${w.donderdag.join(', ')}</div>
+                        </div>
+                        <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'donderdag')">Wijzig</button>
+                    </div>
+                </div>
+            `;
+        });
 
-        async function updateScheduleOverride(weekIndex, day, players) {
-            await update(ref(db, `padelData/scheduleOverrides/${weekIndex}`), { [day]: players });
-        }
+        container.innerHTML = html;
+    }
 
-        async function updateAbsence(player, weekIndex, day, isAbsent) {
-            const path = `padelData/absence/${player}_${weekIndex}_${day}`;
-            if (isAbsent) {
-                await set(ref(db, path), true);
+    // --- MODAL & OVERRIDE LOGICA ---
+    let currentEditingWeek = null;
+    let currentEditingDay = null;
+
+    window.openReplaceModal = function(weekIndex, day) {
+        currentEditingWeek = weekIndex;
+        currentEditingDay = day;
+
+        document.getElementById("modalSubTitle").innerText = `Cyclus Week ${weekIndex} - ${day === 'dinsdag' ? 'Dinsdag' : 'Donderdag'}`;
+        
+        const activeWeeks = getActiveDisplayWeeks();
+        const currentWeekData = activeWeeks.find(w => w.weekIndex === weekIndex);
+        const currentPlayers = day === 'dinsdag' ? currentWeekData.dinsdag : currentWeekData.donderdag;
+
+        for (let i = 0; i < 4; i++) {
+            const select = document.getElementById(`p${i}Select`);
+            const customInput = document.getElementById(`p${i}Custom`);
+            
+            let optionsHtml = `<option value="">-- Kies speler --</option>`;
+            basePlayers.forEach(p => {
+                optionsHtml += `<option value="${p}">${p}</option>`;
+            });
+            optionsHtml += `<option value="custom">-- Invaller (typ naam) --</option>`;
+            select.innerHTML = optionsHtml;
+
+            const assignedPlayer = currentPlayers[i] || "";
+            if (basePlayers.includes(assignedPlayer)) {
+                select.value = assignedPlayer;
+                customInput.style.display = "none";
+                customInput.value = "";
+            } else if (assignedPlayer) {
+                select.value = "custom";
+                customInput.style.display = "block";
+                customInput.value = assignedPlayer;
             } else {
-                await remove(ref(db, path));
+                select.value = "";
+                customInput.style.display = "none";
+                customInput.value = "";
             }
         }
 
-        function refreshUIOnly(isLoaded) {
-            renderStats();
-            renderSchedule();
-            renderAbsenceTable();
-            renderOnlineUsers();
-            renderChat();
+        document.getElementById("replaceModal").style.display = "flex";
+    };
 
-            if (isLoaded) {
-                const currentScheduleString = JSON.stringify(customScheduleOverrides);
-                const currentAbsenceString = JSON.stringify(absenceData);
-
-                let newChatCount = 0;
-                let scheduleChanged = false;
-                let absenceChanged = false;
-
-                if (messages.length > 0) {
-                    const lastMsg = messages[messages.length - 1];
-                    if (lastKnownMessageKey && lastMsg._key !== lastKnownMessageKey) {
-                        if (lastMsg.sender !== currentUser) {
-                            const newMsgs = messages.filter(m => m.sender !== currentUser);
-                            newChatCount = newMsgs.length;
-                        }
-                    }
-                }
-
-                if (previousScheduleString !== "" && currentScheduleString !== previousScheduleString) {
-                    scheduleChanged = true;
-                }
-                if (previousAbsenceString !== "" && currentAbsenceString !== previousAbsenceString) {
-                    absenceChanged = true;
-                }
-
-                if (newChatCount > 0 || scheduleChanged || absenceChanged) {
-                    triggerSmartAlerts({ chat: newChatCount, schedule: scheduleChanged ? 1 : 0, absence: absenceChanged ? 1 : 0 });
-                }
-            }
-
-            if (messages.length > 0) {
-                lastKnownMessageKey = messages[messages.length - 1]._key;
-            }
-
-            scrollToBottom(false);
-
-            previousScheduleString = JSON.stringify(customScheduleOverrides);
-            previousAbsenceString = JSON.stringify(absenceData);
-        }
-
-        function triggerSmartAlerts(counts) {
-            const btn = document.getElementById("globalChatAlertBtn");
-            const textSpan = document.getElementById("chatBtnText");
-            const badge = document.getElementById("alertBadgeCount");
-
-            btn.classList.add("has-new");
-
-            let summaryTexts = [];
-            let totalCount = 0;
-
-            if (counts.chat > 0) {
-                summaryTexts.push(`💬 Nieuw bericht (${counts.chat})`);
-                totalCount += counts.chat;
-            }
-            if (counts.schedule > 0) {
-                summaryTexts.push(`🔄 Opstelling gewijzigd`);
-                totalCount += 1;
-            }
-            if (counts.absence > 0) {
-                summaryTexts.push(`🚫 Afwezigheid gewijzigd`);
-                totalCount += 1;
-            }
-
-            textSpan.innerText = summaryTexts.length > 0
-                ? summaryTexts.join(' | ')
-                : "Nieuwe wijzigingen!";
-
-            if (totalCount > 0) {
-                badge.innerText = totalCount;
-                badge.style.display = "inline-block";
+    window.checkCustomInputs = function() {
+        for (let i = 0; i < 4; i++) {
+            const select = document.getElementById(`p${i}Select`);
+            const customInput = document.getElementById(`p${i}Custom`);
+            if (select.value === "custom") {
+                customInput.style.display = "block";
+            } else {
+                customInput.style.display = "none";
+                customInput.value = "";
             }
         }
+    };
 
-        window.handleChatAlertClick = function() {
-            const btn = document.getElementById("globalChatAlertBtn");
-            const textSpan = document.getElementById("chatBtnText");
-            const badge = document.getElementById("alertBadgeCount");
+    window.closeModal = function() {
+        document.getElementById("replaceModal").style.display = "none";
+    };
 
-            btn.classList.remove("has-new");
-            badge.style.display = "none";
-            textSpan.innerText = "💬 Team Chat bekijken";
-
-            scrollToBottom(true);
-            document.getElementById("chatCardSection").scrollIntoView({ behavior: 'smooth' });
-        };
-
-        window.changeUser = async function() {
-            await remove(ref(db, `onlineUsers/${currentUser}_${sessionToken}`));
-            if (window._padelHeartbeat) clearInterval(window._padelHeartbeat);
-
-            currentUser = document.getElementById("currentUser").value;
-            localStorage.setItem("padel_currentUser_stable", currentUser);
-
-            setupOnlinePresence();
-            refreshUIOnly(true);
-        };
-
-        function renderStats() {
-            const tbody = document.getElementById("statsTableBody");
-            tbody.innerHTML = "";
-            const activeWeeks = getActiveDisplayWeeks();
-            const allPlayersSet = new Set(basePlayers);
-
-            activeWeeks.forEach(item => {
-                item.dinsdag.forEach(p => allPlayersSet.add(p));
-                item.donderdag.forEach(p => allPlayersSet.add(p));
-            });
-
-            Array.from(allPlayersSet).forEach(player => {
-                let diCount = 0, doCount = 0;
-                activeWeeks.forEach(item => {
-                    item.dinsdag.forEach(p => {
-                        if (p === player && !absenceData[`${player}_${item.weekIndex}_dinsdag`]) diCount++;
-                    });
-                    item.donderdag.forEach(p => {
-                        if (p === player && !absenceData[`${player}_${item.weekIndex}_donderdag`]) doCount++;
-                    });
-                });
-                const total = diCount + doCount;
-                const isCurrent = player === currentUser;
-                const tr = document.createElement("tr");
-                if (isCurrent) tr.className = "highlight-row";
-                tr.innerHTML = `<td>${player} ${isCurrent ? '(Jij)' : ''}</td><td>${diCount}x</td><td>${doCount}x</td><td><strong>${total}x</strong></td>`;
-                tbody.appendChild(tr);
-            });
+    window.confirmReplacement = async function() {
+        let newPlayers = [];
+        for (let i = 0; i < 4; i++) {
+            const select = document.getElementById(`p${i}Select`);
+            const customInput = document.getElementById(`p${i}Custom`);
+            let val = select.value === "custom" ? customInput.value.trim() : select.value;
+            if (!val) val = basePlayers[i];
+            newPlayers.push(val);
         }
 
-                      function getActiveDisplayWeeks() {
-            const activeWeeks = [];
-            const defaultTemplate = [
-                { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
-                { dinsdag: ["Marcel", "Mark", "Dennis", "Robert"], donderdag: ["Ronald", "Sander", "Mark", "Dennis"] },
-                { dinsdag: ["Ronald", "Robert", "Marcel", "Sander"], donderdag: ["Mark", "Marcel", "Dennis", "Ronald"] },
-                { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Ronald"] },
-                { dinsdag: ["Mark", "Dennis", "Sander", "Robert"], donderdag: ["Marcel", "Sander", "Ronald", "Dennis"] },
-                { dinsdag: ["Sander", "Ronald", "Robert", "Mark"], donderdag: ["Marcel", "Dennis", "Mark", "Sander"] }
-            ];
-
-            const baseStartDate = new Date(2026, 8, 15);
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            const diffDays = Math.floor((today - baseStartDate) / (1000 * 60 * 60 * 24));
-                        let startIndex = 1; // Forceer direct week 2 van de cyclus (week 39)
-
-            if (startIndex < 0) startIndex = 0;
-
-            for (let i = 0; i < 6; i++) {
-                const absoluteIndex = startIndex + i;
-                const templateIndex = absoluteIndex % 6;
-
-                const tuesdayDate = new Date(baseStartDate);
-                tuesdayDate.setDate(baseStartDate.getDate() + (absoluteIndex * 7));
-
-                const thursdayDate = new Date(tuesdayDate);
-                thursdayDate.setDate(thursdayDate.getDate() + 2);
-
-                const weekItem = {
-                    weekIndex: absoluteIndex,
-                    displayWeekNum: 39 + i,
-
-                    tuesdayDateStr: formatDateDDMMYY(tuesdayDate),
-                    thursdayDateStr: formatDateDDMMYY(thursdayDate),
-                    dinsdag: [...defaultTemplate[templateIndex].dinsdag],
-                    donderdag: [...defaultTemplate[templateIndex].donderdag]
-                };
-
-                if (customScheduleOverrides[absoluteIndex]) {
-                    if (customScheduleOverrides[absoluteIndex].dinsdag) {
-                        weekItem.dinsdag = [...customScheduleOverrides[absoluteIndex].dinsdag];
-                    }
-                    if (customScheduleOverrides[absoluteIndex].donderdag) {
-                        weekItem.donderdag = [...customScheduleOverrides[absoluteIndex].donderdag];
-                    }
-                }
-                activeWeeks.push(weekItem);
-            }
-            return activeWeeks;
-        }
-  
-
-
-        function renderSchedule() {
-            const list = document.getElementById("scheduleList");
-            list.innerHTML = "";
-            const activeWeeks = getActiveDisplayWeeks();
-
-            activeWeeks.forEach(item => {
-                const weekCard = document.createElement("div");
-                weekCard.className = "week-card";
-
-                const checkAbsence = (players, dayKey) => {
-                    const confl = [];
-                    players.forEach(p => { if (absenceData[`${p}_${item.weekIndex}_${dayKey}`]) confl.push(p); });
-                    return confl;
-                };
-                const diConflicts = checkAbsence(item.dinsdag, "dinsdag");
-                const doConflicts = checkAbsence(item.donderdag, "donderdag");
-
-                const createTag = (p) => `<span class="player-tag ${p === currentUser ? 'highlight' : ''} ${!basePlayers.includes(p) ? 'sub' : ''}">${p}</span>`;
-                const formatPlayerPairs = (pl) => `${createTag(pl[0])} ${createTag(pl[1])} <span class="vs-divider">VS</span> ${createTag(pl[2])} ${createTag(pl[3])}`;
-
-                weekCard.innerHTML = `
-                    <div class="week-title">Week ${item.displayWeekNum}</div>
-                    <div class="day-box">
-                        <div class="day-header-row">
-                            <span class="day-label di">Dinsdag <span class="day-date">${item.tuesdayDateStr}</span></span>
-                            <button class="replace-btn" onclick="openReplaceModal(${item.weekIndex}, 'dinsdag')">✏️ Wijzig</button>
-                        </div>
-                        <div class="player-tags">${formatPlayerPairs(item.dinsdag)}</div>
-                        ${diConflicts.length > 0 ? `<div class="alert-badge">⚠️ Let op: ${diConflicts.join(', ')} afwezig!</div>` : ''}
-                    </div>
-                    <div class="day-box">
-                        <div class="day-header-row">
-                            <span class="day-label do">Donderdag <span class="day-date">${item.thursdayDateStr}</span></span>
-                            <button class="replace-btn" onclick="openReplaceModal(${item.weekIndex}, 'donderdag')">✏️ Wijzig</button>
-                        </div>
-                        <div class="player-tags">${formatPlayerPairs(item.donderdag)}</div>
-                        ${doConflicts.length > 0 ? `<div class="alert-badge">⚠️ Let op: ${doConflicts.join(', ')} afwezig!</div>` : ''}
-                    </div>
-                `;
-                list.appendChild(weekCard);
-            });
-        }
-
-        function renderAbsenceTable() {
-            const headerRow = document.getElementById("absenceHeaderRow");
-            const tbody = document.getElementById("absenceTableBody");
-            headerRow.innerHTML = `<th>Speler</th>`;
-
-            const activeWeeks = getActiveDisplayWeeks();
-            activeWeeks.forEach(item => {
-                headerRow.innerHTML += `<th>W${item.displayWeekNum} (Di)</th><th>W${item.displayWeekNum} (Do)</th>`;
-            });
-
-            tbody.innerHTML = "";
-            basePlayers.forEach(player => {
-                const isCurrent = player === currentUser;
-                const tr = document.createElement("tr");
-                if (isCurrent) tr.className = "highlight-row";
-                let html = `<td style="font-weight: 500;">${player}</td>`;
-
-                activeWeeks.forEach(item => {
-                    ["dinsdag", "donderdag"].forEach(day => {
-                        const key = `${player}_${item.weekIndex}_${day}`;
-                        const isAbsent = !!absenceData[key];
-                        if (isCurrent) {
-                            html += `<td><button class="absence-btn ${isAbsent ? 'absent' : ''}" onclick="toggleAbsence('${player}', ${item.weekIndex}, '${day}')">${isAbsent ? '❌ Nee' : '✅ Kan'}</button></td>`;
-                        } else {
-                            html += `<td style="font-size: 0.75rem; color: ${isAbsent ? 'var(--danger)' : 'var(--text-muted)'}">${isAbsent ? '❌ Nee' : '✅'}</td>`;
-                        }
-                    });
-                });
-                tr.innerHTML = html;
-                tbody.appendChild(tr);
-            });
-        }
-
-        window.toggleAbsence = async function(player, weekIndex, day) {
-            const key = `${player}_${weekIndex}_${day}`;
-            const wasAbsent = !!absenceData[key];
-            const becomesAbsent = !wasAbsent;
-
-            absenceData[key] = becomesAbsent;
-            await updateAbsence(player, weekIndex, day, becomesAbsent);
-
-            const activeWeeks = getActiveDisplayWeeks();
-            const currentWeekObj = activeWeeks.find(w => w.weekIndex === weekIndex);
-            const weekNumDisplay = currentWeekObj ? currentWeekObj.displayWeekNum : weekIndex;
-
-            const textMsg = becomesAbsent
-                ? `⚠️ **${player}** kan **niet** spelen op ${day} in week ${weekNumDisplay}.`
-                : `✅ **${player}** kan weer **wel** spelen op ${day} in week ${weekNumDisplay}.`;
-
-            await pushMessage(currentUser, textMsg);
-        };
-
-        let selectedWeekIndex = null;
-        let selectedDay = null;
-        let originalPlayersForModal = [];
-
-        window.openReplaceModal = function(weekIndex, day) {
-            selectedWeekIndex = weekIndex;
-            selectedDay = day;
-            const activeWeeks = getActiveDisplayWeeks();
-            const currentWeekObj = activeWeeks.find(w => w.weekIndex === weekIndex);
-            const weekNumDisplay = currentWeekObj ? currentWeekObj.displayWeekNum : weekIndex;
-
-            document.getElementById("modalSubTitle").innerText = `Week ${weekNumDisplay} - ${day.charAt(0).toUpperCase() + day.slice(1)}`;
-
-            const currentPlayers = currentWeekObj[day];
-            originalPlayersForModal = [...currentPlayers];
-
-            for (let i = 0; i < 4; i++) {
-                const select = document.getElementById(`p${i}Select`);
-                const customInput = document.getElementById(`p${i}Custom`);
-                select.innerHTML = "";
-                basePlayers.forEach(p => { select.innerHTML += `<option value="${p}">${p}</option>`; });
-                select.innerHTML += `<option value="CUSTOM">+ Externe Invaller...</option>`;
-
-                if (basePlayers.includes(currentPlayers[i])) {
-                    select.value = currentPlayers[i];
-                    customInput.style.display = "none";
-                    customInput.value = "";
-                } else {
-                    select.value = "CUSTOM";
-                    customInput.style.display = "block";
-                    customInput.value = currentPlayers[i];
-                }
-            }
-            document.getElementById("replaceModal").style.display = "flex";
-        };
-
-        window.checkCustomInputs = function() {
-            for (let i = 0; i < 4; i++) {
-                const select = document.getElementById(`p${i}Select`);
-                document.getElementById(`p${i}Custom`).style.display = (select.value === "CUSTOM") ? "block" : "none";
-            }
-        };
-
-        window.confirmReplacement = async function() {
-            const newPlayers = [];
-            for (let i = 0; i < 4; i++) {
-                const selectVal = document.getElementById(`p${i}Select`).value;
-                const customVal = document.getElementById(`p${i}Custom`).value.trim();
-                newPlayers.push(selectVal === "CUSTOM" ? (customVal || "Invaller") : selectVal);
-            }
-
-            await updateScheduleOverride(selectedWeekIndex, selectedDay, newPlayers);
-
-            const activeWeeks = getActiveDisplayWeeks();
-            const currentWeekObj = activeWeeks.find(w => w.weekIndex === selectedWeekIndex);
-            const weekNumDisplay = currentWeekObj ? currentWeekObj.displayWeekNum : selectedWeekIndex;
-
-            const changesSummary = [];
-            for (let i = 0; i < 4; i++) {
-                if (originalPlayersForModal[i] !== newPlayers[i]) {
-                    changesSummary.push(`• ${originalPlayersForModal[i]} ➡️ ${newPlayers[i]}`);
-                }
-            }
-
-            if (changesSummary.length > 0) {
-                const changeText = `🔄 **Opstelling gewijzigd** voor ${selectedDay} (week ${weekNumDisplay}):\n` + changesSummary.join('\n');
-                await pushMessage(currentUser, changeText);
-            }
-
-            window.closeModal();
-        };
-
-        window.closeModal = function() { document.getElementById("replaceModal").style.display = "none"; };
-
-        const MAX_CHAT_LENGTH = 500;
-
-        function renderChat() {
-            const win = document.getElementById("chatWindow");
-            win.innerHTML = messages.length === 0
-                ? `<div style="color: var(--text-muted); font-style: italic; padding-top: 10px;">Nog geen berichten in de teamchat.</div>`
-                : "";
-
-            messages.forEach(msg => {
-                const isSelf = msg.sender === currentUser;
-                const div = document.createElement("div");
-                div.className = `message ${isSelf ? 'self' : ''}`;
-
-                const formattedText = (msg.text || "").replace(/\n/g, '<br>');
-
-                div.innerHTML = `
-                    <div class="message-header">
-                        <span class="author">${msg.sender}</span>
-                        <button class="delete-msg-btn" onclick="deleteSingleMessage('${msg._key}')">🗑️</button>
-                    </div>
-                    <div style="margin-top: 2px; white-space: pre-line;">${formattedText}</div>
-                `;
-                win.appendChild(div);
-            });
-        }
-
-        window.scrollToBottom = function(smooth = true) {
-            const win = document.getElementById("chatWindow");
-            win.scrollTo({ top: win.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
-        };
-
-        window.sendMessage = async function() {
-            const input = document.getElementById("chatInput");
-            const text = input.value.trim();
-            if (!text) return;
-            if (text.length > MAX_CHAT_LENGTH) {
-                alert(`Bericht te lang (max ${MAX_CHAT_LENGTH} tekens).`);
-                return;
-            }
-            input.value = "";
-            await pushMessage(currentUser, text);
-            setTimeout(() => scrollToBottom(true), 100);
-        };
-
-        window.deleteSingleMessage = async function(key) {
-            await deleteMessageByKey(key);
-        };
-
-        window.clearAllChat = async function() {
-            if (confirm("Weet je zeker dat je alle chatberichten wilt wissen?")) {
-                await clearAllMessages();
-            }
-        };
-
-        window.handleKeyPress = function(e) { if (e.key === 'Enter') window.sendMessage(); };
-    </script>
-    <!-- Handmatig menu om de week van de cyclus te kiezen -->
-    <div class="padel-week-selector" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6; display: inline-block;">
-        <label for="weekSelect" style="font-weight: bold; margin-right: 10px;">Selecteer cyclus week:</label>
-        <select id="weekSelect" style="padding: 6px 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 1rem;">
-            <option value="1">Cyclus Week 1</option>
-            <option value="2">Cyclus Week 2</option>
-            <option value="3">Cyclus Week 3</option>
-            <option value="4">Cyclus Week 4</option>
-            <option value="5">Cyclus Week 5</option>
-            <option value="6">Cyclus Week 6</option>
-        </select>
-    </div>
-
-    <!-- Plekken waar de schema's getoond worden -->
-    <div class="schema-container">
-        <h3>Dinsdag</h3>
-        <ul id="dinsdagLijst"></ul>
-
-        <h3>Donderdag</h3>
-        <ul id="donderdagLijst"></ul>
-    </div>
-
-    <!-- JavaScript voor de automatische berekening en het menu -->
-    <script>
-        const padelRooster = {
-            "1": {
-                dinsdag: ["Speler A", "Speler B", "Speler C", "Speler D"],
-                donderdag: ["Speler A", "Speler B", "Speler E", "Speler F"]
-            },
-            "2": {
-                dinsdag: ["Speler C", "Speler D", "Speler E", "Speler F"],
-                donderdag: ["Speler A", "Speler C", "Speler D", "Speler E"]
-            },
-            "3": {
-                dinsdag: ["Speler B", "Speler D", "Speler E", "Speler F"],
-                donderdag: ["Speler A", "Speler B", "Speler C", "Speler F"]
-            },
-            "4": {
-                dinsdag: ["Speler A", "Speler C", "Speler E", "Speler F"],
-                donderdag: ["Speler B", "Speler C", "Speler D", "Speler F"]
-            },
-            "5": {
-                dinsdag: ["Speler A", "Speler B", "Speler D", "Speler E"],
-                donderdag: ["Speler A", "Speler C", "Speler D", "Speler F"]
-            },
-            "6": {
-                dinsdag: ["Speler B", "Speler C", "Speler E", "Speler F"],
-                donderdag: ["Speler A", "Speler B", "Speler D", "Speler F"]
-            }
-        };
-
-        function berekenHuidigeCyclusWeek() {
-            const startDatum = new Date('2026-09-14T00:00:00');
-            const nu = new Date();
-            const verschilInMs = nu - startDatum;
-            if (verschilInMs < 0) return '1';
-            const verschilInWeken = Math.floor(verschilInMs / (1000 * 60 * 60 * 24 * 7));
-            return ((verschilInWeken % 6) + 1).toString();
-        }
-
-        function laadSchemaVoorWeek(weekNummer) {
-            const weekData = padelRooster[weekNummer];
-            if (!weekData) return;
-
-            const dinsdagContainer = document.getElementById('dinsdagLijst');
-            const donderdagContainer = document.getElementById('donderdagLijst');
-
-            if (dinsdagContainer) {
-                dinsdagContainer.innerHTML = weekData.dinsdag.map(naam => `<li>${naam}</li>`).join('');
-            }
-            if (donderdagContainer) {
-                donderdagContainer.innerHTML = weekData.donderdag.map(naam => `<li>${naam}</li>`).join('');
-            }
-        }
-
-       document.addEventListener('DOMContentLoaded', () => {
-    const weekSelect = document.getElementById('weekSelect');
-    if (!weekSelect) return;
-
-   const berekenHuidigeCyclusWeek = () => {
-    const startDatum = new Date('2026-09-07T00:00:00'); // Jouw startpunt
-    const nu = new Date();
-
-    const verschilInMs = nu - startDatum;
-    if (verschilInMs < 0) return '1';
-
-    // We tellen bijvoorbeeld 3 dagen op bij het verschil, 
-    // zodat de week pas 'omklapt' nadat de donderdag is geweest.
-    // (1000 * 60 * 60 * 24 * 3 = 3 dagen in milliseconden)
-    const extraOffsetMs = 1000 * 60 * 60 * 24 * 3; 
-    const aangepastVerschil = verschilInMs + extraOffsetMs;
-
-    const verschilInWeken = Math.floor(aangepastVerschil / (1000 * 60 * 60 * 24 * 7));
-    const huidigeWeek = (verschilInWeken % 6) + 1;
-
-    return huidigeWeek.toString();
-};
-});
-    </script>
-</body>
-</html>
+        // Opslaan in Firebase Realtime Database
+        await db.ref(`scheduleOverrides/${currentEditingWeek}/${currentEditingDay}`).set(newPlayers);
+        closeModal();
+    };
+</script>
 
 </body>
 </html>
