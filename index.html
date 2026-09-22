@@ -652,22 +652,22 @@
         <div class="player-select-group">
             <label>Speler 1</label>
             <select id="p0Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p0Custom" placeholder="Naam invaller" style="display:none; margin-top:4px;">
+            <input type="text" id="p0Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
         </div>
         <div class="player-select-group">
             <label>Speler 2</label>
             <select id="p1Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p1Custom" placeholder="Naam invaller" style="display:none; margin-top:4px;">
+            <input type="text" id="p1Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
         </div>
         <div class="player-select-group">
             <label>Speler 3</label>
             <select id="p2Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p2Custom" placeholder="Naam invaller" style="display:none; margin-top:4px;">
+            <input type="text" id="p2Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
         </div>
         <div class="player-select-group">
             <label>Speler 4</label>
             <select id="p3Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p3Custom" placeholder="Naam invaller" style="display:none; margin-top:4px;">
+            <input type="text" id="p3Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
         </div>
 
         <div class="modal-buttons">
@@ -907,7 +907,7 @@
         weeks.forEach(w => {
             let diAbsentPlayers = [];
             w.dinsdag.forEach(p => {
-                if (checkAbsence(p, w.weekIndex, 'dinsdag')) {
+                if (basePlayers.includes(p) && checkAbsence(p, w.weekIndex, 'dinsdag')) {
                     diAbsentPlayers.push(p);
                 }
             });
@@ -917,7 +917,7 @@
 
             let doAbsentPlayers = [];
             w.donderdag.forEach(p => {
-                if (checkAbsence(p, w.weekIndex, 'donderdag')) {
+                if (basePlayers.includes(p) && checkAbsence(p, w.weekIndex, 'donderdag')) {
                     doAbsentPlayers.push(p);
                 }
             });
@@ -1106,7 +1106,7 @@
             
             let optionsHtml = `<option value="">-- Kies speler --</option>`;
             basePlayers.forEach(p => { optionsHtml += `<option value="${p}">${p}</option>`; });
-            optionsHtml += `<option value="custom">-- Invaller (typ naam) --</option>`;
+            optionsHtml += `<option value="custom">-- 👤 Externe speler / invaller --</option>`;
             select.innerHTML = optionsHtml;
 
             const assignedPlayer = currentPlayers[i] || "";
@@ -1152,10 +1152,8 @@
             newPlayers.push(val);
         }
 
-        // Sla wijziging op in database
         db.ref(`padelData/scheduleOverrides/${currentEditingWeek}/${currentEditingDay}`).set(newPlayers);
 
-        // Maak automatisch een chatmelding aan met wat er is veranderd
         const activeWeeks = getActiveDisplayWeeks();
         const currentWeekData = activeWeeks.find(w => w.weekIndex === currentEditingWeek);
         const weekNum = currentWeekData ? currentWeekData.weekNumber : currentEditingWeek;
