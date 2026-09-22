@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Padelschema - Rooster & Chat</title>
+    <title>Padelschema</title>
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <!-- Firebase Realtime Database -->
@@ -11,430 +11,329 @@
     
     <style>
         :root {
-            --bg-color: #0b0f19;
-            --card-bg: #111827;
-            --card-border: #1f2937;
-            --card-border-glow: #374151;
-            --btn-bg: #263345;
-            --btn-hover: #32445c;
-            --text-main: #f9fafb;
-            --text-muted: #9ca3af;
-            --accent-blue: #38bdf8;
-            --accent-orange: #fb923c;
-            --accent-green: #34d399;
-            --accent-green-bg: rgba(52, 211, 153, 0.1);
-            --danger: #f87171;
-            --danger-bg: rgba(248, 113, 113, 0.1);
-            --main-glow: 0 16px 60px rgba(52, 211, 153, 0.28), 0 0 50px rgba(52, 211, 153, 0.15);
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #34d399;
+            --accent-hover: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --tuesday-color: #3b82f6;
+            --thursday-color: #f59e0b;
+            --danger: #ef4444;
+            --glow-color: rgba(52, 211, 153, 0.4);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            -webkit-tap-highlight-color: transparent;
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+        
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            padding: 12px; 
+            display: flex; 
+            justify-content: center; 
         }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
+        .app-container { 
+            width: 100%; 
+            max-width: 650px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 14px; 
         }
-
-        .container {
-            width: 100%;
-            max-width: 768px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        header {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            padding: 20px;
+        
+        .app-header-bar, .top-bar, .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
             border-radius: 14px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
-            box-shadow: var(--main-glow);
+            padding: 16px;
+            box-shadow: 0 4px 18px -2px var(--glow-color), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent-green);
-            letter-spacing: -0.025em;
+        .app-header-bar {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            text-align: center;
+            padding: 14px;
+        }
+        
+        .app-header-bar h1 {
+            color: var(--accent);
+            font-size: 1.3rem;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            width: 100%;
-            text-align: center;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 12px rgba(52, 211, 153, 0.6);
         }
 
-        .user-select-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            border-top: 1px solid var(--card-border);
-            padding-top: 12px;
+        .top-bar { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            padding: 14px;
         }
+        
+        .top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+        
+        .user-select-group { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: bold; width: 100%; }
+        
+        select, input[type="text"], textarea { 
+            background: var(--bg-color); 
+            color: var(--text-main); 
+            border: 1px solid var(--border); 
+            padding: 10px 12px; 
+            border-radius: 8px; 
+            font-size: 0.95rem; 
+            outline: none; 
+            width: 100%; 
+        }
+        
+        select:focus, input[type="text"]:focus { 
+            border-color: var(--accent); 
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.5); 
+        }
+        
+        select { font-weight: bold; cursor: pointer; width: 100%; }
 
-        .user-select-container {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--bg-color);
-            padding: 6px 12px;
+        .online-users-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 10px;
-            border: 1px solid var(--card-border);
-            font-size: 0.9rem;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
-        .user-select-container select {
-            background: var(--card-bg);
-            color: var(--text-main);
-            border: 1px solid var(--card-border);
+        .online-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .online-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .online-tag {
+            background: var(--bg-color);
+            border: 1px solid var(--border);
             padding: 4px 8px;
             border-radius: 6px;
-            font-weight: 600;
-            outline: none;
-            cursor: pointer;
-        }
-
-        .status-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
-            width: 100%;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
-        .status-badge {
-            background: var(--bg-color);
-            padding: 4px 10px;
-            border-radius: 12px;
-            border: 1px solid var(--card-border);
+            font-size: 0.75rem;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
+            color: var(--text-muted);
+            font-weight: 500;
         }
 
-        .status-dot {
-            width: 6px;
-            height: 6px;
+        .online-tag.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            font-weight: bold;
+            background: rgba(52, 211, 153, 0.08);
+        }
+
+        .online-dot-mini {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background-color: var(--text-muted);
             border-radius: 50%;
-            background: var(--text-muted);
         }
 
-        .status-dot.online {
-            background: var(--accent-green);
-            box-shadow: 0 0 6px var(--accent-green);
+        .online-tag.active .online-dot-mini {
+            background-color: var(--accent);
+            box-shadow: 0 0 6px var(--accent);
+            animation: pulse-green 2s infinite ease-in-out;
         }
 
-        .chat-btn {
-            background: var(--btn-bg);
-            color: var(--text-main);
-            border: 1px solid var(--card-border);
+        .sync-status { 
+            font-size: 0.75rem; 
+            color: var(--accent); 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            font-weight: 600; 
+        }
+
+        .live-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+            animation: pulse-green 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-green {
+            0% { opacity: 0.3; transform: scale(0.9); box-shadow: 0 0 2px var(--accent); }
+            50% { opacity: 1; transform: scale(1.1); box-shadow: 0 0 12px var(--accent); }
+            100% { opacity: 0.3; transform: scale(0.9); box-shadow: 0 0 2px var(--accent); }
+        }
+
+        .global-chat-alert-btn {
+            background: linear-gradient(135deg, #334155, #1e293b);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
             padding: 12px 16px;
-            border-radius: 14px;
-            font-weight: 600;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: bold;
             cursor: pointer;
-            text-decoration: none;
+            width: 100%;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: background 0.2s;
-            font-size: 0.95rem;
-            box-shadow: var(--main-glow);
-        }
-
-        .chat-btn:hover {
-            background: var(--btn-hover);
-            border-color: var(--accent-blue);
-        }
-
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--accent-blue);
-            margin-top: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .week-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 14px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            margin-bottom: 16px;
-        }
-
-        .week-header {
-            background: rgba(255, 255, 255, 0.02);
-            padding: 12px 16px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: var(--accent-blue);
-            border-bottom: 1px solid var(--card-border);
-        }
-
-        .match-row {
-            padding: 14px 16px;
-            display: flex;
             justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--card-border);
-            flex-wrap: wrap;
-            gap: 10px;
+            box-shadow: 0 4px 18px -2px var(--glow-color), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            text-decoration: none;
         }
 
-        .match-row:last-child {
-            border-bottom: none;
+        .card { display: flex; flex-direction: column; gap: 12px; }
+        .card-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        
+        h2 { 
+            color: var(--accent); 
+            font-size: 1.05rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            text-shadow: 0 0 10px rgba(52, 211, 153, 0.4); 
         }
 
-        .match-info {
-            flex-grow: 1;
-        }
+        .schedule-list { display: flex; flex-direction: column; gap: 10px; }
+        .week-card { background: var(--bg-color); border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .week-title { font-weight: bold; font-size: 0.9rem; color: var(--text-muted); }
 
-        .match-title {
-            font-weight: 600;
-            color: var(--text-muted);
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 6px;
-            display: flex;
-            gap: 10px;
-        }
+        .day-box { display: flex; flex-direction: column; gap: 6px; background: rgba(255, 255, 255, 0.02); padding: 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.03); }
+        .day-header-row { display: flex; justify-content: space-between; align-items: center; }
+        .day-label { font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
+        .day-label.di, .day-date.di { color: var(--tuesday-color); }
+        .day-label.do, .day-date.do { color: var(--thursday-color); }
+        .day-date { font-weight: bold; font-size: 0.8rem; }
 
-        .match-date {
-            color: var(--accent-orange);
-        }
+        .player-tags { display: flex; align-items: center; justify-content: space-between; gap: 3px; flex-wrap: nowrap; width: 100%; overflow: hidden; }
+        .vs-divider { font-weight: bold; color: var(--accent); font-size: 0.7rem; padding: 0 2px; flex-shrink: 0; }
+        .player-tag { display: inline-block; background: #334155; padding: 4px 6px; border-radius: 6px; font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; text-align: center; }
+        .player-tag.highlight { background: var(--accent); color: #0f172a; font-weight: 800; box-shadow: 0 0 10px rgba(52, 211, 153, 0.7); }
+        .player-tag.sub { background: #ab47bc; color: white; }
 
-        .players-container {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
+        .replace-btn { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-muted); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 500; }
+        .replace-btn:hover { background: var(--accent); color: #0f172a; border-color: var(--accent); font-weight: bold; box-shadow: 0 0 10px rgba(52, 211, 153, 0.6); }
 
-        .player-chip {
-            background: var(--bg-color);
-            border: 1px solid var(--card-border);
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-weight: 500;
-        }
-
-        .player-chip.me {
-            border-color: var(--accent-green);
-            color: var(--accent-green);
-            background: var(--accent-green-bg);
-        }
-
-        .player-chip.sub {
-            background: #7c2d12;
-            border-color: #c2410c;
-            color: #fed7aa;
-        }
-
-        .vs-text {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin: 0 2px;
-        }
-
-        .btn-edit {
-            background-color: var(--btn-bg);
-            color: var(--text-main);
-            border: 1px solid var(--card-border);
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 600;
-            transition: background 0.2s;
-        }
-
-        .btn-edit:hover {
-            background-color: var(--btn-hover);
-        }
-
-        .absence-alert {
-            background: var(--danger-bg);
-            border: 1px solid var(--danger);
-            color: var(--danger);
-            padding: 8px 16px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .absence-alert { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: #fca5a5; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 500; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
 
         /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            padding: 16px;
-        }
-
-        .modal-content {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            padding: 24px;
-            border-radius: 16px;
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .modal-content h3 {
-            color: var(--accent-green);
-            font-size: 1.2rem;
-            margin-bottom: 16px;
-        }
-
-        .player-select-group {
-            margin-bottom: 12px;
-        }
-
-        .player-select-group label {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-            font-weight: 600;
-        }
-
-        .player-select-group select, .player-select-group input {
-            width: 100%;
-            padding: 8px 10px;
-            background: var(--bg-color);
-            color: var(--text-main);
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
-            font-size: 0.9rem;
-            outline: none;
-        }
-
-        .modal-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 16px;
-        }
-
-        .btn-cancel {
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--card-border);
-            padding: 8px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .btn-save {
-            background: var(--accent-green);
-            color: #0b0f19;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 700;
-        }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 100; padding: 16px; backdrop-filter: blur(4px); }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: 14px; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 14px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 18px rgba(52, 211, 153, 0.3); }
+        .team-group { background: var(--bg-color); padding: 12px; border-radius: 10px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+        .team-title { font-size: 0.85rem; font-weight: bold; color: var(--accent); }
+        .input-stack { display: flex; flex-direction: column; gap: 4px; }
+        .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
+        .modal-actions button { flex: 1; }
+        .btn-cancel { background: var(--border); color: var(--text-main); box-shadow: none; }
+        .btn-cancel:hover { background: #475569; color: white; }
+        .btn-primary { background: var(--accent); color: #0f172a; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
+<div class="app-container">
+    <div class="app-header-bar">
         <h1>🎾 Padelschema 🎾</h1>
-        
-        <div class="user-select-row">
-            <div class="user-select-container">
-                <label for="userSelect">Jij:</label>
-                <select id="userSelect" onchange="changeUser()">
-                    <!-- Wordt dynamisch gevuld -->
+    </div>
+
+    <div class="top-bar">
+        <div class="top-row">
+            <div class="user-select-group">
+                <label for="currentUser">👤 Wie ben jij?</label>
+                <select id="currentUser" onchange="changeUser()">
+                    <option value="Marcel">Marcel</option>
+                    <option value="Mark">Mark</option>
+                    <option value="Ronald">Ronald</option>
+                    <option value="Sander">Sander</option>
+                    <option value="Dennis">Dennis</option>
+                    <option value="Robert">Robert</option>
                 </select>
             </div>
-            
-            <div style="font-size: 0.8rem; color: var(--accent-green); display: flex; align-items: center; gap: 6px;">
-                <span class="status-dot online"></span>
-                <span>Live verbonden met database</span>
-            </div>
         </div>
 
-        <div id="statusList" class="status-container">
-            Laden status...
+        <div class="online-users-box">
+            <div class="online-title">🟢 Nu online / actief</div>
+            <div class="online-list" id="onlineUsersList"></div>
         </div>
-    </header>
 
-    <a href="chat.html" class="chat-btn">💬 Team Chat bekijken</a>
+        <div class="sync-status" id="syncStatus">
+            <span class="live-dot"></span> Live verbonden met database
+        </div>
+    </div>
 
-    <div class="section-title">📅 Speelschema (komende 6 weken)</div>
-    <div id="scheduleContainer">Laden van schema...</div>
+    <a href="chat.html" class="global-chat-alert-btn" id="globalChatAlertBtn">
+        <span id="chatBtnText">💬 Team Chat bekijken</span>
+    </a>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>🎾 Speelschema (Komende 6 Weken)</h2>
+        </div>
+        <div class="schedule-list" id="scheduleList">Laden van schema...</div>
+    </div>
 </div>
 
-<!-- Modal voor wijzigen -->
-<div id="replaceModal" class="modal">
+<div class="modal" id="replaceModal">
     <div class="modal-content">
-        <h3 id="modalSubTitle">Spelers wijzigen</h3>
-        
-        <div class="player-select-group">
-            <label>Speler 1</label>
-            <select id="p0Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p0Custom" placeholder="Naam invaller" style="display:none; margin-top:4px;">
+        <h3 style="color: var(--accent); font-size: 1.1rem;">⚙️ Invaller / Teams Wijzigen (Alleen deze week)</h3>
+        <p id="modalSubTitle" style="font-size: 0.8rem; color: var(--text-muted);"></p>
+        <div class="team-group">
+            <div class="team-title">Team 1</div>
+            <div class="input-stack">
+                <label style="font-size: 0.75rem; color: var(--text-muted);">Speler 1:</label>
+                <select id="p0Select" onchange="checkCustomInputs()"></select>
+                <input type="text" id="p0Custom" placeholder="Naam invaller..." style="display:none; margin-top:4px;">
+            </div>
+            <div class="input-stack" style="margin-top: 6px;">
+                <label style="font-size: 0.75rem; color: var(--text-muted);">Speler 2 (Partner):</label>
+                <select id="p1Select" onchange="checkCustomInputs()"></select>
+                <input type="text" id="p1Custom" placeholder="Naam invaller..." style="display:none; margin-top:4px;">
+            </div>
         </div>
-        <div class="player-select-group">
-            <label>Speler 2</label>
-            <select id="p1Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p1Custom" placeholder="Naam invaller" style="display:none; margin-top:4px;">
+        <div class="team-group">
+            <div class="team-title">Team 2 (Tegenstanders)</div>
+            <div class="input-stack">
+                <label style="font-size: 0.75rem; color: var(--text-muted);">Tegenstander 1:</label>
+                <select id="p2Select" onchange="checkCustomInputs()"></select>
+                <input type="text" id="p2Custom" placeholder="Naam invaller..." style="display:none; margin-top:4px;">
+            </div>
+            <div class="input-stack" style="margin-top: 6px;">
+                <label style="font-size: 0.75rem; color: var(--text-muted);">Tegenstander 2:</label>
+                <select id="p3Select" onchange="checkCustomInputs()"></select>
+                <input type="text" id="p3Custom" placeholder="Naam invaller..." style="display:none; margin-top:4px;">
+            </div>
         </div>
-        <div class="player-select-group">
-            <label>Speler 3</label>
-            <select id="p2Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p2Custom" placeholder="Naam invaller" style="display:none; margin-top:4px;">
-        </div>
-        <div class="player-select-group">
-            <label>Speler 4</label>
-            <select id="p3Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p3Custom" placeholder="Naam invaller" style="display:none; margin-top:4px;">
-        </div>
-
-        <div class="modal-buttons">
-            <button class="btn-cancel" onclick="closeModal()">Annuleren</button>
-            <button class="btn-save" onclick="confirmReplacement()">Opslaan</button>
+        <div class="modal-actions">
+            <button class="btn-primary" onclick="confirmReplacement()">Opslaan</button>
+            <button class="btn-primary btn-cancel" onclick="closeModal()">Annuleren</button>
         </div>
     </div>
 </div>
 
 <script>
     const firebaseConfig = {
-        databaseURL: "https://padelschema-default-rtdb.europe-west1.firebasedatabase.app/"
+        databaseURL: "https://padel-team-6-default-rtdb.europe-west1.firebasedatabase.app"
     };
     
     if (!firebase.apps.length) {
@@ -443,7 +342,68 @@
     const db = firebase.database();
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
-    let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
+    let currentUser = localStorage.getItem('padel_currentUser_stable') || "Robert";
+    document.getElementById("currentUser").value = currentUser;
+
+    const sessionToken = 'sess_' + Math.random().toString(36).substring(2, 9);
+    let customScheduleOverrides = {};
+    let allStatuses = {};
+    let absences = {};
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setupOnlinePresence();
+
+        db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
+            customScheduleOverrides = snapshot.val() || {};
+            renderSchedule();
+        });
+
+        db.ref('padelData/absence').on('value', (snapshot) => {
+            absences = snapshot.val() || {};
+            renderSchedule();
+        });
+    });
+
+    function setupOnlinePresence() {
+        const userOnlineRef = db.ref(`onlineUsers/${currentUser}_${sessionToken}`);
+        userOnlineRef.set({ name: currentUser, timestamp: Date.now() });
+        userOnlineRef.onDisconnect().remove();
+
+        db.ref('onlineUsers').on('value', (snapshot) => {
+            const container = document.getElementById("onlineUsersList");
+            container.innerHTML = "";
+            const val = snapshot.val() || {};
+
+            let activeMap = {};
+            Object.values(val).forEach(item => {
+                if (item && item.name) activeMap[item.name] = true;
+            });
+
+            basePlayers.forEach(player => {
+                const isOnline = !!activeMap[player];
+                const isCurrent = player === currentUser;
+                const tag = document.createElement("div");
+                tag.className = `online-tag ${isOnline ? 'active' : ''}`;
+                tag.innerHTML = `
+                    <span class="online-dot-mini"></span>
+                    <span>${player}${isCurrent ? ' (Jij)' : ''}</span>
+                `;
+                container.appendChild(tag);
+            });
+        });
+
+        setInterval(() => {
+            userOnlineRef.set({ name: currentUser, timestamp: Date.now() });
+        }, 15000);
+    }
+
+    window.changeUser = function() {
+        db.ref(`onlineUsers/${currentUser}_${sessionToken}`).remove();
+        currentUser = document.getElementById("currentUser").value;
+        localStorage.setItem("padel_currentUser_stable", currentUser);
+        setupOnlinePresence();
+        renderSchedule();
+    }
 
     const defaultTemplate = [
         { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
@@ -453,104 +413,6 @@
         { dinsdag: ["Mark", "Dennis", "Sander", "Robert"], donderdag: ["Marcel", "Sander", "Ronald", "Dennis"] },
         { dinsdag: ["Sander", "Ronald", "Robert", "Mark"], donderdag: ["Marcel", "Dennis", "Mark", "Sander"] }
     ];
-
-    let liveOverrides = {};
-    let allStatuses = {};
-    let absences = {};
-
-    document.addEventListener('DOMContentLoaded', () => {
-        initUserSelect();
-
-        db.ref('scheduleOverrides').on('value', (snapshot) => {
-            liveOverrides = snapshot.val() || {};
-            renderSchedule();
-        });
-
-        db.ref('status').on('value', (snapshot) => {
-            allStatuses = snapshot.val() || {};
-            renderStatuses();
-        });
-
-        db.ref('absences').on('value', (snapshot) => {
-            absences = snapshot.val() || {};
-            renderSchedule();
-        });
-
-        setupOnlinePresence();
-    });
-
-    function initUserSelect() {
-        const select = document.getElementById('userSelect');
-        select.innerHTML = basePlayers.map(p => `<option value="${p}" ${p === currentUserName ? 'selected' : ''}>${p}</option>`).join('');
-    }
-
-    function changeUser() {
-        const select = document.getElementById('userSelect');
-        currentUserName = select.value;
-        localStorage.setItem('padel_current_user', currentUserName);
-        setupOnlinePresence();
-        renderStatuses();
-        renderSchedule();
-    }
-
-    function setupOnlinePresence() {
-        const userStatusRef = db.ref(`status/${currentUserName}`);
-        const isOffline = { state: "offline", lastChanged: firebase.database.ServerValue.TIMESTAMP };
-        const isOnline = { state: "online", lastChanged: firebase.database.ServerValue.TIMESTAMP };
-
-        db.ref('.info/connected').on('value', (snapshot) => {
-            if (snapshot.val() === false) return;
-            userStatusRef.onDisconnect().set(isOffline).then(() => {
-                userStatusRef.set(isOnline);
-            });
-        });
-    }
-
-    function formatLastSeen(lastChanged) {
-        if (!lastChanged) return "offline";
-        const diffMs = Date.now() - lastChanged;
-        const diffMins = Math.floor(diffMs / (1000 * 60));
-        const diffHours = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        if (diffMins < 2) return "online";
-        if (diffMins < 60) return `${diffMins}m geleden`;
-        if (diffHours < 24) return `${diffHours}u geleden`;
-        return `${diffDays}d geleden`;
-    }
-
-    function renderStatuses() {
-        const container = document.getElementById('statusList');
-        if (!container) return;
-        let html = '';
-
-        basePlayers.forEach(player => {
-            const statusData = allStatuses[player];
-            const isOnline = statusData && statusData.state === "online" && (Date.now() - statusData.lastChanged < 120000);
-            const statusText = isOnline ? "online" : formatLastSeen(statusData ? statusData.lastChanged : null);
-            const dotClass = isOnline ? "online" : "";
-
-            html += `
-                <div class="status-badge">
-                    <span class="status-dot ${dotClass}"></span>
-                    <span>${player} (${statusText})</span>
-                </div>
-            `;
-        });
-        container.innerHTML = html;
-    }
-
-    const berekenHuidigeCyclusWeek = () => {
-        const startDatum = new Date('2026-09-07T00:00:00');
-        const nu = new Date();
-        const verschilInMs = nu - startDatum;
-        if (verschilInMs < 0) return 0;
-
-        const extraOffsetMs = 1000 * 60 * 60 * 24 * 3;
-        const aangepastVerschil = verschilInMs + extraOffsetMs;
-        const verschilInWeken = Math.floor(aangepastVerschil / (1000 * 60 * 60 * 24 * 7));
-        return verschilInWeken % 6;
-    };
 
     function getWeekNumber(d) {
         d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -567,33 +429,37 @@
     }
 
     function getActiveDisplayWeeks() {
-        const startBaseDate = new Date(2026, 8, 7);
+        const baseStartDate = new Date(2026, 8, 7);
         let weeks = [];
-        let startIndex = berekenHuidigeCyclusWeek();
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const diffDays = Math.floor((today - baseStartDate) / (1000 * 60 * 60 * 24));
+        let startIndex = Math.floor(diffDays / 7);
+        if (startIndex < 0) startIndex = 0;
 
         for (let i = 0; i < 6; i++) {
-            const currentCycleIndex = (startIndex + i) % defaultTemplate.length;
-            const weekIndex = currentCycleIndex + 1;
+            const absoluteIndex = startIndex + i;
+            const templateIndex = absoluteIndex % 6;
             
-            const diDate = new Date(startBaseDate);
-            diDate.setDate(startBaseDate.getDate() + ((startIndex + i) * 7));
-            const doDate = new Date(diDate);
-            doDate.setDate(diDate.getDate() + 3);
+            const tuesdayDate = new Date(baseStartDate);
+            tuesdayDate.setDate(baseStartDate.getDate() + (absoluteIndex * 7));
+            const thursdayDate = new Date(tuesdayDate);
+            thursdayDate.setDate(thursdayDate.getDate() + 3);
 
-            const currentTemplateWeek = defaultTemplate[currentCycleIndex];
-            let dinsdagPlayers = [...currentTemplateWeek.dinsdag];
-            let donderdagPlayers = [...currentTemplateWeek.donderdag];
+            let dinsdagPlayers = [...defaultTemplate[templateIndex].dinsdag];
+            let donderdagPlayers = [...defaultTemplate[templateIndex].donderdag];
 
-            if (liveOverrides[weekIndex]) {
-                if (liveOverrides[weekIndex].dinsdag) dinsdagPlayers = liveOverrides[weekIndex].dinsdag;
-                if (liveOverrides[weekIndex].donderdag) donderdagPlayers = liveOverrides[weekIndex].donderdag;
+            if (customScheduleOverrides[absoluteIndex]) {
+                if (customScheduleOverrides[absoluteIndex].dinsdag) dinsdagPlayers = customScheduleOverrides[absoluteIndex].dinsdag;
+                if (customScheduleOverrides[absoluteIndex].donderdag) donderdagPlayers = customScheduleOverrides[absoluteIndex].donderdag;
             }
 
             weeks.push({
-                weekIndex,
-                weekNumber: getWeekNumber(diDate),
-                dinsdagDateStr: formatDateDDMMYY(diDate),
-                donderdagDateStr: formatDateDDMMYY(doDate),
+                weekIndex: absoluteIndex,
+                displayWeekNum: getWeekNumber(tuesdayDate),
+                tuesdayDateStr: formatDateDDMMYY(tuesdayDate),
+                thursdayDateStr: formatDateDDMMYY(thursdayDate),
                 dinsdag: dinsdagPlayers,
                 donderdag: donderdagPlayers
             });
@@ -601,73 +467,66 @@
         return weeks;
     }
 
-    function checkAbsence(player, dateStr) {
-        for (let key in absences) {
-            const ab = absences[key];
-            if (ab.player === player) {
-                return true; 
-            }
-        }
-        return false;
+    function checkAbsence(player, weekIndex, day) {
+        return !!absences[`${player}_${weekIndex}_${day}`];
     }
 
-    function renderPlayersHtml(players, dateStr) {
+    function renderPlayersHtml(players) {
         return players.map((p, idx) => {
-            const isMe = p === currentUserName;
+            const isMe = p === currentUser;
             const isSub = !basePlayers.includes(p);
-            let chipClass = "player-chip";
-            if (isMe) chipClass += " me";
+            let chipClass = "player-tag";
+            if (isMe) chipClass += " highlight";
             if (isSub) chipClass += " sub";
 
             let html = `<span class="${chipClass}">${p}</span>`;
-            if (idx === 1) html += ` <span class="vs-text">VS</span> `;
-            else if (idx < 3) html += ` `;
+            if (idx === 1) html += ` <span class="vs-divider">VS</span> `;
             return html;
         }).join('');
     }
 
     function renderSchedule() {
-        const container = document.getElementById('scheduleContainer');
+        const container = document.getElementById('scheduleList');
         if (!container) return;
         const weeks = getActiveDisplayWeeks();
         let html = '';
 
         weeks.forEach(w => {
-            let diAbsenceAlert = '';
+            let diAlert = '';
             w.dinsdag.forEach(p => {
-                if (checkAbsence(p, w.dinsdagDateStr)) {
-                    diAbsenceAlert = `<div class="absence-alert">⚠️ Let op: ${p} afwezig!</div>`;
+                if (checkAbsence(p, w.weekIndex, 'dinsdag')) {
+                    diAlert = `<div class="absence-alert">⚠️ Let op: ${p} afwezig!</div>`;
                 }
             });
 
-            let doAbsenceAlert = '';
+            let doAlert = '';
             w.donderdag.forEach(p => {
-                if (checkAbsence(p, w.donderdagDateStr)) {
-                    doAbsenceAlert = `<div class="absence-alert">⚠️ Let op: ${p} afwezig!</div>`;
+                if (checkAbsence(p, w.weekIndex, 'donderdag')) {
+                    doAlert = `<div class="absence-alert">⚠️ Let op: ${p} afwezig!</div>`;
                 }
             });
 
             html += `
                 <div class="week-card">
-                    <div class="week-header">
-                        Week ${w.weekNumber}
-                    </div>
-                    <div class="match-row">
-                        <div class="match-info">
-                            <div class="match-title"><span>Dinsdag</span> <span class="match-date">${w.dinsdagDateStr}</span></div>
-                            <div class="players-container">${renderPlayersHtml(w.dinsdag, w.dinsdagDateStr)}</div>
+                    <div class="week-title">Week ${w.displayWeekNum}</div>
+                    <div class="day-box">
+                        <div class="day-header-row">
+                            <span class="day-label di">Dinsdag</span>
+                            <span class="day-date di">${w.tuesdayDateStr}</span>
+                            <button class="replace-btn" onclick="openReplaceModal(${w.weekIndex}, 'dinsdag')">Wijzig</button>
                         </div>
-                        <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'dinsdag')">Wijzig</button>
+                        <div class="player-tags">${renderPlayersHtml(w.dinsdag)}</div>
                     </div>
-                    ${diAbsenceAlert}
-                    <div class="match-row">
-                        <div class="match-info">
-                            <div class="match-title"><span>Donderdag</span> <span class="match-date">${w.donderdagDateStr}</span></div>
-                            <div class="players-container">${renderPlayersHtml(w.donderdag, w.donderdagDateStr)}</div>
+                    ${diAlert}
+                    <div class="day-box" style="margin-top: 6px;">
+                        <div class="day-header-row">
+                            <span class="day-label do">Donderdag</span>
+                            <span class="day-date do">${w.thursdayDateStr}</span>
+                            <button class="replace-btn" onclick="openReplaceModal(${w.weekIndex}, 'donderdag')">Wijzig</button>
                         </div>
-                        <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'donderdag')">Wijzig</button>
+                        <div class="player-tags">${renderPlayersHtml(w.donderdag)}</div>
                     </div>
-                    ${doAbsenceAlert}
+                    ${doAlert}
                 </div>
             `;
         });
@@ -680,30 +539,30 @@
     window.openReplaceModal = function(weekIndex, day) {
         currentEditingWeek = weekIndex;
         currentEditingDay = day;
-        document.getElementById("modalSubTitle").innerText = `Cyclus Week ${weekIndex} - ${day === 'dinsdag' ? 'Dinsdag' : 'Donderdag'}`;
-        
         const activeWeeks = getActiveDisplayWeeks();
-        const currentWeekData = activeWeeks.find(w => w.weekIndex === weekIndex);
-        const currentPlayers = day === 'dinsdag' ? currentWeekData.dinsdag : currentWeekData.donderdag;
+        const wObj = activeWeeks.find(w => w.weekIndex === weekIndex);
+        const players = wObj[day];
+
+        document.getElementById("modalSubTitle").innerText = `Week ${wObj.displayWeekNum} - ${day === 'dinsdag' ? 'Dinsdag' : 'Donderdag'}`;
 
         for (let i = 0; i < 4; i++) {
             const select = document.getElementById(`p${i}Select`);
             const customInput = document.getElementById(`p${i}Custom`);
             
-            let optionsHtml = `<option value="">-- Kies speler --</option>`;
-            basePlayers.forEach(p => { optionsHtml += `<option value="${p}">${p}</option>`; });
-            optionsHtml += `<option value="custom">-- Invaller (typ naam) --</option>`;
-            select.innerHTML = optionsHtml;
+            let opts = `<option value="">-- Kies speler --</option>`;
+            basePlayers.forEach(p => { opts += `<option value="${p}">${p}</option>`; });
+            opts += `<option value="custom">-- Invaller (typ naam) --</option>`;
+            select.innerHTML = opts;
 
-            const assignedPlayer = currentPlayers[i] || "";
-            if (basePlayers.includes(assignedPlayer)) {
-                select.value = assignedPlayer;
+            const pName = players[i] || "";
+            if (basePlayers.includes(pName)) {
+                select.value = pName;
                 customInput.style.display = "none";
                 customInput.value = "";
-            } else if (assignedPlayer) {
+            } else if (pName) {
                 select.value = "custom";
                 customInput.style.display = "block";
-                customInput.value = assignedPlayer;
+                customInput.value = pName;
             } else {
                 select.value = "";
                 customInput.style.display = "none";
@@ -730,7 +589,7 @@
         document.getElementById("replaceModal").style.display = "none";
     };
 
-    window.confirmReplacement = async function() {
+    window.confirmReplacement = function() {
         let newPlayers = [];
         for (let i = 0; i < 4; i++) {
             const select = document.getElementById(`p${i}Select`);
@@ -739,7 +598,7 @@
             if (!val) val = basePlayers[i];
             newPlayers.push(val);
         }
-        await db.ref(`scheduleOverrides/${currentEditingWeek}/${currentEditingDay}`).set(newPlayers);
+        db.ref(`padelData/scheduleOverrides/${currentEditingWeek}/${currentEditingDay}`).set(newPlayers);
         closeModal();
     };
 </script>
