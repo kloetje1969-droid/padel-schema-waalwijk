@@ -66,7 +66,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             width: 100%;
         }
 
@@ -90,7 +90,7 @@
             align-items: center;
             width: 100%;
             border-top: 1px solid var(--card-border);
-            padding-top: 10px;
+            padding-top: 8px;
             flex-wrap: wrap;
             gap: 8px;
         }
@@ -100,52 +100,52 @@
             align-items: center;
             gap: 6px;
             background: var(--bg-color);
-            padding: 6px 10px;
-            border-radius: 10px;
+            padding: 4px 8px;
+            border-radius: 8px;
             border: 1px solid var(--card-border);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
 
         .user-select-container select {
             background: var(--card-bg);
             color: var(--text-main);
             border: 1px solid var(--card-border);
-            padding: 4px 6px;
+            padding: 2px 4px;
             border-radius: 6px;
             font-weight: 600;
             outline: none;
             cursor: pointer;
+            font-size: 0.8rem;
         }
 
         .status-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
+            gap: 5px;
             justify-content: center;
             width: 100%;
-            font-size: 0.75rem;
             border-top: 1px solid var(--card-border);
-            padding-top: 10px;
+            padding-top: 8px;
         }
 
         .status-badge {
             background: #374151;
             border: 1px solid #4b5563;
             color: var(--text-main);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.85rem;
+            padding: 2px 6px;
+            border-radius: 5px;
+            font-size: 0.72rem;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
         }
 
         .status-badge.me {
             border-color: #6ee7b7;
             color: #6ee7b7;
             background: rgba(16, 185, 129, 0.25);
-            box-shadow: 0 0 8px rgba(110, 231, 183, 0.4);
+            box-shadow: 0 0 6px rgba(110, 231, 183, 0.4);
         }
 
         .status-dot {
@@ -158,24 +158,34 @@
         .status-badge.me .status-dot,
         .status-dot.online {
             background: #6ee7b7;
-            box-shadow: 0 0 5px #6ee7b7;
+            box-shadow: 0 0 4px #6ee7b7;
+        }
+
+        @keyframes pulseRed {
+            0% { background-color: var(--btn-bg); border-color: var(--card-border); }
+            50% { background-color: rgba(220, 38, 38, 0.4); border-color: #dc2626; box-shadow: 0 0 15px rgba(220, 38, 38, 0.6); }
+            100% { background-color: var(--btn-bg); border-color: var(--card-border); }
         }
 
         .chat-btn {
             background: var(--btn-bg);
             color: var(--text-main);
             border: 1px solid var(--card-border);
-            padding: 12px 14px;
-            border-radius: 14px;
+            padding: 8px 12px;
+            border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             width: 100%;
             transition: background 0.2s;
+        }
+
+        .chat-btn.blinking {
+            animation: pulseRed 1.2s infinite;
         }
 
         .chat-btn:hover {
@@ -186,10 +196,10 @@
         .alert-badge-count {
             background: #dc2626;
             color: white;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 900;
-            padding: 2px 6px;
-            border-radius: 8px;
+            padding: 1px 5px;
+            border-radius: 6px;
             display: none;
         }
 
@@ -600,9 +610,9 @@
                 </select>
             </div>
             
-            <div style="font-size: 0.75rem; color: #6ee7b7; display: flex; align-items: center; gap: 5px;">
+            <div style="font-size: 0.72rem; color: #6ee7b7; display: flex; align-items: center; gap: 4px;">
                 <span class="status-dot online"></span>
-                <span>Live verbonden met database</span>
+                <span>Live verbonden</span>
             </div>
         </div>
 
@@ -727,7 +737,10 @@
     let allStatuses = {};
     let absences = {};
     let messages = [];
-    const sessionToken = 'sess_' + Math.random().toString(36).substring(2, 9);
+    let lastSeenMessageCount = parseInt(localStorage.getItem('padel_last_seen_count') || '0');
+    let hasUnreadAlerts = false;
+
+    const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
 
     document.addEventListener('DOMContentLoaded', () => {
         initUserSelect();
@@ -737,7 +750,7 @@
             renderAll();
         });
 
-        db.ref('onlineUsers').on('value', (snapshot) => {
+        db.ref('padelData/presence').on('value', (snapshot) => {
             allStatuses = snapshot.val() || {};
             renderStatuses();
         });
@@ -749,11 +762,36 @@
 
         db.ref('padelData/messages').on('value', (snapshot) => {
             messages = snapshot.val() ? Object.values(snapshot.val()) : [];
+            
+            if (messages.length > lastSeenMessageCount) {
+                hasUnreadAlerts = true;
+            }
+            updateAlertUI();
             renderChat();
         });
 
         setupOnlinePresence();
+
+        // Update de online status tijdsaanduidingen elke 30 seconden automatisch op het scherm
+        setInterval(() => {
+            renderStatuses();
+        }, 30000);
     });
+
+    function updateAlertUI() {
+        const btn = document.getElementById("globalChatAlertBtn");
+        const badge = document.getElementById("alertBadgeCount");
+        const unreadCount = messages.length - lastSeenMessageCount;
+
+        if (hasUnreadAlerts && unreadCount > 0) {
+            btn.classList.add("blinking");
+            badge.style.display = "inline-block";
+            badge.innerText = unreadCount;
+        } else {
+            btn.classList.remove("blinking");
+            badge.style.display = "none";
+        }
+    }
 
     function initUserSelect() {
         const select = document.getElementById('userSelect');
@@ -762,24 +800,28 @@
 
     function changeUser() {
         const select = document.getElementById('userSelect');
+        const oldUser = currentUserName;
         currentUserName = select.value;
         localStorage.setItem('padel_current_user', currentUserName);
+
+        db.ref(`padelData/presence/${oldUser}_${userSessionId}`).remove();
+
         setupOnlinePresence();
         renderAll();
     }
 
     function setupOnlinePresence() {
-        const userOnlineRef = db.ref(`onlineUsers/${currentUserName}_${sessionToken}`);
-        userOnlineRef.set({ name: currentUserName, timestamp: Date.now() });
-        userOnlineRef.onDisconnect().remove();
+        const userPresenceRef = db.ref(`padelData/presence/${currentUserName}_${userSessionId}`);
+        userPresenceRef.set({ name: currentUserName, timestamp: Date.now() });
+        userPresenceRef.onDisconnect().remove();
 
         setInterval(() => {
-            userOnlineRef.set({ name: currentUserName, timestamp: Date.now() });
-        }, 15000);
+            userPresenceRef.set({ name: currentUserName, timestamp: Date.now() });
+        }, 10000);
     }
 
     function formatLastSeen(timestamp) {
-        if (!timestamp) return "offline";
+        if (!timestamp) return "onbekend";
         const diffMs = Date.now() - timestamp;
         const diffMins = Math.floor(diffMs / (1000 * 60));
         const diffHours = Math.floor(diffMins / 60);
@@ -798,13 +840,17 @@
 
         let activeMap = {};
         Object.values(allStatuses).forEach(item => {
-            if (item && item.name) activeMap[item.name] = item.timestamp;
+            if (item && item.name) {
+                if (!activeMap[item.name] || item.timestamp > activeMap[item.name]) {
+                    activeMap[item.name] = item.timestamp;
+                }
+            }
         });
 
         basePlayers.forEach(player => {
             const lastTime = activeMap[player];
-            const isOnline = lastTime && (Date.now() - lastTime < 120000);
-            const statusText = isOnline ? "online" : formatLastSeen(lastTime);
+            const isOnline = lastTime && (Date.now() - lastTime < 90000);
+            const statusText = formatLastSeen(lastTime);
             
             const isMe = player === currentUserName;
             let badgeClass = "status-badge";
@@ -812,7 +858,7 @@
 
             html += `
                 <div class="${badgeClass}">
-                    <span class="status-dot"></span>
+                    <span class="status-dot ${isOnline ? 'online' : ''}"></span>
                     <span>${player} (${statusText})</span>
                 </div>
             `;
@@ -1125,7 +1171,14 @@
     window.handleKeyPress = function(e) { if (e.key === "Enter") sendMessage(); };
     window.deleteMessage = function(index) { messages.splice(index, 1); db.ref('padelData/messages').set(messages); };
     window.clearAllChat = function() { if (confirm("Alles wissen?")) { messages = []; db.ref('padelData/messages').set(null); } };
-    window.scrollToChat = function() { document.getElementById("chatCardSection").scrollIntoView({ behavior: 'smooth' }); };
+    
+    window.scrollToChat = function() { 
+        hasUnreadAlerts = false;
+        lastSeenMessageCount = messages.length;
+        localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
+        updateAlertUI();
+        document.getElementById("chatCardSection").scrollIntoView({ behavior: 'smooth' }); 
+    };
 
     let currentEditingWeek = null;
     let currentEditingDay = null;
