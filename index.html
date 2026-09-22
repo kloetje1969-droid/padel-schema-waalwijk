@@ -146,7 +146,7 @@
             color: var(--text-main);
             padding: 2px 5px;
             border-radius: 5px;
-            font-size: 0.65rem; /* Nog iets smaller/kleiner gemaakt */
+            font-size: 0.65rem;
             font-weight: 500;
             display: flex;
             align-items: center;
@@ -245,11 +245,11 @@
         .section-title {
             font-size: 1rem;
             font-weight: 600;
-            color: var(--accent-blue);
+            color: var(--accent-green);
             display: flex;
             align-items: center;
             gap: 6px;
-            text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+            text-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
         }
 
         .week-card {
@@ -266,8 +266,9 @@
             padding: 10px 14px;
             font-weight: 600;
             font-size: 0.9rem;
-            color: var(--accent-blue);
+            color: #e5e7eb;
             border-bottom: 1px solid var(--card-border);
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
         }
 
         .match-row-wrapper {
@@ -305,7 +306,8 @@
         }
 
         .match-title.dinsdag-title {
-            color: var(--accent-green);
+            color: var(--accent-blue);
+            text-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
         }
 
         .match-title.donderdag-title {
@@ -439,8 +441,8 @@
 
         .absence-btn { 
             background: rgba(52, 211, 153, 0.2); 
-            color: var(--accent-green); 
-            border: 1px solid var(--accent-green); 
+            color: #34d399; 
+            border: 1px solid #34d399; 
             padding: 4px 8px; 
             border-radius: 5px; 
             font-size: 0.7rem; 
@@ -658,8 +660,8 @@
                 <thead>
                     <tr>
                         <th style="text-align: left;">Speler</th>
-                        <th>Dinsdag</th>
-                        <th>Donderdag</th>
+                        <th style="color: var(--accent-blue);">Dinsdag</th>
+                        <th style="color: var(--accent-orange);">Donderdag</th>
                         <th>Totaal</th>
                     </tr>
                 </thead>
@@ -1088,7 +1090,7 @@
 
         weeks.forEach(w => {
             const thDi = document.createElement("th");
-            thDi.innerHTML = `Wk ${w.weekNumber}<br><span style="font-size:0.6rem; color:var(--accent-green);">Di</span> <span style="font-size:0.6rem; opacity:0.7">(${w.dinsdagDateStr})</span>`;
+            thDi.innerHTML = `Wk ${w.weekNumber}<br><span style="font-size:0.6rem; color:var(--accent-blue);">Di</span> <span style="font-size:0.6rem; opacity:0.7">(${w.dinsdagDateStr})</span>`;
             headerRow.appendChild(thDi);
 
             const thDo = document.createElement("th");
@@ -1113,7 +1115,20 @@
 
                     const btn = document.createElement("button");
                     btn.className = `absence-btn ${isAbsent ? 'absent' : ''}`;
-                    btn.innerText = isAbsent ? 'Afw' : 'Aanw';
+                    
+                    // Aangepast: Aanw = groen (#34d399), Afw = rood (#f87171)
+                    if (isAbsent) {
+                        btn.style.borderColor = 'var(--danger)';
+                        btn.style.color = 'var(--danger)';
+                        btn.style.background = 'var(--danger-bg)';
+                        btn.innerText = 'Afw';
+                    } else {
+                        btn.style.borderColor = 'var(--accent-green)';
+                        btn.style.color = 'var(--accent-green)';
+                        btn.style.background = 'var(--accent-green-bg)';
+                        btn.innerText = 'Aanw';
+                    }
+
                     btn.onclick = () => {
                         const nowAbsent = !absences[key];
                         if (!nowAbsent) {
