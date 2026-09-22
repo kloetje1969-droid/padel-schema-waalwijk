@@ -371,8 +371,8 @@
 
 <div class="container">
     <header>
-        <!-- Gecentreerde titel met tennisballen er omheen -->
-        <h1>🎾 Padelschema 🎾</h1>
+        <!-- Titel zonder tennisballen als test -->
+        <h1>Padelschema</h1>
         
         <!-- Live klok en oranje weeknummer direct onder de titel -->
         <div id="liveClock" class="live-clock-badge">Laden...</div>
