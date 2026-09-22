@@ -23,7 +23,7 @@
             --accent-green: #34d399;
             --accent-green-bg: rgba(52, 211, 153, 0.1);
             --danger: #f87171;
-            --danger-bg: rgba(248, 113, 113, 0.1);
+            --danger-bg: rgba(248, 113, 113, 0.15);
             --main-glow: 0 16px 60px rgba(52, 211, 153, 0.22), 0 0 40px rgba(52, 211, 153, 0.12);
         }
 
@@ -230,18 +230,23 @@
             border-bottom: 1px solid var(--card-border);
         }
 
+        .match-row-wrapper {
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .match-row-wrapper:last-child {
+            border-bottom: none;
+        }
+
         .match-row {
             padding: 12px 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--card-border);
             flex-wrap: wrap;
             gap: 8px;
-        }
-
-        .match-row:last-child {
-            border-bottom: none;
         }
 
         .match-info {
@@ -272,8 +277,8 @@
         }
 
         .player-chip {
-            background: #374151; /* Duidelijk lichtere grijstint zodat het goed opvalt */
-            border: 1px solid #4b5563; /* Bijpassende lichtere rand */
+            background: #374151;
+            border: 1px solid #4b5563;
             color: var(--text-main);
             padding: 4px 8px;
             border-radius: 6px;
@@ -301,27 +306,43 @@
             margin: 0 2px;
         }
 
+        .match-action-container {
+            display: flex;
+            justify-content: flex-end;
+            width: 100%;
+        }
+
         .btn-edit {
             background-color: var(--btn-bg);
             color: var(--text-main);
             border: 1px solid var(--card-border);
-            padding: 6px 10px;
+            padding: 6px 12px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.75rem;
             font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn-edit:hover {
+            background-color: var(--btn-hover);
+            border-color: var(--accent-blue);
         }
 
         .absence-alert {
             background: var(--danger-bg);
-            border: 1px solid var(--danger);
-            color: var(--danger);
-            padding: 6px 12px;
+            border-top: 1px solid rgba(248, 113, 113, 0.3);
+            border-bottom: 1px solid rgba(248, 113, 113, 0.3);
+            color: #fca5a5;
+            padding: 8px 14px;
             font-size: 0.75rem;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
         }
 
         .table-scroll-wrapper { 
@@ -407,6 +428,15 @@
             box-shadow: 0 0 10px rgba(5, 150, 105, 0.4);
         }
         
+        .message.system-update {
+            background: #1e293b;
+            border: 1px dashed var(--accent-blue);
+            align-self: center;
+            max-width: 100%;
+            width: 100%;
+            text-align: center;
+        }
+
         .message-header { 
             display: flex; 
             justify-content: space-between; 
@@ -538,7 +568,6 @@
     <header>
         <h1>🎾 Padelschema 🎾</h1>
         
-        <!-- Gebruiker selectieknop nu direct onder de titel -->
         <div class="user-select-row">
             <div class="user-select-container">
                 <label for="userSelect">Jij:</label>
@@ -553,7 +582,6 @@
             </div>
         </div>
 
-        <!-- Online status pas daaronder -->
         <div id="statusList" class="status-container">
             Laden status...
         </div>
@@ -877,39 +905,59 @@
         let html = '';
 
         weeks.forEach(w => {
-            let diAbsenceAlert = '';
+            let diAbsentPlayers = [];
             w.dinsdag.forEach(p => {
                 if (checkAbsence(p, w.weekIndex, 'dinsdag')) {
-                    diAbsenceAlert = `<div class="absence-alert">⚠️ Let op: ${p} afwezig!</div>`;
+                    diAbsentPlayers.push(p);
                 }
             });
+            let diAbsenceAlert = diAbsentPlayers.length > 0 
+                ? `<div class="absence-alert">⚠️ Let op: ${diAbsentPlayers.join(', ')} ${diAbsentPlayers.length > 1 ? 'zijn' : 'is'} afwezig op dinsdag!</div>` 
+                : '';
 
-            let doAbsenceAlert = '';
+            let doAbsentPlayers = [];
             w.donderdag.forEach(p => {
                 if (checkAbsence(p, w.weekIndex, 'donderdag')) {
-                    doAbsenceAlert = `<div class="absence-alert">⚠️ Let op: ${p} afwezig!</div>`;
+                    doAbsentPlayers.push(p);
                 }
             });
+            let doAbsenceAlert = doAbsentPlayers.length > 0 
+                ? `<div class="absence-alert">⚠️ Let op: ${doAbsentPlayers.join(', ')} ${doAbsentPlayers.length > 1 ? 'zijn' : 'is'} afwezig op donderdag!</div>` 
+                : '';
 
             html += `
                 <div class="week-card">
                     <div class="week-header">Week ${w.weekNumber}</div>
-                    <div class="match-row">
-                        <div class="match-info">
-                            <div class="match-title"><span>Dinsdag</span> <span class="match-date">${w.dinsdagDateStr}</span></div>
-                            <div class="players-container">${renderPlayersHtml(w.dinsdag)}</div>
+                    
+                    <div class="match-row-wrapper">
+                        <div class="match-row">
+                            <div class="match-info">
+                                <div class="match-title"><span>Dinsdag</span> <span class="match-date">${w.dinsdagDateStr}</span></div>
+                                <div class="players-container">${renderPlayersHtml(w.dinsdag)}</div>
+                            </div>
                         </div>
-                        <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'dinsdag')">Wijzig</button>
-                    </div>
-                    ${diAbsenceAlert}
-                    <div class="match-row">
-                        <div class="match-info">
-                            <div class="match-title"><span>Donderdag</span> <span class="match-date">${w.donderdagDateStr}</span></div>
-                            <div class="players-container">${renderPlayersHtml(w.donderdag)}</div>
+                        <div class="match-row" style="padding-top: 0; padding-bottom: 10px;">
+                            <div class="match-action-container">
+                                <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'dinsdag')">✏️ Wijzig samenstelling</button>
+                            </div>
                         </div>
-                        <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'donderdag')">Wijzig</button>
+                        ${diAbsenceAlert}
                     </div>
-                    ${doAbsenceAlert}
+
+                    <div class="match-row-wrapper">
+                        <div class="match-row">
+                            <div class="match-info">
+                                <div class="match-title"><span>Donderdag</span> <span class="match-date">${w.donderdagDateStr}</span></div>
+                                <div class="players-container">${renderPlayersHtml(w.donderdag)}</div>
+                            </div>
+                        </div>
+                        <div class="match-row" style="padding-top: 0; padding-bottom: 10px;">
+                            <div class="match-action-container">
+                                <button class="btn-edit" onclick="openReplaceModal(${w.weekIndex}, 'donderdag')">✏️ Wijzig samenstelling</button>
+                            </div>
+                        </div>
+                        ${doAbsenceAlert}
+                    </div>
                 </div>
             `;
         });
@@ -1000,8 +1048,15 @@
 
         messages.forEach((msg, index) => {
             const isSelf = msg.sender === currentUserName;
+            const isSystem = msg.isSystem;
             const div = document.createElement("div");
-            div.className = `message ${isSelf ? 'self' : ''}`;
+            
+            if (isSystem) {
+                div.className = `message system-update`;
+            } else {
+                div.className = `message ${isSelf ? 'self' : ''}`;
+            }
+
             const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             div.innerHTML = `
@@ -1020,7 +1075,7 @@
         const input = document.getElementById("chatInput");
         const text = input.value.trim();
         if (!text) return;
-        messages.push({ sender: currentUserName, text: text, timestamp: Date.now() });
+        messages.push({ sender: currentUserName, text: text, timestamp: Date.now(), isSystem: false });
         db.ref('padelData/messages').set(messages);
         input.value = "";
     };
@@ -1032,6 +1087,7 @@
 
     let currentEditingWeek = null;
     let currentEditingDay = null;
+    let oldPlayersSnapshot = [];
 
     window.openReplaceModal = function(weekIndex, day) {
         currentEditingWeek = weekIndex;
@@ -1041,6 +1097,8 @@
         const activeWeeks = getActiveDisplayWeeks();
         const currentWeekData = activeWeeks.find(w => w.weekIndex === weekIndex);
         const currentPlayers = day === 'dinsdag' ? currentWeekData.dinsdag : currentWeekData.donderdag;
+        
+        oldPlayersSnapshot = [...currentPlayers];
 
         for (let i = 0; i < 4; i++) {
             const select = document.getElementById(`p${i}Select`);
@@ -1093,7 +1151,37 @@
             if (!val) val = basePlayers[i];
             newPlayers.push(val);
         }
+
+        // Sla wijziging op in database
         db.ref(`padelData/scheduleOverrides/${currentEditingWeek}/${currentEditingDay}`).set(newPlayers);
+
+        // Maak automatisch een chatmelding aan met wat er is veranderd
+        const activeWeeks = getActiveDisplayWeeks();
+        const currentWeekData = activeWeeks.find(w => w.weekIndex === currentEditingWeek);
+        const weekNum = currentWeekData ? currentWeekData.weekNumber : currentEditingWeek;
+        const dayName = currentEditingDay === 'dinsdag' ? 'Dinsdag' : 'Donderdag';
+        const dateStr = currentEditingDay === 'dinsdag' ? currentWeekData.dinsdagDateStr : currentWeekData.donderdagDateStr;
+
+        let changesDesc = [];
+        for (let i = 0; i < 4; i++) {
+            if (oldPlayersSnapshot[i] !== newPlayers[i]) {
+                changesDesc.push(`${oldPlayersSnapshot[i]} ➡️ ${newPlayers[i]}`);
+            }
+        }
+
+        let chatMsgText = `🛠️ ${currentUserName} heeft de samenstelling gewijzigd voor Week ${weekNum} (${dayName} ${dateStr}):\n• Nieuwe opstelling: ${newPlayers.join(', ')}`;
+        if (changesDesc.length > 0) {
+            chatMsgText += `\n(Wijziging: ${changesDesc.join(', ')})`;
+        }
+
+        messages.push({ 
+            sender: currentUserName, 
+            text: chatMsgText, 
+            timestamp: Date.now(), 
+            isSystem: true 
+        });
+        db.ref('padelData/messages').set(messages);
+
         closeModal();
     };
 </script>
