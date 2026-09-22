@@ -128,17 +128,33 @@
             padding-top: 8px;
         }
 
+        @keyframes pulseOnlineBadge {
+            0% { background: #374151; border-color: #4b5563; }
+            50% { background: rgba(52, 211, 153, 0.25); border-color: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.4); }
+            100% { background: #374151; border-color: #4b5563; }
+        }
+
+        @keyframes pulseOnlineMe {
+            0% { background: rgba(16, 185, 129, 0.25); }
+            50% { background: rgba(16, 185, 129, 0.5); box-shadow: 0 0 12px rgba(110, 231, 183, 0.6); }
+            100% { background: rgba(16, 185, 129, 0.25); }
+        }
+
         .status-badge {
             background: #374151;
             border: 1px solid #4b5563;
             color: var(--text-main);
-            padding: 2px 6px;
+            padding: 2px 5px;
             border-radius: 5px;
-            font-size: 0.72rem;
+            font-size: 0.65rem; /* Nog iets smaller/kleiner gemaakt */
             font-weight: 500;
             display: flex;
             align-items: center;
             gap: 4px;
+        }
+
+        .status-badge.online-pulsing {
+            animation: pulseOnlineBadge 2s infinite ease-in-out;
         }
 
         .status-badge.me {
@@ -148,9 +164,13 @@
             box-shadow: 0 0 6px rgba(110, 231, 183, 0.4);
         }
 
+        .status-badge.me.online-pulsing {
+            animation: pulseOnlineMe 2s infinite ease-in-out;
+        }
+
         .status-dot {
-            width: 5px;
-            height: 5px;
+            width: 4px;
+            height: 4px;
             border-radius: 50%;
             background: var(--text-muted);
         }
@@ -185,7 +205,7 @@
         }
 
         .chat-btn.blinking {
-            animation: pulseRed 1.2s infinite;
+            animation: pulseRed 1.2s infinite !important;
         }
 
         .chat-btn:hover {
@@ -772,7 +792,6 @@
 
         setupOnlinePresence();
 
-        // Update de online status tijdsaanduidingen elke 30 seconden automatisch op het scherm
         setInterval(() => {
             renderStatuses();
         }, 30000);
@@ -855,6 +874,7 @@
             const isMe = player === currentUserName;
             let badgeClass = "status-badge";
             if (isMe) badgeClass += " me";
+            if (isOnline) badgeClass += " online-pulsing";
 
             html += `
                 <div class="${badgeClass}">
