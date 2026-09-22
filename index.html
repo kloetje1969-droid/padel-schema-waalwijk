@@ -125,6 +125,8 @@
             width: 100%;
             font-size: 0.75rem;
             color: var(--text-muted);
+            border-top: 1px solid var(--card-border);
+            padding-top: 10px;
         }
 
         .status-badge {
@@ -270,8 +272,8 @@
         }
 
         .player-chip {
-            background: #273444; /* Mooie grijstint voor de namen */
-            border: 1px solid #374151; /* Subtiele grijze rand */
+            background: #374151; /* Duidelijk lichtere grijstint zodat het goed opvalt */
+            border: 1px solid #4b5563; /* Bijpassende lichtere rand */
             color: var(--text-main);
             padding: 4px 8px;
             border-radius: 6px;
@@ -536,6 +538,7 @@
     <header>
         <h1>🎾 Padelschema 🎾</h1>
         
+        <!-- Gebruiker selectieknop nu direct onder de titel -->
         <div class="user-select-row">
             <div class="user-select-container">
                 <label for="userSelect">Jij:</label>
@@ -550,6 +553,7 @@
             </div>
         </div>
 
+        <!-- Online status pas daaronder -->
         <div id="statusList" class="status-container">
             Laden status...
         </div>
