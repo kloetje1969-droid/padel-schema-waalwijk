@@ -1018,9 +1018,16 @@
     }
 
     function getMondayOfWeek392026() {
-    let d = new Date(2026, 8, 21); // Maandag week 39 (21 sep 2026)
-    return d;
-}
+        let d = new Date(2026, 8, 21); // Maandag week 39 (21 sep 2026)
+        return d;
+    }
+
+    function getISOWeekNumber(d) {
+        let date = new Date(d.getTime());
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+        let week1 = new Date(date.getFullYear(), 0, 4);
+        return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
 
     function renderSchedule() {
@@ -1032,11 +1039,13 @@
             let weekStart = new Date(baseMonday);
             weekStart.setDate(baseMonday.getDate() + (weekIdx * 7));
 
+            let currentWeekNum = getISOWeekNumber(weekStart);
+
             let dinsdagDate = new Date(weekStart);
-            dinsdagDate.setDate(weekStart.getDate() + 1); // Dinsdag
+            dinsdagDate.setDate(weekStart.getDate() + 1);
 
             let donderdagDate = new Date(weekStart);
-            donderdagDate.setDate(weekStart.getDate() + 3); // Donderdag
+            donderdagDate.setDate(weekStart.getDate() + 3);
 
             let tpl = defaultTemplate[weekIdx];
 
@@ -1054,7 +1063,7 @@
 
             html += `
                 <div class="week-card">
-                    <div class="week-header">Week ${39 + weekIdx} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</div>
+                    <div class="week-header">Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</div>
                     
                     <div class="match-row-wrapper">
                         <div class="match-row">
@@ -1150,10 +1159,14 @@
     function renderAbsenceTable() {
         const headerRow = document.getElementById('absenceHeaderRow');
         const tbody = document.getElementById('absenceTableBody');
+        const baseMonday = getMondayOfWeek392026();
 
         let headersHtml = `<th style="text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2;">Speler</th>`;
         for (let w = 0; w < 6; w++) {
-            headersHtml += `<th>W${39 + w} Di</th><th>W${39 + w} Do</th>`;
+            let weekStart = new Date(baseMonday);
+            weekStart.setDate(baseMonday.getDate() + (w * 7));
+            let wn = getISOWeekNumber(weekStart);
+            headersHtml += `<th>W${wn} Di</th><th>W${wn} Do</th>`;
         }
         headerRow.innerHTML = headersHtml;
 
@@ -1193,7 +1206,11 @@
     function openModal(weekIdx, day) {
         activeModalWeek = weekIdx;
         activeModalDay = day;
-        document.getElementById('modalSubTitle').innerText = `Wijzig Week ${39 + weekIdx} (${day})`;
+        let weekStart = new Date(getMondayOfWeek392026());
+        weekStart.setDate(weekStart.getDate() + (weekIdx * 7));
+        let wn = getISOWeekNumber(weekStart);
+
+        document.getElementById('modalSubTitle').innerText = `Wijzig Week ${wn} (${day})`;
 
         let tpl = defaultTemplate[weekIdx];
         let currentPlayers = (liveOverrides[`w${weekIdx}_${day}`] !== undefined) ? liveOverrides[`w${weekIdx}_${day}`] : tpl[day];
@@ -1251,10 +1268,14 @@
 
         db.ref(`padelData/scheduleOverrides/w${activeModalWeek}_${activeModalDay}`).set(newPlayers);
         
+        let weekStart = new Date(getMondayOfWeek392026());
+        weekStart.setDate(weekStart.getDate() + (activeModalWeek * 7));
+        let wn = getISOWeekNumber(weekStart);
+
         let msgRef = db.ref('padelData/messages').push();
         msgRef.set({
             author: "Systeem",
-            text: `🔄 Schema gewijzigd voor week ${39 + activeModalWeek} (${activeModalDay}): ${newPlayers.join(', ')}`,
+            text: `🔄 Schema gewijzigd voor week ${wn} (${activeModalDay}): ${newPlayers.join(', ')}`,
             timestamp: Date.now(),
             type: "system"
         });
