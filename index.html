@@ -46,6 +46,63 @@
             overflow-x: hidden;
         }
 
+        /* PINCODE OVERLAY */
+        #pinOverlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 15, 25, 0.96);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .pin-box {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 24px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 340px;
+            text-align: center;
+            box-shadow: var(--main-glow);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .pin-box h2 {
+            color: var(--accent-green);
+            font-size: 1.3rem;
+            margin-bottom: 4px;
+        }
+
+        .pin-box p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .pin-box input {
+            background: var(--bg-color);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1.4rem;
+            text-align: center;
+            letter-spacing: 0.3em;
+            outline: none;
+            width: 100%;
+        }
+
+        .pin-error {
+            color: var(--danger);
+            font-size: 0.75rem;
+            display: none;
+        }
+
         .container {
             width: 100%;
             max-width: 768px;
@@ -679,6 +736,17 @@
 </head>
 <body>
 
+<!-- PINCODE BEVEILIGINGSSCHERM -->
+<div id="pinOverlay">
+    <div class="pin-box">
+        <h2>🔒 Padel App</h2>
+        <p>Voer de pincode in om toegang te krijgen:</p>
+        <input type="password" id="pinInput" maxlength="4" placeholder="••••" onkeypress="handlePinKey(event)">
+        <div id="pinError" class="pin-error">Onjuiste pincode. Probeer het opnieuw.</div>
+        <button class="btn-primary" onclick="checkPin()">Ontgrendelen</button>
+    </div>
+</div>
+
 <div class="container">
     <header>
         <h1>🎾 Padelschema 🎾</h1>
@@ -832,6 +900,37 @@
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Controleer of de gebruiker al eerder de pincode heeft ingevoerd in deze sessie
+        if (sessionStorage.getItem('padel_unlocked') === 'true') {
+            document.getElementById('pinOverlay').style.display = 'none';
+            initApp();
+        } else {
+            document.getElementById('pinInput').focus();
+        }
+    });
+
+    function checkPin() {
+        const inputVal = document.getElementById('pinInput').value;
+        const errDiv = document.getElementById('pinError');
+
+        if (inputVal === "0416") {
+            sessionStorage.setItem('padel_unlocked', 'true');
+            document.getElementById('pinOverlay').style.display = 'none';
+            initApp();
+        } else {
+            errDiv.style.display = 'block';
+            document.getElementById('pinInput').value = '';
+            document.getElementById('pinInput').focus();
+        }
+    }
+
+    function handlePinKey(e) {
+        if (e.key === 'Enter') {
+            checkPin();
+        }
+    }
+
+    function initApp() {
         initUserSelect();
         fetchWaalwijkWeather();
 
@@ -865,10 +964,9 @@
         setInterval(() => {
             renderStatuses();
         }, 10000);
-    });
+    }
 
     function fetchWaalwijkWeather() {
-        // We halen zowel historisch weer (past_days=30) als de verwachting (forecast_days=14) op rondom 18:00 uur
         const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation_probability,weathercode&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
         
         fetch(weatherUrl)
@@ -912,7 +1010,6 @@
             const w = weatherCache[key];
             const emoji = getWeatherEmoji(w.code);
             const isPast = dateObj < new Date();
-            const labelPrefix = isPast ? "Weer om 18:00:" : "Verwachting:";
             return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
         }
 
