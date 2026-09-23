@@ -22,7 +22,6 @@
             --accent-orange: #fb923c;
             --accent-green: #34d399;
             --accent-green-bg: rgba(52, 211, 153, 0.12);
-            --whatsapp-green: #25d366;
             --danger: #f87171;
             --danger-bg: rgba(248, 113, 113, 0.15);
             --main-glow: 0 16px 60px rgba(52, 211, 153, 0.22), 0 0 40px rgba(52, 211, 153, 0.12);
@@ -428,7 +427,7 @@
             font-weight: 600;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
             transition: background 0.2s;
             white-space: nowrap;
         }
@@ -436,28 +435,6 @@
         .btn-edit:hover {
             background-color: var(--btn-hover);
             border-color: var(--accent-blue);
-        }
-
-        .btn-whatsapp {
-            background-color: rgba(37, 211, 102, 0.15);
-            color: #25d366;
-            border: 1px solid rgba(37, 211, 102, 0.4);
-            padding: 6px 8px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            text-decoration: none;
-            transition: background 0.2s;
-            white-space: nowrap;
-        }
-
-        .btn-whatsapp:hover {
-            background-color: rgba(37, 211, 102, 0.3);
-            border-color: #25d366;
         }
 
         .absence-alert {
@@ -1077,8 +1054,7 @@
                                 </div>
                             </div>
                             <div class="match-action-container">
-                                <a href="https://api.whatsapp.com/send?text=${encodeURIComponent('Hoi! Aanstaande dinsdag ' + dinsdagFormatted + ' spelen we weer padel met: ' + dinsdagPlayers.join(', ') + '. Zin in!')}" target="_blank" class="btn-whatsapp" title="Deel via WhatsApp">💬</a>
-                                <button class="btn-edit" onclick="openModal(${weekIdx}, 'dinsdag')">Wijzig</button>
+                                <button class="btn-edit" onclick="openModal(${weekIdx}, 'dinsdag')">✏️ Wijzig</button>
                             </div>
                         </div>
                         ${dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
@@ -1096,8 +1072,7 @@
                                 </div>
                             </div>
                             <div class="match-action-container">
-                                <a href="https://api.whatsapp.com/send?text=${encodeURIComponent('Hoi! Aanstaande donderdag ' + donderdagFormatted + ' spelen we weer padel met: ' + donderdagPlayers.join(', ') + '. Zin in!')}" target="_blank" class="btn-whatsapp" title="Deel via WhatsApp">💬</a>
-                                <button class="btn-edit" onclick="openModal(${weekIdx}, 'donderdag')">Wijzig</button>
+                                <button class="btn-edit" onclick="openModal(${weekIdx}, 'donderdag')">✏️ Wijzig</button>
                             </div>
                         </div>
                         ${donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
