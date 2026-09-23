@@ -900,7 +900,6 @@
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
 
     document.addEventListener('DOMContentLoaded', () => {
-        // Controleer of de gebruiker al eerder de pincode heeft ingevoerd in deze sessie
         if (sessionStorage.getItem('padel_unlocked') === 'true') {
             document.getElementById('pinOverlay').style.display = 'none';
             initApp();
@@ -1009,7 +1008,6 @@
         if (weatherCache[key]) {
             const w = weatherCache[key];
             const emoji = getWeatherEmoji(w.code);
-            const isPast = dateObj < new Date();
             return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
         }
 
@@ -1146,7 +1144,7 @@
 
             html += `
                 <div class="week-card">
-                    <div class="week-header">Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</div>
+                    <div class="week-header">Week ${currentWeekNum}</div>
                     
                     <div class="match-row-wrapper">
                         <div class="match-row">
