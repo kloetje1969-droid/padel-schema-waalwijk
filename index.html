@@ -898,6 +898,7 @@
     let hasUnreadAlerts = false;
 
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
+    let heartbeatInterval = null;
 
     document.addEventListener('DOMContentLoaded', () => {
         if (sessionStorage.getItem('padel_unlocked') === 'true') {
@@ -962,7 +963,7 @@
 
         setInterval(() => {
             renderStatuses();
-        }, 10000);
+        }, 5000);
     }
 
     function fetchWaalwijkWeather() {
@@ -1040,28 +1041,55 @@
         currentUserName = select.value;
         localStorage.setItem('padel_current_user', currentUserName);
 
-        db.ref(`padelData/presence/${oldUser}_${userSessionId}`).remove();
+        // Oude sessie direct op offline/huidige servertijd zetten
+        db.ref(`padelData/presence/${oldUser}_${userSessionId}`).set({ name: oldUser, timestamp: firebase.database.ServerValue.TIMESTAMP });
         setupOnlinePresence();
         renderAll();
     }
 
     function setupOnlinePresence() {
         const userPresenceRef = db.ref(`padelData/presence/${currentUserName}_${userSessionId}`);
-        userPresenceRef.set({ name: currentUserName, timestamp: Date.now() });
-        userPresenceRef.onDisconnect().remove();
+        
+        // Direct bij openen op actieve tijd zetten
+        userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        
+        // Bij verlies van verbinding automatisch servertijd opslaan
+        userPresenceRef.onDisconnect().set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
 
-        setInterval(() => {
-            userPresenceRef.set({ name: currentUserName, timestamp: Date.now() });
-        }, 5000);
+        // Hartslag elke 3 seconden vernieuwen
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        heartbeatInterval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            }
+        }, 3000);
+
+        // Bij sluiten of wegklikken direct tijd vastleggen
+        window.addEventListener('beforeunload', () => {
+            userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            } else {
+                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            }
+        });
     }
 
     function formatLastSeen(timestamp) {
         if (!timestamp) return "offline";
         const diffMs = Date.now() - timestamp;
         const diffMins = Math.floor(diffMs / (1000 * 60));
-        if (diffMs < 20000) return "online";
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMs < 10000) return "online";
+        if (diffMins < 1) return "zojuist";
         if (diffMins < 60) return `${diffMins}m geleden`;
-        return "offline";
+        if (diffHours < 24) return `${diffHours}u geleden`;
+        return `${diffDays}d geleden`;
     }
 
     function renderStatuses() {
@@ -1078,7 +1106,7 @@
 
         container.innerHTML = basePlayers.map(player => {
             const ts = uniqueUsers[player];
-            const isOnline = ts && (Date.now() - ts < 20000);
+            const isOnline = ts && (Date.now() - ts < 10000);
             const isMe = (player === currentUserName);
             const statusText = isOnline ? "online" : formatLastSeen(ts);
 
@@ -1144,7 +1172,7 @@
 
             html += `
                 <div class="week-card">
-                    <div class="week-header">Week ${currentWeekNum}</div>
+                    <div class="week-header">Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</div>
                     
                     <div class="match-row-wrapper">
                         <div class="match-row">
@@ -1308,7 +1336,7 @@
         msgRef.set({
             author: "Systeem",
             text: `📢 ${player} heeft zich ${statusStr} voor week ${wn} (${day})`,
-            timestamp: Date.now(),
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
             type: "system"
         });
     }
@@ -1389,7 +1417,7 @@
         msgRef.set({
             author: "Systeem",
             text: `🔄 Schema gewijzigd voor week ${wn} (${activeModalDay}): ${newPlayers.join(', ')}`,
-            timestamp: Date.now(),
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
             type: "system"
         });
 
@@ -1431,7 +1459,7 @@
         db.ref('padelData/messages').push({
             author: currentUserName,
             text: text,
-            timestamp: Date.now()
+            timestamp: firebase.database.ServerValue.TIMESTAMP
         });
 
         input.value = '';
