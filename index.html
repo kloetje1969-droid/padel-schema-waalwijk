@@ -1216,7 +1216,11 @@
     }
 
     function renderPlayerChips(players, weekIdx, day) {
-        return players.map((p, idx) => {
+        // Controleer of er wel spelers zijn om te renderen
+        if (!players || players.length < 4) return '';
+
+        // Functie om één speler om te zetten naar een HTML chip
+        const createChip = (p) => {
             const isMe = (p === currentUserName);
             const isSub = !basePlayers.includes(p);
             const isAbsent = absences[p] && absences[p][`w${weekIdx}_${day}`];
@@ -1226,15 +1230,17 @@
             else if (isSub) cls += " sub";
             if (isAbsent) cls += " absent-player";
 
-            let displayLabel = p;
-            
-            // Zet alleen "vs" voor de derde speler (het begin van het tweede team)
-            if (idx === 2) {
-                displayLabel = `<span class="vs-text">vs</span> ${p}`;
-            }
+            return `<span class="${cls}">${p}</span>`;
+        };
 
-            return `<span class="${cls}">${displayLabel}</span>`;
-        }).join('');
+        // De eerste 2 spelers (Team 1)
+        const team1 = players.slice(0, 2).map(createChip).join('');
+        
+        // De laatste 2 spelers (Team 2)
+        const team2 = players.slice(2, 4).map(createChip).join('');
+
+        // Combineer de teams met "vs" ertussen
+        return `${team1} <span class="vs-text">vs</span> ${team2}`;
     }
 
     function renderStats() {
