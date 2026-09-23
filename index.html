@@ -321,23 +321,46 @@
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             display: flex;
-            gap: 8px;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
         }
 
-        .match-title.dinsdag-title {
+        .match-title-left {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .match-title.dinsdag-title .day-name {
             color: var(--accent-blue);
             text-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
         }
 
-        .match-title.donderdag-title {
+        .match-title.donderdag-title .day-name {
             color: var(--accent-orange);
         }
 
         .match-date {
             color: var(--text-muted);
             opacity: 0.8;
+        }
+
+        .weather-badge {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            color: #38bdf8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            text-transform: none;
         }
 
         .players-container {
@@ -793,6 +816,7 @@
     let allStatuses = {};
     let absences = {};
     let messages = [];
+    let weatherCache = {};
     let lastSeenMessageCount = parseInt(localStorage.getItem('padel_last_seen_count') || '0');
     let hasUnreadAlerts = false;
 
@@ -800,6 +824,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         initUserSelect();
+        fetchWaalwijkWeather();
 
         db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
             liveOverrides = snapshot.val() || {};
@@ -832,6 +857,56 @@
             renderStatuses();
         }, 10000);
     });
+
+    // Weer ophalen via Open-Meteo voor Waalwijk (lat: 51.6833, lon: 5.0708)
+    function fetchWaalwijkWeather() {
+        const url = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&daily=temperature_2m_max,precipitation_probability_max,weathercode&timezone=Europe/Amsterdam";
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.daily) {
+                    const times = data.daily.time;
+                    const temps = data.daily.temperature_2m_max;
+                    const rain = data.daily.precipitation_probability_max;
+                    const codes = data.daily.weathercode;
+
+                    times.forEach((dateStr, index) => {
+                        // dateStr is 'YYYY-MM-DD'
+                        weatherCache[dateStr] = {
+                            temp: temps[index],
+                            rain: rain ? rain[index] : 0,
+                            code: codes[index]
+                        };
+                    });
+                    renderSchedule();
+                }
+            })
+            .catch(err => console.error("Kon weer niet ophalen:", err));
+    }
+
+    function getWeatherEmoji(code) {
+        if (code === 0) return "☀️";
+        if (code >= 1 && code <= 3) return "⛅";
+        if (code >= 51 && code <= 67) return "🌧️";
+        if (code >= 71 && code <= 77) return "❄️";
+        if (code >= 95) return "⛈️";
+        return "☁️";
+    }
+
+    function getWeatherHtml(dateObj) {
+        // dateObj is a Date object, format to YYYY-MM-DD
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        const key = `${y}-${m}-${d}`;
+
+        if (weatherCache[key]) {
+            const w = weatherCache[key];
+            const emoji = getWeatherEmoji(w.code);
+            return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% regen)</span>`;
+        }
+        return `<span class="weather-badge">☁️ Weer volgt</span>`;
+    }
 
     function updateAlertUI() {
         const btn = document.getElementById("globalChatAlertBtn");
@@ -993,6 +1068,8 @@
             weeks.push({
                 weekIndex,
                 weekNumber: getWeekNumber(diDate),
+                dinsdagDate: diDate,
+                donderdagDate: doDate,
                 dinsdagDateStr: formatDateDDMMYY(diDate),
                 donderdagDateStr: formatDateDDMMYY(doDate),
                 dinsdag: dinsdagPlayers,
@@ -1057,6 +1134,9 @@
                 ? `<div class="absence-alert">⚠️ Let op: ${doAbsentPlayers.join(', ')} ${doAbsentPlayers.length > 1 ? 'zijn' : 'is'} afwezig op donderdag!</div>` 
                 : '';
 
+            const diWeather = getWeatherHtml(w.dinsdagDate);
+            const doWeather = getWeatherHtml(w.donderdagDate);
+
             html += `
                 <div class="week-card">
                     <div class="week-header">Week ${w.weekNumber}</div>
@@ -1064,7 +1144,13 @@
                     <div class="match-row-wrapper">
                         <div class="match-row">
                             <div class="match-info">
-                                <div class="match-title dinsdag-title"><span>Dinsdag</span> <span class="match-date">${w.dinsdagDateStr}</span></div>
+                                <div class="match-title dinsdag-title">
+                                    <div class="match-title-left">
+                                        <span class="day-name">Dinsdag</span> 
+                                        <span class="match-date">${w.dinsdagDateStr}</span>
+                                    </div>
+                                    ${diWeather}
+                                </div>
                                 <div class="players-container">${renderPlayersHtml(w.dinsdag, w.weekIndex, 'dinsdag')}</div>
                             </div>
                             <div class="match-action-container">
@@ -1077,7 +1163,13 @@
                     <div class="match-row-wrapper">
                         <div class="match-row">
                             <div class="match-info">
-                                <div class="match-title donderdag-title"><span>Donderdag</span> <span class="match-date">${w.donderdagDateStr}</span></div>
+                                <div class="match-title donderdag-title">
+                                    <div class="match-title-left">
+                                        <span class="day-name">Donderdag</span> 
+                                        <span class="match-date">${w.donderdagDateStr}</span>
+                                    </div>
+                                    ${doWeather}
+                                </div>
                                 <div class="players-container">${renderPlayersHtml(w.donderdag, w.weekIndex, 'donderdag')}</div>
                             </div>
                             <div class="match-action-container">
