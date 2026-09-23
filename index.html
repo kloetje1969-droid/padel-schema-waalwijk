@@ -282,8 +282,7 @@
             text-decoration: none;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
+            justify-content: space-between;
             font-size: 0.8rem;
             width: 100%;
             transition: background 0.2s;
@@ -333,15 +332,8 @@
             color: var(--accent-green);
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 6px;
-            width: 100%;
             text-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
-        }
-
-        .card-header .section-title {
-            justify-content: flex-start;
-            width: auto;
         }
 
         .week-card {
@@ -546,17 +538,6 @@
             color: var(--text-muted); 
             font-weight: 600; 
             background: rgba(0, 0, 0, 0.2); 
-        }
-
-        .absence-table th {
-            font-size: 0.75rem;
-            line-height: 1.3;
-        }
-
-        .absence-table th .week-label {
-            font-size: 0.84rem;
-            font-weight: 700;
-            color: var(--accent-green);
         }
         
         .stats-table tr.highlight-row, .absence-table tr.highlight-row { 
@@ -798,7 +779,7 @@
     <div id="scheduleContainer" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">Laden van schema...</div>
 
     <div class="card">
-        <div class="card-header" style="justify-content: center;">
+        <div class="card-header">
             <div class="section-title" style="font-size: 0.95rem;">📊 Statistieken (Huidige Reeks)</div>
         </div>
         <div class="table-scroll-wrapper">
@@ -817,10 +798,10 @@
     </div>
 
     <div class="card">
-        <div class="card-header" style="justify-content: center;">
+        <div class="card-header">
             <div class="section-title" style="font-size: 0.95rem;">📅 Afwezigheid / Vakantie</div>
         </div>
-        <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Je kunt alleen je eigen afwezigheid aan- of uitzetten (klik op je eigen knop):</p>
+        <p style="font-size: 0.75rem; color: var(--text-muted);">Je kunt alleen je eigen afwezigheid aan- of uitzetten (klik op je eigen knop):</p>
         <div class="table-scroll-wrapper">
             <table class="absence-table">
                 <thead>
@@ -835,7 +816,7 @@
 
     <div class="card" id="chatCardSection">
         <div class="card-header">
-            <div class="section-title" style="font-size: 0.95rem; justify-content: flex-start; width: auto;">💬 Team Chat</div>
+            <div class="section-title" style="font-size: 0.95rem;">💬 Team Chat</div>
             <button class="btn-edit" onclick="clearAllChat()">Alles wissen</button>
         </div>
         <div class="chat-messages" id="chatWindow"></div>
@@ -1030,103 +1011,113 @@
             const emoji = getWeatherEmoji(w.code);
             return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
         }
-        return '';
+
+        return `<span class="weather-badge">☁️ Weer volgt</span>`;
+    }
+
+    function updateAlertUI() {
+        const btn = document.getElementById("globalChatAlertBtn");
+        const badge = document.getElementById("alertBadgeCount");
+        const unreadCount = messages.length - lastSeenMessageCount;
+
+        if (hasUnreadAlerts && unreadCount > 0) {
+            btn.classList.add("blinking");
+            badge.style.display = "inline-block";
+            badge.innerText = unreadCount;
+        } else {
+            btn.classList.remove("blinking");
+            badge.style.display = "none";
+        }
     }
 
     function initUserSelect() {
         const select = document.getElementById('userSelect');
-        select.innerHTML = '';
-        basePlayers.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p;
-            opt.textContent = p;
-            if (p === currentUserName) opt.selected = true;
-            select.appendChild(opt);
-        });
+        select.innerHTML = basePlayers.map(p => `<option value="${p}" ${p === currentUserName ? 'selected' : ''}>${p}</option>`).join('');
     }
 
     function changeUser() {
         const select = document.getElementById('userSelect');
+        const oldUser = currentUserName;
         currentUserName = select.value;
         localStorage.setItem('padel_current_user', currentUserName);
+
+        // Oude sessie direct op offline/huidige servertijd zetten
+        db.ref(`padelData/presence/${oldUser}_${userSessionId}`).set({ name: oldUser, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        setupOnlinePresence();
         renderAll();
-        renderStatuses();
     }
 
     function setupOnlinePresence() {
-        const myPresenceRef = db.ref(`padelData/presence/${currentUserName}`);
+        const userPresenceRef = db.ref(`padelData/presence/${currentUserName}_${userSessionId}`);
         
-        myPresenceRef.set({
-            online: true,
-            lastSeen: Date.now(),
-            sessionId: userSessionId
-        });
+        // Direct bij openen op actieve tijd zetten
+        userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        
+        // Bij verlies van verbinding automatisch servertijd opslaan
+        userPresenceRef.onDisconnect().set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
 
-        // Bij verbreking van verbinding: zet online op false en bewaar de exacte laatste timestamp
-        myPresenceRef.onDisconnect().update({
-            online: false,
-            lastSeen: Date.now()
-        });
-
+        // Hartslag elke 3 seconden vernieuwen
         if (heartbeatInterval) clearInterval(heartbeatInterval);
         heartbeatInterval = setInterval(() => {
-            db.ref(`padelData/presence/${currentUserName}`).update({
-                lastSeen: Date.now(),
-                online: true,
-                sessionId: userSessionId
-            });
+            if (document.visibilityState === 'visible') {
+                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            }
         }, 3000);
+
+        // Bij sluiten of wegklikken direct tijd vastleggen
+        window.addEventListener('beforeunload', () => {
+            userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            } else {
+                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            }
+        });
     }
 
-    function getTimeAgo(timestamp) {
-        if (!timestamp) return 'offline';
-        const seconds = Math.floor((Date.now() - timestamp) / 1000);
-        
-        if (seconds < 20) return 'zojuist';
-        if (seconds < 60) return `${seconds}s geleden`;
-        
-        const minutes = Math.floor(seconds / 60);
-        if (minutes < 60) return `${minutes}m geleden`;
-        
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours}u geleden`;
-        
-        const days = Math.floor(hours / 24);
-        return `${days}d geleden`;
+    function formatLastSeen(timestamp) {
+        if (!timestamp) return "offline";
+        const diffMs = Date.now() - timestamp;
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMs < 10000) return "online";
+        if (diffMins < 1) return "zojuist";
+        if (diffMins < 60) return `${diffMins}m geleden`;
+        if (diffHours < 24) return `${diffHours}u geleden`;
+        return `${diffDays}d geleden`;
     }
 
     function renderStatuses() {
-        const statusList = document.getElementById('statusList');
-        let html = '';
-        const now = Date.now();
+        const container = document.getElementById('statusList');
+        let uniqueUsers = {};
 
-        basePlayers.forEach(player => {
-            const pData = allStatuses[player];
-            let isOnline = false;
-            let timeText = 'offline';
-
-            if (pData) {
-                if (pData.online && (now - pData.lastSeen < 10000)) {
-                    isOnline = true;
-                    timeText = 'online';
-                } else if (pData.lastSeen) {
-                    timeText = getTimeAgo(pData.lastSeen);
+        Object.values(allStatuses).forEach(s => {
+            if (s && s.name && s.timestamp) {
+                if (!uniqueUsers[s.name] || s.timestamp > uniqueUsers[s.name]) {
+                    uniqueUsers[s.name] = s.timestamp;
                 }
             }
+        });
 
+        container.innerHTML = basePlayers.map(player => {
+            const ts = uniqueUsers[player];
+            const isOnline = ts && (Date.now() - ts < 10000);
             const isMe = (player === currentUserName);
-            const onlineClass = isOnline ? 'is-online' : '';
-            const meClass = isMe ? 'me' : '';
+            const statusText = isOnline ? "online" : formatLastSeen(ts);
 
-            html += `
-                <div class="status-badge ${meClass} ${onlineClass}">
+            return `
+                <div class="status-badge ${isMe ? 'me' : ''} ${isOnline ? 'is-online' : ''}">
                     <span class="status-dot ${isOnline ? 'online' : ''}"></span>
-                    <span>${player}</span>
-                    <span class="badge-text">${timeText}</span>
+                    <span>${player}:</span>
+                    <span class="badge-text">${statusText}</span>
                 </div>
             `;
-        });
-        statusList.innerHTML = html;
+        }).join('');
     }
 
     function renderAll() {
@@ -1135,96 +1126,88 @@
         renderAbsenceTable();
     }
 
-    function getMonday(d) {
-        d = new Date(d);
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        return new Date(d.setDate(diff));
+    function getMondayOfWeek392026() {
+        let d = new Date(2026, 8, 21); // Maandag week 39 (21 sep 2026)
+        return d;
     }
 
-    function getWeekNumber(d) {
-        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-        const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
-        return weekNo;
-    }
-
-    function getBaseMonday() {
-        return new Date(2026, 8, 21);
+    function getISOWeekNumber(d) {
+        let date = new Date(d.getTime());
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+        let week1 = new Date(date.getFullYear(), 0, 4);
+        return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
 
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
+        const baseMonday = getMondayOfWeek392026();
         let html = '';
-        
-        const baseMonday = getBaseMonday();
 
-        for (let i = 0; i < 6; i++) {
-            const weekIndex = i;
-            const weekStartDate = new Date(baseMonday);
-            weekStartDate.setDate(baseMonday.getDate() + (i * 7));
+        for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
+            let weekStart = new Date(baseMonday);
+            weekStart.setDate(baseMonday.getDate() + (weekIdx * 7));
 
-            const tTuesday = new Date(weekStartDate);
-            tTuesday.setDate(weekStartDate.getDate() + 1);
+            let currentWeekNum = getISOWeekNumber(weekStart);
 
-            const tThursday = new Date(weekStartDate);
-            tThursday.setDate(weekStartDate.getDate() + 3);
+            let dinsdagDate = new Date(weekStart);
+            dinsdagDate.setDate(weekStart.getDate() + 1);
 
-            const tString = tTuesday.toISOString().split('T')[0];
-            const thString = tThursday.toISOString().split('T')[0];
+            let donderdagDate = new Date(weekStart);
+            donderdagDate.setDate(weekStart.getDate() + 3);
 
-            const defObj = defaultTemplate[weekIndex] || { dinsdag: [], donderdag: [] };
-            const curTuesday = (liveOverrides[weekIndex] && liveOverrides[weekIndex].dinsdag) ? liveOverrides[weekIndex].dinsdag : defObj.dinsdag;
-            const curThursday = (liveOverrides[weekIndex] && liveOverrides[weekIndex].donderdag) ? liveOverrides[weekIndex].donderdag : defObj.donderdag;
+            let tpl = defaultTemplate[weekIdx];
 
-            const tFormatted = tTuesday.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
-            const thFormatted = tThursday.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+            let dinsdagPlayers = (liveOverrides[`w${weekIdx}_dinsdag`] !== undefined) ? liveOverrides[`w${weekIdx}_dinsdag`] : tpl.dinsdag;
+            let donderdagPlayers = (liveOverrides[`w${weekIdx}_donderdag`] !== undefined) ? liveOverrides[`w${weekIdx}_donderdag`] : tpl.donderdag;
 
-            const weatherTuesday = getWeatherHtml(tTuesday);
-            const weatherThursday = getWeatherHtml(tThursday);
+            let dinsdagFormatted = dinsdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+            let donderdagFormatted = donderdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
 
-            const tAbsents = curTuesday.filter(p => absences[tString] && absences[tString][p]);
-            const thAbsents = curThursday.filter(p => absences[thString] && absences[thString][p]);
+            let dinsdagWeather = getWeatherHtml(dinsdagDate);
+            let donderdagWeather = getWeatherHtml(donderdagDate);
+
+            let dinsdagAbsentees = dinsdagPlayers.filter(p => absences[p] && absences[p][`w${weekIdx}_dinsdag`]);
+            let donderdagAbsentees = donderdagPlayers.filter(p => absences[p] && absences[p][`w${weekIdx}_donderdag`]);
 
             html += `
                 <div class="week-card">
-                    <div class="week-header">Week ${39 + weekIndex} (${tFormatted} - ${thFormatted})</div>
+                    <div class="week-header">Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</div>
                     
                     <div class="match-row-wrapper">
                         <div class="match-row">
                             <div class="match-info">
                                 <div class="match-title dinsdag-title">
-                                    <span class="day-name">Dinsdag</span> <span class="match-date">${tFormatted}</span>
-                                    ${weatherTuesday}
+                                    <span class="day-name">Dinsdag</span> <span class="match-date">${dinsdagFormatted}</span>
+                                    ${dinsdagWeather}
                                 </div>
                                 <div class="players-container">
-                                    ${renderPlayerChips(curTuesday, tString)}
+                                    ${renderPlayerChips(dinsdagPlayers, weekIdx, 'dinsdag')}
                                 </div>
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openReplaceModal(${weekIndex}, 'dinsdag')">✏️ Wijzig</button>
+                                <button class="btn-edit" onclick="openModal(${weekIdx}, 'dinsdag')">✏️ Wijzig</button>
                             </div>
                         </div>
-                        ${tAbsents.length > 0 ? `<div class="absence-alert">⚠️ Let op: ${tAbsents.join(', ')}${tAbsents.length > 1 ? 'zijn' : 'is'} afwezig op dinsdag!</div>` : ''}
+                        ${dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
                     </div>
 
                     <div class="match-row-wrapper">
                         <div class="match-row">
                             <div class="match-info">
                                 <div class="match-title donderdag-title">
-                                    <span class="day-name">Donderdag</span> <span class="match-date">${thFormatted}</span>
-                                    ${weatherThursday}
+                                    <span class="day-name">Donderdag</span> <span class="match-date">${donderdagFormatted}</span>
+                                    ${donderdagWeather}
                                 </div>
                                 <div class="players-container">
-                                    ${renderPlayerChips(curThursday, thString)}
+                                    ${renderPlayerChips(donderdagPlayers, weekIdx, 'donderdag')}
                                 </div>
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openReplaceModal(${weekIndex}, 'donderdag')">✏️ Wijzig</button>
+                                <button class="btn-edit" onclick="openModal(${weekIdx}, 'donderdag')">✏️ Wijzig</button>
                             </div>
                         </div>
-                        ${thAbsents.length > 0 ? `<div class="absence-alert">⚠️ Let op: ${thAbsents.join(', ')}${thAbsents.length > 1 ? 'zijn' : 'is'} afwezig op donderdag!</div>` : ''}
+                        ${donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
                     </div>
                 </div>
             `;
@@ -1232,189 +1215,163 @@
         container.innerHTML = html;
     }
 
-    function renderPlayerChips(playersArr, dateStr) {
-        let html = '';
-        playersArr.forEach((p, idx) => {
+    function renderPlayerChips(players, weekIdx, day) {
+        return players.map((p, idx) => {
             const isMe = (p === currentUserName);
             const isSub = !basePlayers.includes(p);
-            const isAbsent = absences[dateStr] && absences[dateStr][p];
+            const isAbsent = absences[p] && absences[p][`w${weekIdx}_${day}`];
 
-            let classes = 'player-chip';
-            if (isMe) classes += ' me';
-            else if (isSub) classes += ' sub';
-            if (isAbsent) classes += ' absent-player';
+            let cls = "player-chip";
+            if (isMe) cls += " me";
+            else if (isSub) cls += " sub";
+            if (isAbsent) cls += " absent-player";
 
-            html += `<span class="${classes}">${p}</span>`;
-            if (idx < playersArr.length - 1) {
-                html += `<span class="vs-text">vs</span>`;
-            }
-        });
-        return html;
+            let displayLabel = p;
+            if (idx > 0 && idx < 3) displayLabel = `<span class="vs-text">vs</span> ${p}`;
+            else if (idx === 2) displayLabel = `<span class="vs-text">/</span> ${p}`;
+
+            return `<span class="${cls}">${displayLabel}</span>`;
+        }).join('');
     }
 
     function renderStats() {
         const tbody = document.getElementById('statsTableBody');
-        const counts = {};
+        let counts = {};
         
-        const allPlayersSet = new Set(basePlayers);
-        for (let i = 0; i < 6; i++) {
-            const defObj = defaultTemplate[i];
-            const curT = (liveOverrides[i] && liveOverrides[i].dinsdag) ? liveOverrides[i].dinsdag : defObj.dinsdag;
-            const curTh = (liveOverrides[i] && liveOverrides[i].donderdag) ? liveOverrides[i].donderdag : defObj.donderdag;
-            curT.forEach(p => allPlayersSet.add(p));
-            curTh.forEach(p => allPlayersSet.add(p));
-        }
+        basePlayers.forEach(p => counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: false });
 
-        allPlayersSet.forEach(p => {
-            counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0 };
-        });
+        for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
+            let tpl = defaultTemplate[weekIdx];
+            let dinsdagPlayers = (liveOverrides[`w${weekIdx}_dinsdag`] !== undefined) ? liveOverrides[`w${weekIdx}_dinsdag`] : tpl.dinsdag;
+            let donderdagPlayers = (liveOverrides[`w${weekIdx}_donderdag`] !== undefined) ? liveOverrides[`w${weekIdx}_donderdag`] : tpl.donderdag;
 
-        for (let i = 0; i < 6; i++) {
-            const defObj = defaultTemplate[i];
-            const curT = (liveOverrides[i] && liveOverrides[i].dinsdag) ? liveOverrides[i].dinsdag : defObj.dinsdag;
-            const curTh = (liveOverrides[i] && liveOverrides[i].donderdag) ? liveOverrides[i].donderdag : defObj.donderdag;
-
-            curT.forEach(p => {
-                if (counts[p]) counts[p].dinsdag++;
+            dinsdagPlayers.forEach(p => {
+                if (!counts[p]) {
+                    counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
+                }
+                counts[p].dinsdag++;
+                counts[p].totaal++;
             });
-            curTh.forEach(p => {
-                if (counts[p]) counts[p].donderdag++;
+
+            donderdagPlayers.forEach(p => {
+                if (!counts[p]) {
+                    counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
+                }
+                counts[p].donderdag++;
+                counts[p].totaal++;
             });
         }
 
-        allPlayersSet.forEach(p => {
-            counts[p].totaal = counts[p].dinsdag + counts[p].donderdag;
-        });
+        let allKeys = Object.keys(counts);
+        allKeys.sort((a, b) => counts[b].totaal - counts[a].totaal);
 
-        const sorted = [...allPlayersSet].sort((a, b) => {
-            if (counts[b].totaal !== counts[a].totaal) {
-                return counts[b].totaal - counts[a].totaal;
-            }
-            return a.localeCompare(b);
-        });
-
-        let html = '';
-        sorted.forEach(p => {
+        tbody.innerHTML = allKeys.map(p => {
             const isMe = (p === currentUserName);
-            const isSub = !basePlayers.includes(p);
-            const rowClass = isMe ? 'highlight-row' : '';
-            html += `
-                <tr class="${rowClass}">
-                    <td style="text-align: left; font-weight: ${isMe ? 'bold' : 'normal'};">${p} ${isMe ? '(Jij)' : ''} ${isSub ? '<span style="font-size:0.65rem; color:var(--accent-orange);">(Invaller)</span>' : ''}</td>
-                    <td>${counts[p].dinsdag}x</td>
-                    <td>${counts[p].donderdag}x</td>
-                    <td style="font-weight: bold;">${counts[p].totaal}x</td>
+            const data = counts[p];
+            let displayName = p;
+            if (isMe) displayName += ' (jij)';
+            if (data.isSub) displayName += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
+
+            return `
+                <tr class="${isMe ? 'highlight-row' : ''}">
+                    <td style="text-align: left; font-weight: 600;">${displayName}</td>
+                    <td>${data.dinsdag}</td>
+                    <td>${data.donderdag}</td>
+                    <td style="font-weight: bold;">${data.totaal}</td>
                 </tr>
             `;
-        });
-        tbody.innerHTML = html;
+        }).join('');
     }
 
     function renderAbsenceTable() {
         const headerRow = document.getElementById('absenceHeaderRow');
         const tbody = document.getElementById('absenceTableBody');
+        const baseMonday = getMondayOfWeek392026();
 
-        const baseMonday = getBaseMonday();
-        let dates = [];
-
-        for (let i = 0; i < 6; i++) {
-            const wStart = new Date(baseMonday);
-            wStart.setDate(baseMonday.getDate() + (i * 7));
-            const weekNum = getWeekNumber(wStart);
-
-            const tDate = new Date(wStart);
-            tDate.setDate(wStart.getDate() + 1);
-            const thDate = new Date(wStart);
-            thDate.setDate(wStart.getDate() + 3);
-
-            dates.push({ 
-                dateObj: tDate, 
-                str: tDate.toISOString().split('T')[0], 
-                label: `<span class="week-label">W${weekNum}</span><br>Di ${tDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}` 
-            });
-            dates.push({ 
-                dateObj: thDate, 
-                str: thDate.toISOString().split('T')[0], 
-                label: `<span class="week-label">W${weekNum}</span><br>Do ${thDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}` 
-            });
+        let headersHtml = `<th style="text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2;">Speler</th>`;
+        for (let w = 0; w < 6; w++) {
+            let weekStart = new Date(baseMonday);
+            weekStart.setDate(baseMonday.getDate() + (w * 7));
+            let wn = getISOWeekNumber(weekStart);
+            headersHtml += `<th>W${wn} Di</th><th>W${wn} Do</th>`;
         }
+        headerRow.innerHTML = headersHtml;
 
-        let headHtml = `<th style="text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2;">Speler</th>`;
-        dates.forEach(d => {
-            headHtml += `<th>${d.label}</th>`;
-        });
-        headerRow.innerHTML = headHtml;
-
-        let bodyHtml = '';
-        basePlayers.forEach(p => {
+        tbody.innerHTML = basePlayers.map(p => {
             const isMe = (p === currentUserName);
-            const rowClass = isMe ? 'highlight-row' : '';
-            bodyHtml += `<tr class="${rowClass}">`;
-            bodyHtml += `<td style="text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2; font-weight: ${isMe ? 'bold' : 'normal'};">${p}</td>`;
+            let rowHtml = `<td style="text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 2; color: ${isMe ? '#6ee7b7' : 'inherit'}">${p}</td>`;
 
-            dates.forEach(d => {
-                const isAbsent = absences[d.str] && absences[d.str][p];
-                const btnClass = isAbsent ? 'absence-btn absent' : 'absence-btn';
-                const btnText = isAbsent ? 'Afwezig' : 'Aanwezig';
-                const disabledAttr = !isMe ? 'disabled' : '';
+            for (let w = 0; w < 6; w++) {
+                ['dinsdag', 'donderdag'].forEach(day => {
+                    const isAbsent = absences[p] && absences[p][`w${w}_${day}`];
+                    const disabledAttr = !isMe ? 'disabled' : '';
 
-                bodyHtml += `
-                    <td>
-                        <button class="${btnClass}" ${disabledAttr} onclick="toggleAbsence('${d.str}', '${p}')">${btnText}</button>
-                    </td>
-                `;
-            });
-            bodyHtml += `</tr>`;
-        });
-        tbody.innerHTML = bodyHtml;
+                    rowHtml += `
+                        <td>
+                            <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${disabledAttr} onclick="toggleAbsence('${p}', ${w}, '${day}')">
+                                ${isAbsent ? 'Afwezig' : 'Aanwezig'}
+                            </button>
+                        </td>
+                    `;
+                });
+            }
+            return `<tr class="${isMe ? 'highlight-row' : ''}">${rowHtml}</tr>`;
+        }).join('');
     }
 
-    function toggleAbsence(dateStr, playerName) {
-        if (playerName !== currentUserName) return;
-
-        if (!absences[dateStr]) absences[dateStr] = {};
-        const currentVal = !!absences[dateStr][playerName];
+    function toggleAbsence(player, weekIdx, day) {
+        if (player !== currentUserName) return;
+        const key = `w${weekIdx}_${day}`;
+        const currentVal = absences[player] && absences[player][key];
         const newVal = !currentVal;
+        
+        db.ref(`padelData/absence/${player}/${key}`).set(newVal);
 
-        db.ref(`padelData/absence/${dateStr}/${playerName}`).set(newVal ? true : null)
-            .then(() => {
-                const actionText = newVal ? 'afwezig gemeld' : 'weer aanwezig gemeld';
-                addSystemMessage(`${playerName} heeft zich ${actionText} voor ${dateStr}.`);
-            });
+        let weekStart = new Date(getMondayOfWeek392026());
+        weekStart.setDate(weekStart.getDate() + (weekIdx * 7));
+        let wn = getISOWeekNumber(weekStart);
+        let statusStr = newVal ? "❌ afwezig gemeld" : "✅ weer aanwezig gemeld";
+
+        let msgRef = db.ref('padelData/messages').push();
+        msgRef.set({
+            author: "Systeem",
+            text: `📢 ${player} heeft zich ${statusStr} voor week ${wn} (${day})`,
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            type: "system"
+        });
     }
 
-    let editingWeekIndex = null;
-    let editingDayKey = null;
+    let activeModalWeek = null;
+    let activeModalDay = null;
 
-    function openReplaceModal(weekIndex, dayKey) {
-        editingWeekIndex = weekIndex;
-        editingDayKey = dayKey;
+    function openModal(weekIdx, day) {
+        activeModalWeek = weekIdx;
+        activeModalDay = day;
+        let weekStart = new Date(getMondayOfWeek392026());
+        weekStart.setDate(weekStart.getDate() + (weekIdx * 7));
+        let wn = getISOWeekNumber(weekStart);
 
-        const defObj = defaultTemplate[weekIndex];
-        const currentArr = (liveOverrides[weekIndex] && liveOverrides[weekIndex][dayKey]) ? liveOverrides[weekIndex][dayKey] : defObj[dayKey];
+        document.getElementById('modalSubTitle').innerText = `Wijzig Week ${wn} (${day})`;
 
-        document.getElementById('modalSubTitle').textContent = `Wijzig ${dayKey === 'dinsdag' ? 'Dinsdag' : 'Donderdag'} (Week ${39 + weekIndex})`;
+        let tpl = defaultTemplate[weekIdx];
+        let currentPlayers = (liveOverrides[`w${weekIdx}_${day}`] !== undefined) ? liveOverrides[`w${weekIdx}_${day}`] : tpl[day];
 
         for (let i = 0; i < 4; i++) {
-            const selectEl = document.getElementById(`p${i}Select`);
-            const inputEl = document.getElementById(`p${i}Custom`);
+            let sel = document.getElementById(`p${i}Select`);
+            let inp = document.getElementById(`p${i}Custom`);
+            
+            let allOpts = [...basePlayers, "Extern / Invaller"];
+            sel.innerHTML = allOpts.map(opt => `<option value="${opt}">${opt}</option>`).join('');
 
-            let html = '';
-            basePlayers.forEach(bp => {
-                html += `<option value="${bp}">${bp}</option>`;
-            });
-            html += `<option value="CUSTOM">Anders / Invaller...</option>`;
-            selectEl.innerHTML = html;
-
-            const val = currentArr[i] || basePlayers[i];
-            if (basePlayers.includes(val)) {
-                selectEl.value = val;
-                inputEl.value = '';
-                inputEl.style.display = 'none';
+            let pVal = currentPlayers[i] || basePlayers[i];
+            if (basePlayers.includes(pVal)) {
+                sel.value = pVal;
+                inp.style.display = "none";
+                inp.value = "";
             } else {
-                selectEl.value = 'CUSTOM';
-                inputEl.value = val;
-                inputEl.style.display = 'block';
+                sel.value = "Extern / Invaller";
+                inp.style.display = "block";
+                inp.value = pVal;
             }
         }
 
@@ -1423,13 +1380,13 @@
 
     function checkCustomInputs() {
         for (let i = 0; i < 4; i++) {
-            const selectEl = document.getElementById(`p${i}Select`);
-            const inputEl = document.getElementById(`p${i}Custom`);
-            if (selectEl.value === 'CUSTOM') {
-                inputEl.style.display = 'block';
+            let sel = document.getElementById(`p${i}Select`);
+            let inp = document.getElementById(`p${i}Custom`);
+            if (sel.value === "Extern / Invaller") {
+                inp.style.display = "block";
             } else {
-                inputEl.style.display = 'none';
-                inputEl.value = '';
+                inp.style.display = "none";
+                inp.value = "";
             }
         }
     }
@@ -1441,27 +1398,57 @@
     function confirmReplacement() {
         let newPlayers = [];
         for (let i = 0; i < 4; i++) {
-            const selectEl = document.getElementById(`p${i}Select`);
-            const inputEl = document.getElementById(`p${i}Custom`);
-            let val = selectEl.value;
-            if (val === 'CUSTOM') {
-                val = inputEl.value.trim() || `Invaller ${i+1}`;
+            let sel = document.getElementById(`p${i}Select`);
+            let inp = document.getElementById(`p${i}Custom`);
+            if (sel.value === "Extern / Invaller") {
+                newPlayers.push(inp.value.trim() || "Invaller");
+            } else {
+                newPlayers.push(sel.value);
             }
-            newPlayers.push(val);
         }
 
-        if (!liveOverrides[editingWeekIndex]) {
-            liveOverrides[editingWeekIndex] = {};
-        }
-        liveOverrides[editingWeekIndex][editingDayKey] = newPlayers;
+        db.ref(`padelData/scheduleOverrides/w${activeModalWeek}_${activeModalDay}`).set(newPlayers);
+        
+        let weekStart = new Date(getMondayOfWeek392026());
+        weekStart.setDate(weekStart.getDate() + (activeModalWeek * 7));
+        let wn = getISOWeekNumber(weekStart);
 
-        const dayNameNL = editingDayKey === 'dinsdag' ? 'Dinsdag' : 'Donderdag';
+        let msgRef = db.ref('padelData/messages').push();
+        msgRef.set({
+            author: "Systeem",
+            text: `🔄 Schema gewijzigd voor week ${wn} (${activeModalDay}): ${newPlayers.join(', ')}`,
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            type: "system"
+        });
 
-        db.ref(`padelData/scheduleOverrides/${editingWeekIndex}/${editingDayKey}`).set(newPlayers)
-            .then(() => {
-                addSystemMessage(`${currentUserName} heeft het schema voor ${dayNameNL} (week ${39 + editingWeekIndex}) gewijzigd. Nieuwe opstelling: ${newPlayers.join(', ')}.`);
-                closeModal();
-            });
+        closeModal();
+    }
+
+    function renderChat() {
+        const windowDiv = document.getElementById('chatWindow');
+        windowDiv.innerHTML = messages.map((m, index) => {
+            const isSelf = (m.author === currentUserName);
+            const isSystem = (m.type === "system" || m.author === "Systeem");
+
+            if (isSystem) {
+                return `
+                    <div class="message system-update">
+                        <span style="font-size: 0.75rem; color: var(--accent-blue);">${m.text}</span>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="message ${isSelf ? 'self' : ''}">
+                    <div class="message-header">
+                        <span class="author">${m.author}</span>
+                        <button class="delete-msg-btn" onclick="deleteMessage(${index})">✕</button>
+                    </div>
+                    <span>${m.text}</span>
+                </div>
+            `;
+        }).join('');
+        windowDiv.scrollTop = windowDiv.scrollHeight;
     }
 
     function sendMessage() {
@@ -1469,108 +1456,44 @@
         const text = input.value.trim();
         if (!text) return;
 
-        const msgData = {
+        db.ref('padelData/messages').push({
             author: currentUserName,
             text: text,
-            timestamp: Date.now(),
-            type: 'user'
-        };
-
-        db.ref('padelData/messages').push(msgData).then(() => {
-            input.value = '';
-            lastSeenMessageCount = messages.length + 1;
-            localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
-            hasUnreadAlerts = false;
-            updateAlertUI();
+            timestamp: firebase.database.ServerValue.TIMESTAMP
         });
-    }
 
-    function addSystemMessage(text) {
-        const msgData = {
-            author: 'Systeem',
-            text: text,
-            timestamp: Date.now(),
-            type: 'system'
-        };
-        db.ref('padelData/messages').push(msgData);
+        input.value = '';
     }
 
     function handleKeyPress(e) {
-        if (e.key === 'Enter') {
-            sendMessage();
-        }
+        (e.key === 'Enter') && sendMessage();
     }
 
-    function renderChat() {
-        const chatWindow = document.getElementById('chatWindow');
-        let html = '';
-
-        messages.forEach((m) => {
-            const isSelf = (m.author === currentUserName);
-            const isSystem = (m.type === 'system' || m.author === 'Systeem');
-            const timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            if (isSystem) {
-                html += `
-                    <div class="message system-update">
-                        <div class="message-header">
-                            <span class="author">🤖 Systeem</span>
-                            <span class="author">${timeStr}</span>
-                        </div>
-                        <div>${m.text}</div>
-                    </div>
-                `;
-            } else {
-                html += `
-                    <div class="message ${isSelf ? 'self' : ''}">
-                        <div class="message-header">
-                            <span class="author">${m.author}</span>
-                            <span class="author">${timeStr}</span>
-                        </div>
-                        <div>${escapeHtml(m.text)}</div>
-                    </div>
-                `;
+    function deleteMessage(index) {
+        db.ref('padelData/messages').once('value', snapshot => {
+            let val = snapshot.val();
+            if (val) {
+                let keys = Object.keys(val);
+                if (keys[index]) {
+                    db.ref(`padelData/messages/${keys[index]}`).remove();
+                }
             }
         });
-
-        chatWindow.innerHTML = html;
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
-
-    function escapeHtml(text) {
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
-    }
-
-    function scrollToChat() {
-        hasUnreadAlerts = false;
-        lastSeenMessageCount = messages.length;
-        localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
-        updateAlertUI();
-
-        document.getElementById('chatCardSection').scrollIntoView({ behavior: 'smooth' });
-        document.getElementById('chatInput').focus();
-    }
-
-    function updateAlertUI() {
-        const btn = document.getElementById('globalChatAlertBtn');
-        const badge = document.getElementById('alertBadgeCount');
-        const unreadCount = messages.length - lastSeenMessageCount;
-
-        if (hasUnreadAlerts && unreadCount > 0) {
-            btn.classList.add('blinking');
-            badge.style.display = 'inline-block';
-            badge.textContent = unreadCount;
-        } else {
-            btn.classList.remove('blinking');
-            badge.style.display = 'none';
-        }
     }
 
     function clearAllChat() {
         if (confirm("Weet je zeker dat je alle chatberichten wilt wissen?")) {
             db.ref('padelData/messages').remove();
         }
+    }
+
+    function scrollToChat() {
+        lastSeenMessageCount = messages.length;
+        localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
+        hasUnreadAlerts = false;
+        updateAlertUI();
+
+        document.getElementById('chatCardSection').scrollIntoView({ behavior: 'smooth' });
     }
 </script>
 
