@@ -732,16 +732,22 @@
         </div>
     </div>
 </div>
-
 <script>
     const firebaseConfig = {
-        databaseURL: "https://padel-team-6-default-rtdb.europe-west1.firebasedatabase.app/"
+        apiKey: "JOUW_API_KEY_HIER",
+        authDomain: "padel-app-b8362.firebaseapp.com",
+        databaseURL: "https://padel-app-b8362-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "padel-app-b8362",
+        storageBucket: "padel-app-b8362.appspot.com",
+        messagingSenderId: "...",
+        appId: "..."
     };
     
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.database();
+</script>
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
     let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
