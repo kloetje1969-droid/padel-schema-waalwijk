@@ -1049,64 +1049,50 @@
 
     function setupOnlinePresence() {
         const userPresenceRef = db.ref(`padelData/presence/${currentUserName}_${userSessionId}`);
-        
-        // Direct bij openen op actieve tijd zetten
-        userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
-        
-        // Bij verlies van verbinding automatisch servertijd opslaan
-        userPresenceRef.onDisconnect().set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        const connectedRef = db.ref('.info/connected');
 
-        // Hartslag elke 3 seconden vernieuwen
+        // Server regelt automatisch de afmelding bij verlies van verbinding
+        userPresenceRef.onDisconnect().set({
+            name: currentUserName,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        connectedRef.on('value', (snap) => {
+            if (snap.val() === true) {
+                userPresenceRef.set({
+                    name: currentUserName,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+        });
+
         if (heartbeatInterval) clearInterval(heartbeatInterval);
         heartbeatInterval = setInterval(() => {
             if (document.visibilityState === 'visible') {
-                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+                userPresenceRef.child('timestamp').set(firebase.database.ServerValue.TIMESTAMP);
             }
-        }, 3000);
-
-        // Bij sluiten of wegklikken direct tijd vastleggen
-        window.addEventListener('beforeunload', () => {
-            userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
-        });
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') {
-                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
-            } else {
-                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
-            }
-        });
-    }
-
-    function formatLastSeen(timestamp) {
-        if (!timestamp) return "offline";
-        const diffMs = Date.now() - timestamp;
-        const diffMins = Math.floor(diffMs / (1000 * 60));
-        const diffHours = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        if (diffMs < 10000) return "online";
-        if (diffMins < 1) return "zojuist";
-        if (diffMins < 60) return `${diffMins}m geleden`;
-        if (diffHours < 24) return `${diffHours}u geleden`;
-        return `${diffDays}d geleden`;
+        }, 10000);
     }
 
     function renderStatuses() {
         const container = document.getElementById('statusList');
+        if (!container) return; // Voorkomt vastlopen als het element niet gevonden kan worden
+
         let uniqueUsers = {};
 
-        Object.values(allStatuses).forEach(s => {
-            if (s && s.name && s.timestamp) {
-                if (!uniqueUsers[s.name] || s.timestamp > uniqueUsers[s.name]) {
-                    uniqueUsers[s.name] = s.timestamp;
+        if (allStatuses) {
+            Object.values(allStatuses).forEach(s => {
+                if (s && s.name && s.timestamp) {
+                    if (!uniqueUsers[s.name] || s.timestamp > uniqueUsers[s.name]) {
+                        uniqueUsers[s.name] = s.timestamp;
+                    }
                 }
-            }
-        });
+            });
+        }
 
         container.innerHTML = basePlayers.map(player => {
             const ts = uniqueUsers[player];
-            const isOnline = ts && (Date.now() - ts < 10000);
+            const isOnline = ts && (Date.now() - ts < 20000);
             const isMe = (player === currentUserName);
             const statusText = isOnline ? "online" : formatLastSeen(ts);
 
