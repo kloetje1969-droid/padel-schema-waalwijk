@@ -128,23 +128,38 @@
             padding-top: 8px;
         }
 
-        @keyframes pulseOnlineBadge {
-            0% { background: #374151; border-color: #4b5563; }
-            50% { background: rgba(52, 211, 153, 0.25); border-color: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.4); }
-            100% { background: #374151; border-color: #4b5563; }
+        @keyframes pulseGreenText {
+            0% { color: #9ca3af; text-shadow: none; }
+            50% { color: #6ee7b7; text-shadow: 0 0 8px rgba(110, 231, 183, 0.8); }
+            100% { color: #9ca3af; text-shadow: none; }
         }
 
-        @keyframes pulseOnlineMe {
-            0% { background: rgba(16, 185, 129, 0.25); }
-            50% { background: rgba(16, 185, 129, 0.5); box-shadow: 0 0 12px rgba(110, 231, 183, 0.6); }
-            100% { background: rgba(16, 185, 129, 0.25); }
+        @keyframes pulseOnlineMeText {
+            0% { color: rgba(110, 231, 183, 0.7); text-shadow: 0 0 4px rgba(110, 231, 183, 0.3); }
+            50% { color: #ffffff; text-shadow: 0 0 12px rgba(110, 231, 183, 1); }
+            100% { color: rgba(110, 231, 183, 0.7); text-shadow: 0 0 4px rgba(110, 231, 183, 0.3); }
+        }
+
+        @keyframes pulseConnection {
+            0% { opacity: 0.5; text-shadow: none; }
+            50% { opacity: 1; text-shadow: 0 0 10px rgba(110, 231, 183, 0.6); }
+            100% { opacity: 0.5; text-shadow: none; }
+        }
+
+        .db-connection-status {
+            font-size: 0.72rem; 
+            color: #6ee7b7; 
+            display: flex; 
+            align-items: center; 
+            gap: 4px;
+            animation: pulseConnection 2s infinite ease-in-out;
         }
 
         .status-badge {
             background: #374151;
             border: 1px solid #4b5563;
             color: var(--text-main);
-            padding: 2px 5px;
+            padding: 3px 7px;
             border-radius: 5px;
             font-size: 0.65rem;
             font-weight: 500;
@@ -153,19 +168,25 @@
             gap: 4px;
         }
 
-        .status-badge.online-pulsing {
-            animation: pulseOnlineBadge 2s infinite ease-in-out;
+        .status-badge .badge-text {
+            color: var(--text-muted);
+        }
+
+        .status-badge.is-online .badge-text {
+            animation: pulseGreenText 2s infinite ease-in-out;
+            font-weight: 600;
         }
 
         .status-badge.me {
             border-color: #6ee7b7;
-            color: #6ee7b7;
-            background: rgba(16, 185, 129, 0.25);
-            box-shadow: 0 0 6px rgba(110, 231, 183, 0.4);
+            background: rgba(16, 185, 129, 0.2);
+            box-shadow: 0 0 6px rgba(110, 231, 183, 0.3);
         }
 
-        .status-badge.me.online-pulsing {
-            animation: pulseOnlineMe 2s infinite ease-in-out;
+        .status-badge.me.is-online .badge-text {
+            animation: pulseOnlineMeText 2s infinite ease-in-out;
+            font-weight: 700;
+            color: #6ee7b7;
         }
 
         .status-dot {
@@ -456,6 +477,12 @@
             border-color: var(--danger); 
         }
 
+        .absence-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(40%);
+        }
+
         .chat-messages { 
             height: 180px; 
             overflow-y: auto; 
@@ -632,9 +659,9 @@
                 </select>
             </div>
             
-            <div style="font-size: 0.72rem; color: #6ee7b7; display: flex; align-items: center; gap: 4px;">
+            <div class="db-connection-status">
                 <span class="status-dot online"></span>
-                <span>Live verbonden</span>
+                <span>Live verbonden met database</span>
             </div>
         </div>
 
@@ -674,7 +701,7 @@
         <div class="card-header">
             <div class="section-title" style="font-size: 0.95rem;">📅 Afwezigheid / Vakantie</div>
         </div>
-        <p style="font-size: 0.75rem; color: var(--text-muted);">Klik op je knop om aan of uit te zetten of je kunt spelen:</p>
+        <p style="font-size: 0.75rem; color: var(--text-muted);">Je kunt alleen je eigen afwezigheid aan- of uitzetten (klik op je eigen knop):</p>
         <div class="table-scroll-wrapper">
             <table class="absence-table">
                 <thead>
@@ -734,7 +761,6 @@
 </div>
 
 <script>
-    // Exacte Firebase Configuratie uit jouw project instellingen
     const firebaseConfig = {
         apiKey: "AIzaSyC2TVkuO8vSfzmaGu-CictLit5iuRnRFNU",
         authDomain: "padel-app-b8362.firebaseapp.com",
@@ -884,12 +910,12 @@
             const isMe = player === currentUserName;
             let badgeClass = "status-badge";
             if (isMe) badgeClass += " me";
-            if (isOnline) badgeClass += " online-pulsing";
+            if (isOnline) badgeClass += " is-online";
 
             html += `
                 <div class="${badgeClass}">
                     <span class="status-dot ${isOnline ? 'online' : ''}"></span>
-                    <span>${player} (${statusText})</span>
+                    <span class="badge-text">${player} (${statusText})</span>
                 </div>
             `;
         });
@@ -1108,11 +1134,12 @@
 
         basePlayers.forEach(player => {
             const tr = document.createElement("tr");
-            if (player === currentUserName) tr.className = "highlight-row";
+            const isCurrentUsersRow = (player === currentUserName);
+            if (isCurrentUsersRow) tr.className = "highlight-row";
 
             const tdName = document.createElement("td");
             tdName.style.cssText = "text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2; font-weight: bold;";
-            tdName.innerText = `${player}${player === currentUserName ? ' (Jij)' : ''}`;
+            tdName.innerText = `${player}${isCurrentUsersRow ? ' (Jij)' : ''}`;
             tr.appendChild(tdName);
 
             weeks.forEach(w => {
@@ -1136,28 +1163,35 @@
                         btn.innerText = 'Aanw';
                     }
 
-                    btn.onclick = () => {
-                        const nowAbsent = !absences[key];
-                        if (!nowAbsent) {
-                            db.ref(`padelData/absence/${key}`).remove();
-                        } else {
-                            db.ref(`padelData/absence/${key}`).set(true);
-                        }
+                    // Alleen de geselecteerde gebruiker kan zijn/haar eigen afwezigheid wijzigen
+                    if (!isCurrentUsersRow) {
+                        btn.disabled = true;
+                        btn.title = `Je kunt alleen de status van ${currentUserName} wijzigen.`;
+                    } else {
+                        btn.onclick = () => {
+                            const nowAbsent = !absences[key];
+                            if (!nowAbsent) {
+                                db.ref(`padelData/absence/${key}`).remove();
+                            } else {
+                                db.ref(`padelData/absence/${key}`).set(true);
+                            }
 
-                        const dayName = day === 'dinsdag' ? 'Dinsdag' : 'Donderdag';
-                        const dateStr = day === 'dinsdag' ? w.dinsdagDateStr : w.donderdagDateStr;
-                        const statusDesc = nowAbsent ? '❌ Afwezig' : '✅ Aanwezig (beschikbaar)';
-                        
-                        let chatMsgText = `📅 ${currentUserName} heeft de status gewijzigd voor Week ${w.weekNumber} (${dayName} ${dateStr}):\n• ${player} staat nu op **${statusDesc}**`;
+                            const dayName = day === 'dinsdag' ? 'Dinsdag' : 'Donderdag';
+                            const dateStr = day === 'dinsdag' ? w.dinsdagDateStr : w.donderdagDateStr;
+                            const statusDesc = nowAbsent ? '❌ Afwezig' : '✅ Aanwezig (beschikbaar)';
+                            
+                            let chatMsgText = `📅 ${currentUserName} heeft de status gewijzigd voor Week ${w.weekNumber} (${dayName} ${dateStr}):\n• ${player} staat nu op **${statusDesc}**`;
 
-                        messages.push({ 
-                            sender: currentUserName, 
-                            text: chatMsgText, 
-                            timestamp: Date.now(), 
-                            isSystem: true 
-                        });
-                        db.ref('padelData/messages').set(messages);
-                    };
+                            messages.push({ 
+                                sender: currentUserName, 
+                                text: chatMsgText, 
+                                timestamp: Date.now(), 
+                                isSystem: true 
+                            });
+                            db.ref('padelData/messages').set(messages);
+                        };
+                    }
+
                     td.appendChild(btn);
                     tr.appendChild(td);
                 });
