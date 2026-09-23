@@ -315,24 +315,24 @@
             min-width: 0;
         }
 
+        /* Zorgt ervoor dat dag, datum en weer netjes op één regel achter elkaar staan zonder te breken */
         .match-title {
             font-weight: 600;
             color: var(--text-muted);
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.03em;
             margin-bottom: 6px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 6px;
+            white-space: nowrap;
+            overflow-x: auto;
         }
 
-        .match-title-left {
-            display: flex;
-            gap: 8px;
-            align-items: center;
+        .match-title::-webkit-scrollbar {
+            display: none; /* Verberg scrollbar voor strakke look */
         }
 
         .match-title.dinsdag-title .day-name {
@@ -346,21 +346,22 @@
 
         .match-date {
             color: var(--text-muted);
-            opacity: 0.8;
+            opacity: 0.9;
         }
 
         .weather-badge {
-            background: rgba(56, 189, 248, 0.1);
-            border: 1px solid rgba(56, 189, 248, 0.25);
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.2);
             color: #38bdf8;
-            padding: 2px 6px;
+            padding: 1px 5px;
             border-radius: 4px;
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             font-weight: 500;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
             text-transform: none;
+            flex-shrink: 0;
         }
 
         .players-container {
@@ -858,7 +859,6 @@
         }, 10000);
     });
 
-    // Weer ophalen via Open-Meteo voor Waalwijk (lat: 51.6833, lon: 5.0708)
     function fetchWaalwijkWeather() {
         const url = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&daily=temperature_2m_max,precipitation_probability_max,weathercode&timezone=Europe/Amsterdam";
         fetch(url)
@@ -871,7 +871,6 @@
                     const codes = data.daily.weathercode;
 
                     times.forEach((dateStr, index) => {
-                        // dateStr is 'YYYY-MM-DD'
                         weatherCache[dateStr] = {
                             temp: temps[index],
                             rain: rain ? rain[index] : 0,
@@ -894,7 +893,6 @@
     }
 
     function getWeatherHtml(dateObj) {
-        // dateObj is a Date object, format to YYYY-MM-DD
         const y = dateObj.getFullYear();
         const m = String(dateObj.getMonth() + 1).padStart(2, '0');
         const d = String(dateObj.getDate()).padStart(2, '0');
@@ -903,9 +901,9 @@
         if (weatherCache[key]) {
             const w = weatherCache[key];
             const emoji = getWeatherEmoji(w.code);
-            return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% regen)</span>`;
+            return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}%)</span>`;
         }
-        return `<span class="weather-badge">☁️ Weer volgt</span>`;
+        return `<span class="weather-badge">☁️ Nog geen data</span>`;
     }
 
     function updateAlertUI() {
@@ -1145,10 +1143,8 @@
                         <div class="match-row">
                             <div class="match-info">
                                 <div class="match-title dinsdag-title">
-                                    <div class="match-title-left">
-                                        <span class="day-name">Dinsdag</span> 
-                                        <span class="match-date">${w.dinsdagDateStr}</span>
-                                    </div>
+                                    <span class="day-name">Dinsdag</span> 
+                                    <span class="match-date">${w.dinsdagDateStr}</span>
                                     ${diWeather}
                                 </div>
                                 <div class="players-container">${renderPlayersHtml(w.dinsdag, w.weekIndex, 'dinsdag')}</div>
@@ -1164,10 +1160,8 @@
                         <div class="match-row">
                             <div class="match-info">
                                 <div class="match-title donderdag-title">
-                                    <div class="match-title-left">
-                                        <span class="day-name">Donderdag</span> 
-                                        <span class="match-date">${w.donderdagDateStr}</span>
-                                    </div>
+                                    <span class="day-name">Donderdag</span> 
+                                    <span class="match-date">${w.donderdagDateStr}</span>
                                     ${doWeather}
                                 </div>
                                 <div class="players-container">${renderPlayersHtml(w.donderdag, w.weekIndex, 'donderdag')}</div>
@@ -1255,7 +1249,6 @@
                         btn.innerText = 'Aanw';
                     }
 
-                    // Alleen de geselecteerde gebruiker kan zijn/haar eigen afwezigheid wijzigen
                     if (!isCurrentUsersRow) {
                         btn.disabled = true;
                         btn.title = `Je kunt alleen de status van ${currentUserName} wijzigen.`;
