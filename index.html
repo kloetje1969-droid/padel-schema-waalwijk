@@ -885,7 +885,6 @@
     });
 
     function fetchWaalwijkWeather() {
-        // &past_days=30 toegevoegd zodat ook het weer van de afgelopen weken wordt ingeladen
         const forecastUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation_probability,weathercode&timezone=Europe/Amsterdam&past_days=30";
         
         fetch(forecastUrl)
@@ -931,10 +930,7 @@
             return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
         }
 
-        // Bepaal of de datum in het verleden ligt om een passende tekst te tonen
-        const isPast = dateObj < new Date(new Date().setHours(0,0,0,0));
-        const fallbackText = isPast ? "Geen historie" : "Weer volgt";
-        return `<span class="weather-badge">☁️ ${fallbackText}</span>`;
+        return `<span class="weather-badge">☁️ Weer volgt</span>`;
     }
 
     function updateAlertUI() {
@@ -1021,14 +1017,14 @@
         renderAbsenceTable();
     }
 
-    function getMondayOfWeek382026() {
-        let d = new Date(2026, 8, 14); // Maandag week 38 (14 sep 2026)
+    function getMondayOfWeek392026() {
+        let d = new Date(2026, 8, 21); // Maandag week 39 (21 sep 2026)
         return d;
     }
 
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
-        const baseMonday = getMondayOfWeek382026();
+        const baseMonday = getMondayOfWeek392026();
         let html = '';
 
         for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
@@ -1057,7 +1053,7 @@
 
             html += `
                 <div class="week-card">
-                    <div class="week-header">Week ${38 + weekIdx} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</div>
+                    <div class="week-header">Week ${39 + weekIdx} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</div>
                     
                     <div class="match-row-wrapper">
                         <div class="match-row">
@@ -1156,7 +1152,7 @@
 
         let headersHtml = `<th style="text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2;">Speler</th>`;
         for (let w = 0; w < 6; w++) {
-            headersHtml += `<th>W${38 + w} Di</th><th>W${38 + w} Do</th>`;
+            headersHtml += `<th>W${39 + w} Di</th><th>W${39 + w} Do</th>`;
         }
         headerRow.innerHTML = headersHtml;
 
@@ -1196,7 +1192,7 @@
     function openModal(weekIdx, day) {
         activeModalWeek = weekIdx;
         activeModalDay = day;
-        document.getElementById('modalSubTitle').innerText = `Wijzig Week ${38 + weekIdx} (${day})`;
+        document.getElementById('modalSubTitle').innerText = `Wijzig Week ${39 + weekIdx} (${day})`;
 
         let tpl = defaultTemplate[weekIdx];
         let currentPlayers = (liveOverrides[`w${weekIdx}_${day}`] !== undefined) ? liveOverrides[`w${weekIdx}_${day}`] : tpl[day];
@@ -1257,7 +1253,7 @@
         let msgRef = db.ref('padelData/messages').push();
         msgRef.set({
             author: "Systeem",
-            text: `🔄 Schema gewijzigd voor week ${38 + activeModalWeek} (${activeModalDay}): ${newPlayers.join(', ')}`,
+            text: `🔄 Schema gewijzigd voor week ${39 + activeModalWeek} (${activeModalDay}): ${newPlayers.join(', ')}`,
             timestamp: Date.now(),
             type: "system"
         });
@@ -1307,9 +1303,7 @@
     }
 
     function handleKeyPress(e) {
-        if (e.key === 'Enter') {
-            sendMessage();
-        }
+        (e.key === 'Enter') && sendMessage();
     }
 
     function deleteMessage(index) {
