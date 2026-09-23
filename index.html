@@ -1227,8 +1227,11 @@
             if (isAbsent) cls += " absent-player";
 
             let displayLabel = p;
-            if (idx > 0 && idx < 3) displayLabel = `<span class="vs-text">vs</span> ${p}`;
-            else if (idx === 2) displayLabel = `<span class="vs-text">/</span> ${p}`;
+            
+            // Zet alleen "vs" voor de derde speler (het begin van het tweede team)
+            if (idx === 2) {
+                displayLabel = `<span class="vs-text">vs</span> ${p}`;
+            }
 
             return `<span class="${cls}">${displayLabel}</span>`;
         }).join('');
