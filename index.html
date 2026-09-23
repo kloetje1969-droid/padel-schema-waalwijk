@@ -868,10 +868,10 @@
     });
 
     function fetchWaalwijkWeather() {
-        // Uitgebreid naar 14 dagen vooruit (&forecast_days=14)
-        const forecastUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation_probability,weathercode&timezone=Europe/Amsterdam&forecast_days=14";
+        // We halen zowel historisch weer (past_days=30) als de verwachting (forecast_days=14) op rondom 18:00 uur
+        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation_probability,weathercode&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
         
-        fetch(forecastUrl)
+        fetch(weatherUrl)
             .then(res => res.json())
             .then(data => {
                 if (data && data.hourly) {
@@ -911,6 +911,8 @@
         if (weatherCache[key]) {
             const w = weatherCache[key];
             const emoji = getWeatherEmoji(w.code);
+            const isPast = dateObj < new Date();
+            const labelPrefix = isPast ? "Weer om 18:00:" : "Verwachting:";
             return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
         }
 
