@@ -732,22 +732,23 @@
         </div>
     </div>
 </div>
+
 <script>
+    // Firebase Configuratie voor padel-app-b8362
     const firebaseConfig = {
-        apiKey: "JOUW_API_KEY_HIER",
+        apiKey: "JOUW_API_KEY",
         authDomain: "padel-app-b8362.firebaseapp.com",
-        databaseURL: "https://padel-app-b8362-default-rtdb.europe-west1.firebasedatabase.app/",
+        databaseURL: "https://padel-app-b8362-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "padel-app-b8362",
         storageBucket: "padel-app-b8362.appspot.com",
-        messagingSenderId: "...",
-        appId: "..."
+        messagingSenderId: "JOUW_MESSAGING_SENDER_ID",
+        appId: "JOUW_APP_ID"
     };
     
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.database();
-</script>
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
     let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
