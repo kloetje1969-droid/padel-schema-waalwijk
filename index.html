@@ -4,33 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Padelschema - Rooster & Chat</title>
-<!DOCTYPE html>
-<html lang="nl">
-<head>
-    <meta charset="UTF-8">
-    <title>Padelschema</title>
-    
-    <!-- Plak de OneSignal code hier -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "5f0e31ef-3ca9-4671-ac08-4d0f1892349d",
-        });
-      });
-    </script>
-</head>
-<body>
-    <!-- De rest van je app -->
-</body>
-</html>
-```[cite: 8]
-
-### 2. Waar zet je de bestanden (`OneSignalSDKWorker.js`)?
-De twee bestanden die OneSignal vereist (`OneSignalSDKWorker.js` en `OneSignalSDKUpdaterWorker.js`) moet je uploaden naar de **root (de hoofdmap)** van je project op je computer, op exact dezelfde plek waar ook je `index.html` staat. 
-
-Als je via Netlify werkt,zorg je dat deze bestanden in dezelfde map staan die je upload naar Netlify. Ze moeten namelijk via je website direct bereikbaar zijn op `jouwwebsite.nl/OneSignalSDKWorker.js`.
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <!-- Firebase Realtime Database (compat) -->
