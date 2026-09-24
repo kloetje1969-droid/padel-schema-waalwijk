@@ -771,8 +771,8 @@
                 <span class="status-dot online"></span>
                 <span>Live verbonden met database</span>
             </div>
-<button onclick="window.OneSignal.Slidedown.promptPush();" class="bg-green-600 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
-  🔔 Zet Push Meldingen Aan
+<button onclick="activeerMeldingen()" style="margin-top: 10px; background: #34d399; color: #0b0f19; padding: 6px 12px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; width: 100%;">
+    🔔 Zet Push Meldingen Aan
 </button>
         </div>
 
@@ -1579,7 +1579,13 @@
 
         document.getElementById('chatCardSection').scrollIntoView({ behavior: 'smooth' });
     }
+<script>
+  function activeerMeldingen() {
+    window.OneSignal = window.OneSignal || [];
+    window.OneSignal.push(function() {
+      window.OneSignal.Slidedown.promptPush();
+    });
+  }
 </script>
-
 </body>
 </html>
