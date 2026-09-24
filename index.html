@@ -845,7 +845,6 @@
         <div class="player-select-group">
             <label>Speler 3</label>
             <select id="p2Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p2Select" onchange="checkCustomInputs()"></select>
             <input type="text" id="p2Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
         </div>
         <div class="player-select-group">
@@ -896,7 +895,6 @@
     let messages = [];
     let weatherCache = {};
     let lastSeenMessageCount = parseInt(localStorage.getItem('padel_last_seen_count') || '0');
-    let hasUnreadAlerts = false;
 
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
     let heartbeatInterval = null;
@@ -953,9 +951,12 @@
         db.ref('padelData/messages').on('value', (snapshot) => {
             messages = snapshot.val() ? Object.values(snapshot.val()) : [];
             
-            if (messages.length > lastSeenMessageCount) {
-                hasUnreadAlerts = true;
+            // Als er berichten zijn weggegooid en lastSeen groter is dan het totaal, corrigeren
+            if (lastSeenMessageCount > messages.length) {
+                lastSeenMessageCount = messages.length;
+                localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
             }
+
             updateAlertUI();
             renderChat();
         });
@@ -1021,13 +1022,14 @@
         const badge = document.getElementById("alertBadgeCount");
         const unreadCount = messages.length - lastSeenMessageCount;
 
-        if (hasUnreadAlerts && unreadCount > 0) {
+        if (unreadCount > 0) {
             btn.classList.add("blinking");
             badge.style.display = "inline-block";
             badge.innerText = unreadCount;
         } else {
             btn.classList.remove("blinking");
             badge.style.display = "none";
+            badge.innerText = "0";
         }
     }
 
@@ -1092,12 +1094,6 @@
             const container = document.getElementById('statusList');
             if (!container) return;
 
-            const players = (typeof basePlayers !== 'undefined' && Array.isArray(basePlayers)) 
-                ? basePlayers 
-                : ['Robert', 'Marcel', 'Mark', 'Ronald', 'Sander', 'Dennis'];
-
-            const me = (typeof currentUserName !== 'undefined') ? currentUserName : '';
-
             let uniqueUsers = {};
             if (typeof allStatuses === 'object' && allStatuses !== null) {
                 Object.values(allStatuses).forEach(s => {
@@ -1109,10 +1105,10 @@
                 });
             }
 
-            container.innerHTML = players.map(player => {
+            container.innerHTML = basePlayers.map(player => {
                 const ts = uniqueUsers[player];
                 const isOnline = ts && (Date.now() - ts < 10000);
-                const isMe = (player === me);
+                const isMe = (player === currentUserName);
                 const statusText = isOnline ? "online" : formatLastSeen(ts);
 
                 return `
@@ -1334,7 +1330,6 @@
         currentMonday.setHours(0, 0, 0, 0);
         let referenceMonday = new Date(2026, 8, 21);
 
-        // Verzamel alle actieve invallers die ergens in het schema staan
         let activeSubs = new Set();
         for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
             let tpl = defaultTemplate[weekIdx];
@@ -1379,8 +1374,6 @@
 
                 ['dinsdag', 'donderdag'].forEach(day => {
                     const isAbsent = absences[p] && absences[p][`w${templateIndex}_${day}`];
-                    
-                    // Vaste spelers kunnen alleen hun eigen row wijzigen. Invallers mogen door IEDEREEN worden gewijzigd.
                     const isDisabled = (!isSub && !isMe);
 
                     rowHtml += `
@@ -1561,7 +1554,6 @@
     function scrollToChat() {
         lastSeenMessageCount = messages.length;
         localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
-        hasUnreadAlerts = false;
         updateAlertUI();
 
         document.getElementById('chatCardSection').scrollIntoView({ behavior: 'smooth' });
