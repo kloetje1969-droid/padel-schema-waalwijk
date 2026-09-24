@@ -1287,16 +1287,26 @@
                 if (!counts[p]) {
                     counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                 }
-                counts[p].dinsdag++;
-                counts[p].totaal++;
+                
+                // Controleer of de speler afwezig is op deze dinsdag
+                const isAbsent = absences[p] && absences[p][`w${weekIdx}_dinsdag`];
+                if (!isAbsent) {
+                    counts[p].dinsdag++;
+                    counts[p].totaal++;
+                }
             });
 
             donderdagPlayers.forEach(p => {
                 if (!counts[p]) {
                     counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                 }
-                counts[p].donderdag++;
-                counts[p].totaal++;
+                
+                // Controleer of de speler afwezig is op deze donderdag
+                const isAbsent = absences[p] && absences[p][`w${weekIdx}_donderdag`];
+                if (!isAbsent) {
+                    counts[p].donderdag++;
+                    counts[p].totaal++;
+                }
             });
         }
 
