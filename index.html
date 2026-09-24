@@ -8,7 +8,15 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <!-- Firebase Realtime Database (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignal = window.OneSignal || [];
+  window.OneSignal.push(function() {
+    window.OneSignal.init({
+      appId: "5f0e31ef-3ca9-4671-ac08-4d0f1892349d",
+    });
+  });
+</script>
     <style>
         :root {
             --bg-color: #0b0f19;
@@ -763,6 +771,9 @@
                 <span class="status-dot online"></span>
                 <span>Live verbonden met database</span>
             </div>
+<button onclick="window.OneSignal.Slidedown.promptPush();" class="bg-green-600 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
+  🔔 Zet Push Meldingen Aan
+</button>
         </div>
 
         <div id="statusList" class="status-container">
@@ -1002,18 +1013,19 @@
         return "☁️";
     }
 
-    function getWeatherObject(dateObj) {
+    function getWeatherHtml(dateObj) {
         const y = dateObj.getFullYear();
         const m = String(dateObj.getMonth() + 1).padStart(2, '0');
         const d = String(dateObj.getDate()).padStart(2, '0');
         const key = `${y}-${m}-${d}T18:00`;
-        return weatherCache[key] || null;
-    }
 
-    function formatWeatherBadge(w) {
-        if (!w) return `<span class="weather-badge">☁️ Weer volgt</span>`;
-        const emoji = getWeatherEmoji(w.code);
-        return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
+        if (weatherCache[key]) {
+            const w = weatherCache[key];
+            const emoji = getWeatherEmoji(w.code);
+            return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
+        }
+
+        return `<span class="weather-badge">☁️ Weer volgt</span>`;
     }
 
     function updateAlertUI() {
@@ -1198,22 +1210,8 @@
             let dinsdagFormatted = dinsdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
             let donderdagFormatted = donderdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
 
-            let dinsdagWeatherObj = getWeatherObject(dinsdagDate);
-            let donderdagWeatherObj = getWeatherObject(donderdagDate);
-
-            let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
-            let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
-
-            // Alleen een balkje tonen als de neerslagkans hoger is dan 60%
-            let dinsdagRainWarning = (dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) ? 
-                `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠️ <strong>Let op:</strong> ${dinsdagWeatherObj.rain}% kans op regen op deze dinsdagavond!
-                 </div>` : '';
-
-            let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain > 60) ? 
-                `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen op deze donderdagavond!
-                 </div>` : '';
+            let dinsdagWeather = getWeatherHtml(dinsdagDate);
+            let donderdagWeather = getWeatherHtml(donderdagDate);
 
             let dinsdagAbsentees = dinsdagPlayers.filter(p => absences[p] && absences[p][`w${templateIndex}_dinsdag`]);
             let donderdagAbsentees = donderdagPlayers.filter(p => absences[p] && absences[p][`w${templateIndex}_donderdag`]);
@@ -1229,7 +1227,6 @@
                                     <span class="day-name">Dinsdag</span> <span class="match-date">${dinsdagFormatted}</span>
                                     ${dinsdagWeather}
                                 </div>
-                                ${dinsdagRainWarning}
                                 <div class="players-container">
                                     ${renderPlayerChips(dinsdagPlayers, templateIndex, 'dinsdag')}
                                 </div>
@@ -1248,7 +1245,6 @@
                                     <span class="day-name">Donderdag</span> <span class="match-date">${donderdagFormatted}</span>
                                     ${donderdagWeather}
                                 </div>
-                                ${donderdagRainWarning}
                                 <div class="players-container">
                                     ${renderPlayerChips(donderdagPlayers, templateIndex, 'donderdag')}
                                 </div>
