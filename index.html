@@ -1002,19 +1002,18 @@
         return "☁️";
     }
 
-    function getWeatherHtml(dateObj) {
+    function getWeatherObject(dateObj) {
         const y = dateObj.getFullYear();
         const m = String(dateObj.getMonth() + 1).padStart(2, '0');
         const d = String(dateObj.getDate()).padStart(2, '0');
         const key = `${y}-${m}-${d}T18:00`;
+        return weatherCache[key] || null;
+    }
 
-        if (weatherCache[key]) {
-            const w = weatherCache[key];
-            const emoji = getWeatherEmoji(w.code);
-            return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
-        }
-
-        return `<span class="weather-badge">☁️ Weer volgt</span>`;
+    function formatWeatherBadge(w) {
+        if (!w) return `<span class="weather-badge">☁️ Weer volgt</span>`;
+        const emoji = getWeatherEmoji(w.code);
+        return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
     }
 
     function updateAlertUI() {
@@ -1199,8 +1198,22 @@
             let dinsdagFormatted = dinsdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
             let donderdagFormatted = donderdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
 
-            let dinsdagWeather = getWeatherHtml(dinsdagDate);
-            let donderdagWeather = getWeatherHtml(donderdagDate);
+            let dinsdagWeatherObj = getWeatherObject(dinsdagDate);
+            let donderdagWeatherObj = getWeatherObject(donderdagDate);
+
+            let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
+            let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
+
+            // Alleen een balkje tonen als de neerslagkans hoger is dan 60%
+            let dinsdagRainWarning = (dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) ? 
+                `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                    ⚠️ <strong>Let op:</strong> ${dinsdagWeatherObj.rain}% kans op regen op deze dinsdagavond!
+                 </div>` : '';
+
+            let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain > 60) ? 
+                `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                    ⚠️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen op deze donderdagavond!
+                 </div>` : '';
 
             let dinsdagAbsentees = dinsdagPlayers.filter(p => absences[p] && absences[p][`w${templateIndex}_dinsdag`]);
             let donderdagAbsentees = donderdagPlayers.filter(p => absences[p] && absences[p][`w${templateIndex}_donderdag`]);
@@ -1216,6 +1229,7 @@
                                     <span class="day-name">Dinsdag</span> <span class="match-date">${dinsdagFormatted}</span>
                                     ${dinsdagWeather}
                                 </div>
+                                ${dinsdagRainWarning}
                                 <div class="players-container">
                                     ${renderPlayerChips(dinsdagPlayers, templateIndex, 'dinsdag')}
                                 </div>
@@ -1234,6 +1248,7 @@
                                     <span class="day-name">Donderdag</span> <span class="match-date">${donderdagFormatted}</span>
                                     ${donderdagWeather}
                                 </div>
+                                ${donderdagRainWarning}
                                 <div class="players-container">
                                     ${renderPlayerChips(donderdagPlayers, templateIndex, 'donderdag')}
                                 </div>
