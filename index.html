@@ -1453,7 +1453,17 @@
         const path = `padelData/absence/${playerName}/w${weekIdx}_${day}`;
         db.ref(path).once('value', snapshot => {
             const currentVal = snapshot.val() || false;
-            db.ref(path).set(!currentVal);
+            const newVal = !currentVal;
+            db.ref(path).set(newVal);
+
+            // Stuur automatisch een systeembericht naar de chat voor deze wijziging
+            const statusText = newVal ? "afgemeld" : "aangemeld";
+            db.ref('padelData/messages').push({
+                author: "Systeem",
+                text: `📅 ${currentUserName} heeft zich ${statusText} voor cyclusweek ${weekIdx + 1} (${day})`,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                type: "system"
+            });
         });
     }
 
