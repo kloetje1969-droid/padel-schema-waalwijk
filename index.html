@@ -1041,7 +1041,6 @@
         currentUserName = select.value;
         localStorage.setItem('padel_current_user', currentUserName);
 
-        // Oude sessie direct op offline/huidige servertijd zetten
         db.ref(`padelData/presence/${oldUser}_${userSessionId}`).set({ name: oldUser, timestamp: firebase.database.ServerValue.TIMESTAMP });
         setupOnlinePresence();
         renderAll();
@@ -1049,61 +1048,83 @@
 
     function setupOnlinePresence() {
         const userPresenceRef = db.ref(`padelData/presence/${currentUserName}_${userSessionId}`);
-        const connectedRef = db.ref('.info/connected');
-
-        // Server regelt automatisch de afmelding bij verlies van verbinding
-        userPresenceRef.onDisconnect().set({
-            name: currentUserName,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        });
-
-        connectedRef.on('value', (snap) => {
-            if (snap.val() === true) {
-                userPresenceRef.set({
-                    name: currentUserName,
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                });
-            }
-        });
+        
+        userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        userPresenceRef.onDisconnect().set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
 
         if (heartbeatInterval) clearInterval(heartbeatInterval);
         heartbeatInterval = setInterval(() => {
             if (document.visibilityState === 'visible') {
-                userPresenceRef.child('timestamp').set(firebase.database.ServerValue.TIMESTAMP);
+                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
             }
-        }, 10000);
+        }, 3000);
+
+        window.addEventListener('beforeunload', () => {
+            userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            } else {
+                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            }
+        });
+    }
+
+    function formatLastSeen(timestamp) {
+        if (!timestamp) return "offline";
+        const diffMs = Date.now() - timestamp;
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMs < 10000) return "online";
+        if (diffMins < 1) return "zojuist";
+        if (diffMins < 60) return `${diffMins}m geleden`;
+        if (diffHours < 24) return `${diffHours}u geleden`;
+        return `${diffDays}d geleden`;
     }
 
     function renderStatuses() {
-        const container = document.getElementById('statusList');
-        if (!container) return; // Voorkomt vastlopen als het element niet gevonden kan worden
+        try {
+            const container = document.getElementById('statusList');
+            if (!container) return;
 
-        let uniqueUsers = {};
+            const players = (typeof basePlayers !== 'undefined' && Array.isArray(basePlayers)) 
+                ? basePlayers 
+                : ['Robert', 'Marcel', 'Mark', 'Ronald', 'Sander', 'Dennis'];
 
-        if (allStatuses) {
-            Object.values(allStatuses).forEach(s => {
-                if (s && s.name && s.timestamp) {
-                    if (!uniqueUsers[s.name] || s.timestamp > uniqueUsers[s.name]) {
-                        uniqueUsers[s.name] = s.timestamp;
+            const me = (typeof currentUserName !== 'undefined') ? currentUserName : '';
+
+            let uniqueUsers = {};
+            if (typeof allStatuses === 'object' && allStatuses !== null) {
+                Object.values(allStatuses).forEach(s => {
+                    if (s && s.name && s.timestamp) {
+                        if (!uniqueUsers[s.name] || s.timestamp > uniqueUsers[s.name]) {
+                            uniqueUsers[s.name] = s.timestamp;
+                        }
                     }
-                }
-            });
+                });
+            }
+
+            container.innerHTML = players.map(player => {
+                const ts = uniqueUsers[player];
+                const isOnline = ts && (Date.now() - ts < 10000);
+                const isMe = (player === me);
+                const statusText = isOnline ? "online" : formatLastSeen(ts);
+
+                return `
+                    <div class="status-badge ${isMe ? 'me' : ''} ${isOnline ? 'is-online' : ''}">
+                        <span class="status-dot ${isOnline ? 'online' : ''}"></span>
+                        <span>${player}:</span>
+                        <span class="badge-text">${statusText}</span>
+                    </div>
+                `;
+            }).join('');
+        } catch (err) {
+            console.error("Fout in renderStatuses:", err);
         }
-
-        container.innerHTML = basePlayers.map(player => {
-            const ts = uniqueUsers[player];
-            const isOnline = ts && (Date.now() - ts < 20000);
-            const isMe = (player === currentUserName);
-            const statusText = isOnline ? "online" : formatLastSeen(ts);
-
-            return `
-                <div class="status-badge ${isMe ? 'me' : ''} ${isOnline ? 'is-online' : ''}">
-                    <span class="status-dot ${isOnline ? 'online' : ''}"></span>
-                    <span>${player}:</span>
-                    <span class="badge-text">${statusText}</span>
-                </div>
-            `;
-        }).join('');
     }
 
     function renderAll() {
@@ -1112,11 +1133,10 @@
         renderAbsenceTable();
     }
 
-    // Hulpfunctie om de maandag van de week op te halen bij een willekeurige datum
     function getMonday(d) {
         d = new Date(d);
         let day = d.getDay();
-        let diff = d.getDate() - day + (day === 0 ? -6 : 1); // Maandag als eerste dag van de week
+        let diff = d.getDate() - day + (day === 0 ? -6 : 1);
         return new Date(d.setDate(diff));
     }
 
@@ -1131,24 +1151,20 @@
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
         
-        // Bepaal de maandag van de HUIDIGE week als startpunt voor de weergave
         let today = new Date();
         let currentMonday = getMonday(today);
         currentMonday.setHours(0, 0, 0, 0);
 
-        // Referentiepunt om de 6-wekencyclus synchroon te houden (Maandag week 39 van 2026 = index 0)
         let referenceMonday = new Date(2026, 8, 21); 
 
         let html = '';
 
-        // We tonen een doorlopende rol van 6 weken vanaf vandaag
         for (let i = 0; i < 6; i++) {
             let weekStart = new Date(currentMonday);
             weekStart.setDate(currentMonday.getDate() + (i * 7));
 
             let currentWeekNum = getISOWeekNumber(weekStart);
 
-            // Bereken welke index (0 t/m 5) van de 6-wekencyclus bij deze kalenderweek hoort
             let diffTime = weekStart.getTime() - referenceMonday.getTime();
             let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
             let templateIndex = ((diffWeeks % 6) + 6) % 6;
@@ -1161,7 +1177,6 @@
 
             let tpl = defaultTemplate[templateIndex];
 
-            // Gebruik de templateIndex zodat wijzigingen uit de database netjes op de juiste cyclusweken landen
             let dinsdagPlayers = (liveOverrides[`w${templateIndex}_dinsdag`] !== undefined) ? liveOverrides[`w${templateIndex}_dinsdag`] : tpl.dinsdag;
             let donderdagPlayers = (liveOverrides[`w${templateIndex}_donderdag`] !== undefined) ? liveOverrides[`w${templateIndex}_donderdag`] : tpl.donderdag;
 
@@ -1171,7 +1186,6 @@
             let dinsdagWeather = getWeatherHtml(dinsdagDate);
             let donderdagWeather = getWeatherHtml(donderdagDate);
 
-            // Let op: afwezigheid koppelen we aan de templateIndex zodat dit per cyclusweek klopt
             let dinsdagAbsentees = dinsdagPlayers.filter(p => absences[p] && absences[p][`w${templateIndex}_dinsdag`]);
             let donderdagAbsentees = donderdagPlayers.filter(p => absences[p] && absences[p][`w${templateIndex}_donderdag`]);
 
@@ -1221,10 +1235,8 @@
     }
 
     function renderPlayerChips(players, weekIdx, day) {
-        // Controleer of er wel spelers zijn om te renderen
         if (!players || players.length < 4) return '';
 
-        // Functie om één speler om te zetten naar een HTML chip
         const createChip = (p) => {
             const isMe = (p === currentUserName);
             const isSub = !basePlayers.includes(p);
@@ -1238,13 +1250,9 @@
             return `<span class="${cls}">${p}</span>`;
         };
 
-        // De eerste 2 spelers (Team 1)
         const team1 = players.slice(0, 2).map(createChip).join('');
-        
-        // De laatste 2 spelers (Team 2)
         const team2 = players.slice(2, 4).map(createChip).join('');
 
-        // Combineer de teams met "vs" ertussen
         return `${team1} <span class="vs-text">vs</span> ${team2}`;
     }
 
@@ -1308,7 +1316,6 @@
 
         let headersHtml = `<th style="text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2;">Speler</th>`;
         
-        // Loop door dezelfde 6 getoonde weken
         for (let i = 0; i < 6; i++) {
             let weekStart = new Date(currentMonday);
             weekStart.setDate(currentMonday.getDate() + (i * 7));
@@ -1325,7 +1332,6 @@
                 let weekStart = new Date(currentMonday);
                 weekStart.setDate(currentMonday.getDate() + (i * 7));
                 
-                // Bereken de bijbehorende templateIndex voor deze specifieke week
                 let diffTime = weekStart.getTime() - referenceMonday.getTime();
                 let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
                 let templateIndex = ((diffWeeks % 6) + 6) % 6;
@@ -1347,11 +1353,13 @@
         }).join('');
     }
 
+    let activeModalWeek = 0;
+    let activeModalDay = '';
+
     function openModal(templateIndex, day) {
         activeModalWeek = templateIndex;
         activeModalDay = day;
         
-        // Zoek de bijbehorende kalenderweek op basis van de templateIndex voor de titel
         let today = new Date();
         let currentMonday = getMonday(today);
         currentMonday.setHours(0, 0, 0, 0);
@@ -1397,6 +1405,23 @@
         document.getElementById('replaceModal').style.display = 'flex';
     }
 
+    function checkCustomInputs() {
+        for (let i = 0; i < 4; i++) {
+            let sel = document.getElementById(`p${i}Select`);
+            let inp = document.getElementById(`p${i}Custom`);
+            if (sel.value === "Extern / Invaller") {
+                inp.style.display = "block";
+            } else {
+                inp.style.display = "none";
+                inp.value = "";
+            }
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('replaceModal').style.display = 'none';
+    }
+
     function confirmReplacement() {
         let newPlayers = [];
         for (let i = 0; i < 4; i++) {
@@ -1420,6 +1445,16 @@
         });
 
         closeModal();
+    }
+
+    function toggleAbsence(playerName, weekIdx, day) {
+        if (playerName !== currentUserName) return;
+        
+        const path = `padelData/absence/${playerName}/w${weekIdx}_${day}`;
+        db.ref(path).once('value', snapshot => {
+            const currentVal = snapshot.val() || false;
+            db.ref(path).set(!currentVal);
+        });
     }
 
     function renderChat() {
@@ -1464,7 +1499,7 @@
     }
 
     function handleKeyPress(e) {
-        (e.key === 'Enter') && sendMessage();
+        if (e.key === 'Enter') sendMessage();
     }
 
     function deleteMessage(index) {
