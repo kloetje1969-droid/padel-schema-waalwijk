@@ -801,7 +801,7 @@
         <div class="card-header">
             <div class="section-title" style="font-size: 0.95rem;">📅 Afwezigheid / Vakantie</div>
         </div>
-        <p style="font-size: 0.75rem; color: var(--text-muted);">Je kunt alleen je eigen afwezigheid aan- of uitzetten (klik op je eigen knop):</p>
+        <p style="font-size: 0.75rem; color: var(--text-muted);">Vaste spelers kunnen alleen hun eigen afwezigheid aanpassen. Invallers kunnen door iedereen worden aangemeld/afgemeld.</p>
         <div class="table-scroll-wrapper">
             <table class="absence-table">
                 <thead>
@@ -845,6 +845,7 @@
         <div class="player-select-group">
             <label>Speler 3</label>
             <select id="p2Select" onchange="checkCustomInputs()"></select>
+            <input type="text" id="p2Select" onchange="checkCustomInputs()"></select>
             <input type="text" id="p2Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
         </div>
         <div class="player-select-group">
@@ -1148,6 +1149,25 @@
         return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
 
+    function getCalendarWeekNum(templateIndex) {
+        let today = new Date();
+        let currentMonday = getMonday(today);
+        currentMonday.setHours(0, 0, 0, 0);
+        let referenceMonday = new Date(2026, 8, 21);
+
+        for (let i = 0; i < 6; i++) {
+            let weekStart = new Date(currentMonday);
+            weekStart.setDate(currentMonday.getDate() + (i * 7));
+            let diffTime = weekStart.getTime() - referenceMonday.getTime();
+            let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+            let tIdx = ((diffWeeks % 6) + 6) % 6;
+            if (tIdx === templateIndex) {
+                return getISOWeekNumber(weekStart);
+            }
+        }
+        return "-";
+    }
+
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
         
@@ -1314,6 +1334,21 @@
         currentMonday.setHours(0, 0, 0, 0);
         let referenceMonday = new Date(2026, 8, 21);
 
+        // Verzamel alle actieve invallers die ergens in het schema staan
+        let activeSubs = new Set();
+        for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
+            let tpl = defaultTemplate[weekIdx];
+            ['dinsdag', 'donderdag'].forEach(day => {
+                let players = (liveOverrides[`w${weekIdx}_${day}`] !== undefined) ? liveOverrides[`w${weekIdx}_${day}`] : tpl[day];
+                players.forEach(p => {
+                    if (!basePlayers.includes(p)) {
+                        activeSubs.add(p);
+                    }
+                });
+            });
+        }
+        let allTablePlayers = [...basePlayers, ...Array.from(activeSubs)];
+
         let headersHtml = `<th style="text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2;">Speler</th>`;
         
         for (let i = 0; i < 6; i++) {
@@ -1324,9 +1359,15 @@
         }
         headerRow.innerHTML = headersHtml;
 
-        tbody.innerHTML = basePlayers.map(p => {
+        tbody.innerHTML = allTablePlayers.map(p => {
             const isMe = (p === currentUserName);
-            let rowHtml = `<td style="text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 2; color: ${isMe ? '#6ee7b7' : 'inherit'}">${p}</td>`;
+            const isSub = !basePlayers.includes(p);
+            
+            let nameDisplay = p;
+            if (isMe) nameDisplay += ' (jij)';
+            if (isSub) nameDisplay += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
+
+            let rowHtml = `<td style="text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 2; color: ${isMe ? '#6ee7b7' : (isSub ? '#fed7aa' : 'inherit')}">${nameDisplay}</td>`;
 
             for (let i = 0; i < 6; i++) {
                 let weekStart = new Date(currentMonday);
@@ -1338,11 +1379,13 @@
 
                 ['dinsdag', 'donderdag'].forEach(day => {
                     const isAbsent = absences[p] && absences[p][`w${templateIndex}_${day}`];
-                    const disabledAttr = !isMe ? 'disabled' : '';
+                    
+                    // Vaste spelers kunnen alleen hun eigen row wijzigen. Invallers mogen door IEDEREEN worden gewijzigd.
+                    const isDisabled = (!isSub && !isMe);
 
                     rowHtml += `
                         <td>
-                            <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${disabledAttr} onclick="toggleAbsence('${p}', ${templateIndex}, '${day}')">
+                            <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', ${templateIndex}, '${day}')">
                                 ${isAbsent ? 'Afwezig' : 'Aanwezig'}
                             </button>
                         </td>
@@ -1360,24 +1403,7 @@
         activeModalWeek = templateIndex;
         activeModalDay = day;
         
-        let today = new Date();
-        let currentMonday = getMonday(today);
-        currentMonday.setHours(0, 0, 0, 0);
-        let referenceMonday = new Date(2026, 8, 21);
-        
-        let targetWeekNum = 0;
-        for (let i = 0; i < 6; i++) {
-            let weekStart = new Date(currentMonday);
-            weekStart.setDate(currentMonday.getDate() + (i * 7));
-            let diffTime = weekStart.getTime() - referenceMonday.getTime();
-            let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
-            let tIdx = ((diffWeeks % 6) + 6) % 6;
-            if (tIdx === templateIndex) {
-                targetWeekNum = getISOWeekNumber(weekStart);
-                break;
-            }
-        }
-
+        let targetWeekNum = getCalendarWeekNum(templateIndex);
         document.getElementById('modalSubTitle').innerText = `Wijzig Week ${targetWeekNum} (${day})`;
 
         let tpl = defaultTemplate[templateIndex];
@@ -1436,10 +1462,11 @@
 
         db.ref(`padelData/scheduleOverrides/w${activeModalWeek}_${activeModalDay}`).set(newPlayers);
         
+        let actualWeekNum = getCalendarWeekNum(activeModalWeek);
         let msgRef = db.ref('padelData/messages').push();
         msgRef.set({
             author: "Systeem",
-            text: `🔄 Schema gewijzigd voor cyclusweek ${activeModalWeek + 1} (${activeModalDay}): ${newPlayers.join(', ')}`,
+            text: `🔄 Schema gewijzigd voor week ${actualWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`,
             timestamp: firebase.database.ServerValue.TIMESTAMP,
             type: "system"
         });
@@ -1448,7 +1475,8 @@
     }
 
     function toggleAbsence(playerName, weekIdx, day) {
-        if (playerName !== currentUserName) return;
+        const isSub = !basePlayers.includes(playerName);
+        if (!isSub && playerName !== currentUserName) return;
         
         const path = `padelData/absence/${playerName}/w${weekIdx}_${day}`;
         db.ref(path).once('value', snapshot => {
@@ -1456,11 +1484,11 @@
             const newVal = !currentVal;
             db.ref(path).set(newVal);
 
-            // Stuur automatisch een systeembericht naar de chat voor deze wijziging
+            let actualWeekNum = getCalendarWeekNum(weekIdx);
             const statusText = newVal ? "afgemeld" : "aangemeld";
             db.ref('padelData/messages').push({
                 author: "Systeem",
-                text: `📅 ${currentUserName} heeft zich ${statusText} voor cyclusweek ${weekIdx + 1} (${day})`,
+                text: `📅 ${playerName} is ${statusText} voor week ${actualWeekNum} (${day}) (door ${currentUserName})`,
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
                 type: "system"
             });
