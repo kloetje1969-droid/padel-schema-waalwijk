@@ -1,0 +1,9 @@
+{
+  "name": "padel-schema-waalwijk",
+  "version": "1.0.0",
+  "description": "Padel schema en team chat voor Waalwijk",
+  "type": "module",
+  "dependencies": {
+    "firebase-admin": "^11.8.0"
+  }
+}
