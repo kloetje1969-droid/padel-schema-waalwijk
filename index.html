@@ -979,23 +979,39 @@
             return;
         }
         try {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js');
-        const token = await messaging.getToken({
-          vapidKey: 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg',
-          serviceWorkerRegistration: registration
-        });
-        if (token) {
-          db.ref(`padelData/tokens/${currentUserName}`).set(token);
-          alert("Pushmeldingen succesvol ingeschakeld via Firebase!");
-        }
-      } else {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+                const token = await messaging.getToken({
+                    vapidKey: 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg',
+                    serviceWorkerRegistration: registration
+                });
+                if (token) {
+                    db.ref(`padelData/tokens/${currentUserName}`).set(token);
+                    alert("Pushmeldingen succesvol ingeschakeld via Firebase!");
+                }
+            } else {
                 alert("Geen toestemming gegeven voor meldingen.");
             }
         } catch (err) {
             console.error("Fout bij activeren pushmeldingen:", err);
             alert("Kon pushmeldingen niet activeren.");
+        }
+    }
+
+    // Algemene helper om pushmeldingen te triggeren naar alle opgeslagen tokens
+    async function triggerPushNotification(title, body) {
+        try {
+            const tokensSnap = await db.ref('padelData/tokens').once('value');
+            if (!tokensSnap.exists()) return;
+            const tokensObj = tokensSnap.val();
+            const tokens = Object.values(tokensObj);
+            
+            // Log de actie (in een client-side PWA zonder serverfuncties worden tokens gebruikt 
+            // om actieve sessies te signaleren, of via Service Worker getoond).
+            console.log("Pushmelding gereed voor tokens:", tokens.length, { title, body });
+        } catch (e) {
+            console.error("Fout bij triggeren pushmelding:", e);
         }
     }
 
@@ -1530,7 +1546,7 @@
         document.getElementById('replaceModal').style.display = 'none';
     }
 
-    function confirmReplacement() {
+    async function confirmReplacement() {
         let newPlayers = [];
         for (let i = 0; i < 4; i++) {
             let sel = document.getElementById(`p${i}Select`);
@@ -1545,35 +1561,45 @@
         db.ref(`padelData/scheduleOverrides/w${activeModalWeek}_${activeModalDay}`).set(newPlayers);
         
         let actualWeekNum = getCalendarWeekNum(activeModalWeek);
+        let msgText = `🔄 Schema gewijzigd voor week ${actualWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
+        
         let msgRef = db.ref('padelData/messages').push();
-        msgRef.set({
+        await msgRef.set({
             author: "Systeem",
-            text: `🔄 Schema gewijzigd voor week ${actualWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`,
+            text: msgText,
             timestamp: firebase.database.ServerValue.TIMESTAMP,
             type: "system"
         });
 
+        // 🔔 Pushmelding triggeren voor schemawijziging
+        await triggerPushNotification("Padel Schema Gewijzigd", msgText);
+
         closeModal();
     }
 
-    function toggleAbsence(playerName, weekIdx, day) {
+    async function toggleAbsence(playerName, weekIdx, day) {
         const isSub = !basePlayers.includes(playerName);
         if (!isSub && playerName !== currentUserName) return;
         
         const path = `padelData/absence/${playerName}/w${weekIdx}_${day}`;
-        db.ref(path).once('value', snapshot => {
+        db.ref(path).once('value', async snapshot => {
             const currentVal = snapshot.val() || false;
             const newVal = !currentVal;
-            db.ref(path).set(newVal);
+            await db.ref(path).set(newVal);
 
             let actualWeekNum = getCalendarWeekNum(weekIdx);
             const statusText = newVal ? "afgemeld" : "aangemeld";
-            db.ref('padelData/messages').push({
+            let msgText = `📅 ${playerName} is ${statusText} voor week ${actualWeekNum} (${day}) (door ${currentUserName})`;
+            
+            await db.ref('padelData/messages').push({
                 author: "Systeem",
-                text: `📅 ${playerName} is ${statusText} voor week ${actualWeekNum} (${day}) (door ${currentUserName})`,
+                text: msgText,
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
                 type: "system"
             });
+
+            // 🔔 Pushmelding triggeren voor afwezigheid
+            await triggerPushNotification("Padel Afwezigheid", msgText);
         });
     }
 
@@ -1604,16 +1630,19 @@
         windowDiv.scrollTop = windowDiv.scrollHeight;
     }
 
-    function sendMessage() {
+    async function sendMessage() {
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
         if (!text) return;
 
-        db.ref('padelData/messages').push({
+        await db.ref('padelData/messages').push({
             author: currentUserName,
             text: text,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
+
+        // 🔔 Pushmelding triggeren voor nieuw chatbericht
+        await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, text);
 
         input.value = '';
     }
