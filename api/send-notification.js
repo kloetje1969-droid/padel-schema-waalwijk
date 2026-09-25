@@ -17,14 +17,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { token, title, body } = req.body;
+    const { title, body } = req.body;
 
-    if (!token) {
-      return res.status(400).json({ error: 'FCM token is verplicht' });
+    // Haal alle opgeslagen tokens op uit de Firebase Realtime Database
+    const db = admin.database();
+    const tokensSnapshot = await db.ref('padelData/tokens').once('value');
+    const tokensData = tokensSnapshot.val();
+
+    if (!tokensData) {
+      return res.status(200).json({ success: true, message: 'Geen actieve tokens gevonden om naar te versturen.' });
     }
 
+    // Verzamel alle losse tokens uit de objecten
+    const tokens = Object.values(tokensData);
+
+    if (tokens.length === 0) {
+      return res.status(200).json({ success: true, message: 'Geen tokens aanwezig.' });
+    }
+
+    // Bouw het notificatiebericht voor multicast (naar meerdere apparaten tegelijk)
     const message = {
-      token: token,
+      tokens: tokens,
       notification: {
         title: title || 'Padel Update',
         body: body || 'Er is een wijziging in het padelschema!'
@@ -36,8 +49,8 @@ export default async function handler(req, res) {
       }
     };
 
-    const response = await admin.messaging().send(message);
-    return res.status(200).json({ success: true, messageId: response });
+    const response = await admin.messaging().sendEachForMulticast(message);
+    return res.status(200).json({ success: true, successCount: response.successCount, failureCount: response.failureCount });
   } catch (error) {
     console.error('Fout bij versturen notificatie:', error);
     return res.status(500).json({ error: error.message });
