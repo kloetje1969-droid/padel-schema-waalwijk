@@ -1,3 +1,4 @@
+
 import admin from 'firebase-admin';
 
 if (!admin.apps.length) {
@@ -26,6 +27,7 @@ export default async function handler(req, res) {
     const tokensData = tokensSnapshot.val();
 
     if (!tokensData) {
+      console.log('Geen actieve tokens gevonden in database.');
       return res.status(200).json({ success: true, message: 'Geen actieve tokens gevonden om naar te versturen.' });
     }
 
@@ -33,6 +35,7 @@ export default async function handler(req, res) {
     const tokens = Object.values(tokensData);
 
     if (tokens.length === 0) {
+      console.log('Tokens lijst is leeg.');
       return res.status(200).json({ success: true, message: 'Geen tokens aanwezig.' });
     }
 
@@ -51,7 +54,15 @@ export default async function handler(req, res) {
     };
 
     const response = await admin.messaging().sendEachForMulticast(message);
-    return res.status(200).json({ success: true, successCount: response.successCount, failureCount: response.failureCount });
+    
+    // Dit zorgt ervoor dat je het resultaat direct in je Vercel logs ziet staan!
+    console.log(`Notificatie verzonden. Succesvol: ${response.successCount}, Mislukt: ${response.failureCount}`);
+
+    return res.status(200).json({ 
+      success: true, 
+      successCount: response.successCount, 
+      failureCount: response.failureCount 
+    });
   } catch (error) {
     console.error('Fout bij versturen notificatie:', error);
     return res.status(500).json({ error: error.message });
