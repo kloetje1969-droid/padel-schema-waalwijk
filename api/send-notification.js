@@ -1,46 +1,48 @@
-export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader(
-        'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-    );
+import admin from 'firebase-admin';
 
-    if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
-    }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
-
-    const { title, body } = req.body;
-
-    try {
-        const dbUrl = "https://padel-app-b8362-default-rtdb.europe-west1.firebasedatabase.app";
-        const response = await fetch(`${dbUrl}/padelData/tokens.json`);
-        const tokensObj = await response.json();
-
-        if (!tokensObj) {
-            return res.status(200).json({ success: true, message: 'Geen tokens gevonden' });
-        }
-
-        const tokens = Object.values(tokensObj);
-
-        // Omdat de client al luistert naar de database-wijzigingen via Firebase Realtime Database,
-        // bevestigen we hier dat de update is verwerkt zodat de app direct een melding kan triggeren.
-        return res.status(200).json({ 
-            success: true, 
-            message: 'Notificatie-trigger succesvol', 
-            tokensCount: tokens.length,
-            payload: { title, body }
-        });
-
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
-    }
+if (!admin.apps.length) {
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+  } catch (error) {
+    console.error('Fout bij initialiseren Firebase Admin:', error);
+  }
 }
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const { token, title, body } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ error: 'FCM token is verplicht' });
+    }
+
+    const message = {
+      token: token,
+      notification: {
+        title: title || 'Padel Update',
+        body: body || 'Er is een wijziging in het padelschema!'
+      },
+      webpush: {
+        fcmOptions: {
+          link: '/'
+        }
+      }
+    };
+
+    const response = await admin.messaging().send(message);
+    return res.status(200).json({ success: true, messageId: response });
+  } catch (error) {
+    console.error('Fout bij versturen notificatie:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
 
 
