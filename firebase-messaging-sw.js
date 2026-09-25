@@ -2,7 +2,7 @@ importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey: "AIzaSyC2TVkuO8vSfzmaGu-CictLit5iuRnRFNU",
+  apiKey: "AIzaSyC2TvKuO8vSfzmaGu-CictLit5iuRnRFNU",
   authDomain: "padel-app-b8362.firebaseapp.com",
   databaseURL: "https://padel-app-b8362-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "padel-app-b8362",
