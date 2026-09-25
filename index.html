@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Padelschema - Rooster & Chat</title>
+    
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <!-- Firebase Realtime Database (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- Firebase Messaging (compat) voor pushmeldingen -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
     
     <style>
         :root {
@@ -215,7 +218,35 @@
             align-items: center; 
             gap: 4px;
             animation: pulseConnection 2s infinite ease-in-out;
-            margin-top: 2px;
+        }
+
+        .header-actions-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .push-btn {
+            background: var(--btn-bg);
+            color: var(--accent-blue);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.2s;
+        }
+
+        .push-btn:hover {
+            background: var(--btn-hover);
+            border-color: var(--accent-blue);
         }
 
         .status-badge {
@@ -759,9 +790,12 @@
                 </select>
             </div>
             
-            <div class="db-connection-status">
-                <span class="status-dot online"></span>
-                <span>Live verbonden met database</span>
+            <div class="header-actions-row">
+                <div class="db-connection-status">
+                    <span class="status-dot online"></span>
+                    <span>Live verbonden met database</span>
+                </div>
+                <button class="push-btn" onclick="subscribePush()">🔔 Meldingen aan</button>
             </div>
         </div>
 
@@ -876,6 +910,16 @@
         firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.database();
+    
+    // Firebase Cloud Messaging initialisatie
+    let messaging = null;
+    try {
+        if (firebase.messaging.isSupported()) {
+            messaging = firebase.messaging();
+        }
+    } catch (e) {
+        console.log("Messaging niet ondersteund:", e);
+    }
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
     let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
@@ -929,6 +973,30 @@
         }
     }
 
+    async function subscribePush() {
+        if (!messaging) {
+            alert("Pushmeldingen worden niet ondersteund op dit apparaat/deze browser.");
+            return;
+        }
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                const token = await messaging.getToken({ 
+                    vapidKey: 'BNBBuJzbxyBwf4UN4SZQFBiHHyQqEpvt8759qIRYFoCbG-hPotXxKfka4sKjT2_zovS6UQc2TeSh_Bm6C3qf0Eg' 
+                });
+                if (token) {
+                    db.ref(`padelData/tokens/${currentUserName}`).set(token);
+                    alert("Pushmeldingen succesvol ingeschakeld via Firebase!");
+                }
+            } else {
+                alert("Geen toestemming gegeven voor meldingen.");
+            }
+        } catch (err) {
+            console.error("Fout bij activeren pushmeldingen:", err);
+            alert("Kon pushmeldingen niet activeren.");
+        }
+    }
+
     function initApp() {
         initUserSelect();
         fetchWaalwijkWeather();
@@ -951,7 +1019,6 @@
         db.ref('padelData/messages').on('value', (snapshot) => {
             messages = snapshot.val() ? Object.values(snapshot.val()) : [];
             
-            // Als er berichten zijn weggegooid en lastSeen groter is dan het totaal, corrigeren
             if (lastSeenMessageCount > messages.length) {
                 lastSeenMessageCount = messages.length;
                 localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
@@ -1204,7 +1271,6 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            // Alleen een balkje tonen als de neerslagkans hoger is dan 60%
             let dinsdagRainWarning = (dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) ? 
                 `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
                     ⚠️ <strong>Let op:</strong> ${dinsdagWeatherObj.rain}% kans op regen op deze dinsdagavond!
@@ -1302,8 +1368,6 @@
                 if (!counts[p]) {
                     counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                 }
-                
-                // Controleer of de speler afwezig is op deze dinsdag
                 const isAbsent = absences[p] && absences[p][`w${weekIdx}_dinsdag`];
                 if (!isAbsent) {
                     counts[p].dinsdag++;
@@ -1315,8 +1379,6 @@
                 if (!counts[p]) {
                     counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                 }
-                
-                // Controleer of de speler afwezig is op deze donderdag
                 const isAbsent = absences[p] && absences[p][`w${weekIdx}_donderdag`];
                 if (!isAbsent) {
                     counts[p].donderdag++;
