@@ -983,7 +983,7 @@
       if (permission === 'granted') {
         const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js');
         const token = await messaging.getToken({
-          vapidKey: 'BNBBuJzbxyBwF4UN4SZQFB1HHyQqEpvt8759qIRYFoCbG-hPotXxKfka4sKjt2_zovS6UQc2TeSh_Bm6C3qf0Eg',
+          vapidKey: 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg',
           serviceWorkerRegistration: registration
         });
         if (token) {
