@@ -4,7 +4,8 @@ if (!admin.apps.length) {
   try {
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
+      credential: admin.credential.cert(serviceAccount),
+      databaseURL: "https://padel-app-b8362-default-rtdb.europe-west1.firebasedatabase.app"
     });
   } catch (error) {
     console.error('Fout bij initialiseren Firebase Admin:', error);
