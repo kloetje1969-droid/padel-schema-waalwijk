@@ -31,13 +31,15 @@ export default async function handler(req, res) {
 
         const tokens = Object.values(tokensObj);
 
-        // Hier komt de logica om via Firebase Cloud Messaging (HTTP v1) de meldingen te sturen
-        // Omdat we geen server-secret key willen hardcoden, zorgen we dat de client 
-        // of deze functie de tokens verwerkt.
-
+        // Client-side fallback / berichtweergave logica
+        // Aangezien we de Firebase Admin SDK service account key niet hardcoden op Vercel,
+        // sturen we een succesvolle response terug met de tokens, zodat de client 
+        // via de browser/service worker de notificatie kan tonen of pushen.
+        
         return res.status(200).json({ 
             success: true, 
-            message: 'Tokens opgehaald op de server', 
+            message: 'Tokens succesvol opgehaald', 
+            tokens: tokens,
             count: tokens.length 
         });
 
@@ -45,4 +47,5 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: error.message });
     }
 }
+
 
