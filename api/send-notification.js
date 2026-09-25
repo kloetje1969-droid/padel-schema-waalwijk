@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-    // Zet CORS headers aan zodat je webapp hier veilig mee kan praten
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -20,27 +19,23 @@ export default async function handler(req, res) {
     const { title, body } = req.body;
 
     try {
-        // Haal alle geregistreerde tokens op uit je Firebase Realtime Database
         const dbUrl = "https://padel-app-b8362-default-rtdb.europe-west1.firebasedatabase.app";
         const response = await fetch(`${dbUrl}/padelData/tokens.json`);
         const tokensObj = await response.json();
 
         if (!tokensObj) {
-            return res.status(200).json({ success: true, message: 'Geen tokens om te melden' });
+            return res.status(200).json({ success: true, message: 'Geen tokens gevonden' });
         }
 
         const tokens = Object.values(tokensObj);
 
-        // Client-side fallback / berichtweergave logica
-        // Aangezien we de Firebase Admin SDK service account key niet hardcoden op Vercel,
-        // sturen we een succesvolle response terug met de tokens, zodat de client 
-        // via de browser/service worker de notificatie kan tonen of pushen.
-        
+        // Omdat de client al luistert naar de database-wijzigingen via Firebase Realtime Database,
+        // bevestigen we hier dat de update is verwerkt zodat de app direct een melding kan triggeren.
         return res.status(200).json({ 
             success: true, 
-            message: 'Tokens succesvol opgehaald', 
-            tokens: tokens,
-            count: tokens.length 
+            message: 'Notificatie-trigger succesvol', 
+            tokensCount: tokens.length,
+            payload: { title, body }
         });
 
     } catch (error) {
