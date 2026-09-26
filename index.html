@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v2.5)</title>
+    <title>Padelschema - Rooster & Chat (v2.6)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -911,7 +911,7 @@
 
 <script>
     // AUTOMATISCHE CACHE-VERNIEUWING (VERSIE CHECK)
-    const APP_VERSION = "2.5";
+    const APP_VERSION = "2.6";
     
     async function checkAppVersion() {
         try {
@@ -1322,6 +1322,10 @@
             weekStart.setDate(currentMonday.getDate() + (i * 7));
 
             let currentWeekNum = getISOWeekNumber(weekStart);
+            let currentYear = weekStart.getFullYear();
+
+            // Unieke sleutel per absoluut weeknummer (bijv. 2026_w40) zodat wijzigingen NIET doorlopen naar volgende cycli
+            let uniqueWeekKey = `${currentYear}_w${currentWeekNum}`;
 
             let diffTime = weekStart.getTime() - referenceMonday.getTime();
             let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
@@ -1335,8 +1339,10 @@
 
             let tpl = defaultTemplate[templateIndex];
 
-            let dinsdagPlayers = (liveOverrides[`w${templateIndex}_dinsdag`] !== undefined) ? liveOverrides[`w${templateIndex}_dinsdag`] : tpl.dinsdag;
-            let donderdagPlayers = (liveOverrides[`w${templateIndex}_donderdag`] !== undefined) ? liveOverrides[`w${templateIndex}_donderdag`] : tpl.donderdag;
+            // Haal overrides op gekoppeld aan het unieke week-ID (in plaats van alleen de cyclus-index)
+            let overrideData = liveOverrides[uniqueWeekKey] || {};
+            let dinsdagPlayers = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
+            let donderdagPlayers = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
 
             let dinsdagFormatted = dinsdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
             let donderdagFormatted = donderdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
@@ -1357,8 +1363,8 @@
                     ⚠️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen op deze donderdagavond!
                  </div>` : '';
 
-            let dinsdagAbsentees = dinsdagPlayers.filter(p => absences[p] && absences[p][`w${templateIndex}_dinsdag`]);
-            let donderdagAbsentees = donderdagPlayers.filter(p => absences[p] && absences[p][`w${templateIndex}_donderdag`]);
+            let dinsdagAbsentees = dinsdagPlayers.filter(p => absences[p] && absences[p][`${uniqueWeekKey}_dinsdag`]);
+            let donderdagAbsentees = donderdagPlayers.filter(p => absences[p] && absences[p][`${uniqueWeekKey}_donderdag`]);
 
             html += `
                 <div class="week-card">
@@ -1373,11 +1379,11 @@
                                 </div>
                                 ${dinsdagRainWarning}
                                 <div class="players-container">
-                                    ${renderPlayerChips(dinsdagPlayers, templateIndex, 'dinsdag')}
+                                    ${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag')}
                                 </div>
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal(${templateIndex}, 'dinsdag')">✏️ Wijzig</button>
+                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig</button>
                             </div>
                         </div>
                         ${dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
@@ -1392,11 +1398,11 @@
                                 </div>
                                 ${donderdagRainWarning}
                                 <div class="players-container">
-                                    ${renderPlayerChips(donderdagPlayers, templateIndex, 'donderdag')}
+                                    ${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag')}
                                 </div>
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal(${templateIndex}, 'donderdag')">✏️ Wijzig</button>
+                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig</button>
                             </div>
                         </div>
                         ${donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
@@ -1407,13 +1413,13 @@
         container.innerHTML = html;
     }
 
-    function renderPlayerChips(players, weekIdx, day) {
+    function renderPlayerChips(players, uniqueWeekKey, day) {
         if (!players || players.length < 4) return '';
 
         const createChip = (p) => {
             const isMe = (p === currentUserName);
             const isSub = !basePlayers.includes(p);
-            const isAbsent = absences[p] && absences[p][`w${weekIdx}_${day}`];
+            const isAbsent = absences[p] && absences[p][`${uniqueWeekKey}_${day}`];
 
             let cls = "player-chip";
             if (isMe) cls += " me";
@@ -1435,16 +1441,29 @@
         
         basePlayers.forEach(p => counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: false });
 
-        for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
-            let tpl = defaultTemplate[weekIdx];
-            let dinsdagPlayers = (liveOverrides[`w${weekIdx}_dinsdag`] !== undefined) ? liveOverrides[`w${weekIdx}_dinsdag`] : tpl.dinsdag;
-            let donderdagPlayers = (liveOverrides[`w${weekIdx}_donderdag`] !== undefined) ? liveOverrides[`w${weekIdx}_donderdag`] : tpl.donderdag;
+        let currentMonday = getAdjustedBaseDate();
+        for (let i = 0; i < 6; i++) {
+            let weekStart = new Date(currentMonday);
+            weekStart.setDate(currentMonday.getDate() + (i * 7));
+            let wn = getISOWeekNumber(weekStart);
+            let yr = weekStart.getFullYear();
+            let uniqueWeekKey = `${yr}_w${wn}`;
+
+            let referenceMonday = new Date(2026, 8, 21);
+            let diffTime = weekStart.getTime() - referenceMonday.getTime();
+            let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+            let templateIndex = ((diffWeeks % 6) + 6) % 6;
+
+            let tpl = defaultTemplate[templateIndex];
+            let overrideData = liveOverrides[uniqueWeekKey] || {};
+            let dinsdagPlayers = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
+            let donderdagPlayers = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
 
             dinsdagPlayers.forEach(p => {
                 if (!counts[p]) {
                     counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                 }
-                const isAbsent = absences[p] && absences[p][`w${weekIdx}_dinsdag`];
+                const isAbsent = absences[p] && absences[p][`${uniqueWeekKey}_dinsdag`];
                 if (!isAbsent) {
                     counts[p].dinsdag++;
                     counts[p].totaal++;
@@ -1455,7 +1474,7 @@
                 if (!counts[p]) {
                     counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                 }
-                const isAbsent = absences[p] && absences[p][`w${weekIdx}_donderdag`];
+                const isAbsent = absences[p] && absences[p][`${uniqueWeekKey}_donderdag`];
                 if (!isAbsent) {
                     counts[p].donderdag++;
                     counts[p].totaal++;
@@ -1489,13 +1508,24 @@
         const tbody = document.getElementById('absenceTableBody');
         
         let currentMonday = getAdjustedBaseDate();
-        let referenceMonday = new Date(2026, 8, 21);
 
         let activeSubs = new Set();
-        for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
-            let tpl = defaultTemplate[weekIdx];
+        for (let i = 0; i < 6; i++) {
+            let weekStart = new Date(currentMonday);
+            weekStart.setDate(currentMonday.getDate() + (i * 7));
+            let wn = getISOWeekNumber(weekStart);
+            let yr = weekStart.getFullYear();
+            let uniqueWeekKey = `${yr}_w${wn}`;
+
+            let referenceMonday = new Date(2026, 8, 21);
+            let diffTime = weekStart.getTime() - referenceMonday.getTime();
+            let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+            let templateIndex = ((diffWeeks % 6) + 6) % 6;
+
+            let tpl = defaultTemplate[templateIndex];
             ['dinsdag', 'donderdag'].forEach(day => {
-                let players = (liveOverrides[`w${weekIdx}_${day}`] !== undefined) ? liveOverrides[`w${weekIdx}_${day}`] : tpl[day];
+                let overrideData = liveOverrides[uniqueWeekKey] || {};
+                let players = overrideData[day] !== undefined ? overrideData[day] : tpl[day];
                 players.forEach(p => {
                     if (!basePlayers.includes(p)) {
                         activeSubs.add(p);
@@ -1528,18 +1558,17 @@
             for (let i = 0; i < 6; i++) {
                 let weekStart = new Date(currentMonday);
                 weekStart.setDate(currentMonday.getDate() + (i * 7));
-                
-                let diffTime = weekStart.getTime() - referenceMonday.getTime();
-                let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
-                let templateIndex = ((diffWeeks % 6) + 6) % 6;
+                let wn = getISOWeekNumber(weekStart);
+                let yr = weekStart.getFullYear();
+                let uniqueWeekKey = `${yr}_w${wn}`;
 
                 ['dinsdag', 'donderdag'].forEach(day => {
-                    const isAbsent = absences[p] && absences[p][`w${templateIndex}_${day}`];
+                    const isAbsent = absences[p] && absences[p][`${uniqueWeekKey}_${day}`];
                     const isDisabled = (!isSub && !isMe);
 
                     rowHtml += `
                         <td>
-                            <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', ${templateIndex}, '${day}')">
+                            <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uniqueWeekKey}', '${day}', ${wn})">
                                 ${isAbsent ? 'Afwezig' : 'Aanwezig'}
                             </button>
                         </td>
@@ -1550,18 +1579,22 @@
         }).join('');
     }
 
-    let activeModalWeek = 0;
+    let activeModalUniqueKey = '';
     let activeModalDay = '';
+    let activeModalWeekNum = 0;
+    let activeTemplateIndex = 0;
 
-    function openModal(templateIndex, day) {
-        activeModalWeek = templateIndex;
+    function openModal(uniqueWeekKey, templateIndex, day, weekNum) {
+        activeModalUniqueKey = uniqueWeekKey;
         activeModalDay = day;
+        activeModalWeekNum = weekNum;
+        activeTemplateIndex = templateIndex;
         
-        let targetWeekNum = getCalendarWeekNum(templateIndex);
-        document.getElementById('modalSubTitle').innerText = `Wijzig Week ${targetWeekNum} (${day})`;
+        document.getElementById('modalSubTitle').innerText = `Wijzig Week ${weekNum} (${day})`;
 
         let tpl = defaultTemplate[templateIndex];
-        let currentPlayers = (liveOverrides[`w${templateIndex}_${day}`] !== undefined) ? liveOverrides[`w${templateIndex}_${day}`] : tpl[day];
+        let overrideData = liveOverrides[uniqueWeekKey] || {};
+        let currentPlayers = overrideData[day] !== undefined ? overrideData[day] : tpl[day];
 
         for (let i = 0; i < 4; i++) {
             let sel = document.getElementById(`p${i}Select`);
@@ -1632,10 +1665,10 @@
             }
         }
 
-        db.ref(`padelData/scheduleOverrides/w${activeModalWeek}_${activeModalDay}`).set(newPlayers);
+        // Sla de override op onder het unieke week-ID zodat dit volstrekt geïsoleerd blijft
+        db.ref(`padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`).set(newPlayers);
         
-        let actualWeekNum = getCalendarWeekNum(activeModalWeek);
-        let msgText = `🔄 Schema gewijzigd voor week ${actualWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
+        let msgText = `🔄 Schema gewijzigd voor week ${activeModalWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
         
         await addSystemMessageIfUnique(msgText);
         await triggerPushNotification("Padel Schema Gewijzigd", msgText);
@@ -1643,19 +1676,18 @@
         closeModal();
     }
 
-    async function toggleAbsence(playerName, weekIdx, day) {
+    async function toggleAbsence(playerName, uniqueWeekKey, day, weekNum) {
         const isSub = !basePlayers.includes(playerName);
         if (!isSub && playerName !== currentUserName) return;
         
-        const path = `padelData/absence/${playerName}/w${weekIdx}_${day}`;
+        const path = `padelData/absence/${playerName}/${uniqueWeekKey}_${day}`;
         db.ref(path).once('value', async snapshot => {
             const currentVal = snapshot.val() || false;
             const newVal = !currentVal;
             await db.ref(path).set(newVal);
 
-            let actualWeekNum = getCalendarWeekNum(weekIdx);
             const statusText = newVal ? "afgemeld" : "aangemeld";
-            let msgText = `📅 ${playerName} is ${statusText} voor week ${actualWeekNum} (${day}) (door ${currentUserName})`;
+            let msgText = `📅 ${playerName} is ${statusText} voor week ${weekNum} (${day}) (door ${currentUserName})`;
             
             await addSystemMessageIfUnique(msgText);
             await triggerPushNotification("Padel Afwezigheid", msgText);
@@ -1687,7 +1719,6 @@
         const file = event.target.files[0];
         if (!file) return;
 
-        // Limiet op ca. 4MB ingesteld voor veilige opslag in Realtime Database
         if (file.size > 4 * 1024 * 1024) {
             alert("Het bestand is te groot (maximaal 4MB).");
             event.target.value = '';
@@ -1733,7 +1764,6 @@
                 if (m.fileType && m.fileType.includes('image')) {
                     attachmentHtml = `<img src="${m.fileUrl}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 4px; cursor: pointer; object-fit: cover;" onclick="openImageModal('${m.fileUrl}')">`;
                 } else {
-                    // Stijl voor PDF of ander document als downloadbare link
                     let icon = m.fileType && m.fileType.includes('pdf') ? '📄' : '📎';
                     attachmentHtml = `
                         <a href="${m.fileUrl}" download="${m.fileName || 'document'}" target="_blank" style="display: flex; align-items: center; gap: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 10px; border-radius: 6px; color: var(--accent-blue); text-decoration: none; margin-top: 4px; font-weight: 500;">
@@ -1746,7 +1776,6 @@
                     `;
                 }
             } else if (m.imageUrl) {
-                // Backward compatibility voor oude foto berichten
                 attachmentHtml = `<img src="${m.imageUrl}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 4px; cursor: pointer; object-fit: cover;" onclick="openImageModal('${m.imageUrl}')">`;
             }
 
