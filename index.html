@@ -960,14 +960,15 @@
     let selectedFileName = null;
     let selectedFileType = null;
 
-    const defaultTemplate = [
-        { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
-        { dinsdag: ["Marcel", "Mark", "Dennis", "Robert"], donderdag: ["Ronald", "Sander", "Mark", "Dennis"] },
-        { dinsdag: ["Ronald", "Robert", "Marcel", "Sander"], donderdag: ["Mark", "Marcel", "Dennis", "Ronald"] },
-        { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Ronald"] },
-        { dinsdag: ["Mark", "Dennis", "Sander", "Robert"], donderdag: ["Marcel", "Sander", "Ronald", "Dennis"] },
-        { dinsdag: ["Sander", "Ronald", "Robert", "Mark"], donderdag: ["Marcel", "Dennis", "Mark", "Sander"] }
+        const defaultTemplate = [
+        { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Mark"] },
+        { dinsdag: ["Ronald", "Robert", "Dennis", "Sander"], donderdag: ["Marcel", "Mark", "Ronald", "Sander"] },
+        { dinsdag: ["Marcel", "Dennis", "Mark", "Robert"], donderdag: ["Ronald", "Sander", "Dennis", "Marcel"] },
+        { dinsdag: ["Ronald", "Mark", "Marcel", "Sander"], donderdag: ["Dennis", "Robert", "Ronald", "Mark"] },
+        { dinsdag: ["Marcel", "Sander", "Dennis", "Robert"], donderdag: ["Ronald", "Mark", "Marcel", "Sander"] },
+        { dinsdag: ["Ronald", "Robert", "Dennis", "Mark"], donderdag: ["Marcel", "Sander", "Ronald", "Robert"] }
     ];
+     
 
     let liveOverrides = {};
     let allStatuses = {};
