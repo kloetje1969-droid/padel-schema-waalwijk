@@ -1,4 +1,3 @@
-
 import admin from 'firebase-admin';
 
 if (!admin.apps.length) {
@@ -35,10 +34,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, message: 'Geen tokens aanwezig.' });
     }
 
-    // Geoptimaliseerd voor Android, PC en iOS (PWA vanaf homescreen)
+    // Aangepast naar 'data' zodat de Service Worker dit feilloos opvangt en forceert
     const message = {
       tokens: tokens,
-      notification: {
+      data: {
         title: title || 'Padel Update',
         body: body || 'Er is een wijziging in het padelschema!'
       },
@@ -66,6 +65,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 }
+
 
 
 
