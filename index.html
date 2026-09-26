@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v2.3)</title>
+    <title>Padelschema - Rooster & Chat (v2.4)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -608,7 +608,7 @@
         }
 
         .chat-messages { 
-            height: 180px; 
+            height: 220px; 
             overflow-y: auto; 
             border: 1px solid var(--card-border); 
             border-radius: 8px; 
@@ -627,7 +627,7 @@
             max-width: 90%; 
             display: flex; 
             flex-direction: column; 
-            gap: 2px; 
+            gap: 4px; 
         }
         
         .message.self { 
@@ -674,9 +674,10 @@
             display: flex; 
             gap: 6px; 
             margin-top: 4px; 
+            align-items: center;
         }
         
-        .chat-input-row input { 
+        .chat-input-row input[type="text"] { 
             flex-grow: 1; 
             background: var(--bg-color); 
             color: var(--text-main); 
@@ -859,6 +860,8 @@
         </div>
         <div class="chat-messages" id="chatWindow"></div>
         <div class="chat-input-row">
+            <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
+            <button class="push-btn" onclick="document.getElementById('imageInput').click()" title="Foto toevoegen" style="padding: 9px 10px; font-size: 1rem;">📎</button>
             <input type="text" id="chatInput" placeholder="Typ een bericht..." onkeypress="handleKeyPress(event)">
             <button class="btn-primary" onclick="sendMessage()">Verzend</button>
         </div>
@@ -898,9 +901,16 @@
     </div>
 </div>
 
+<!-- Modal voor grote foto weergave -->
+<div id="imageModal" class="modal" onclick="closeImageModal()" style="padding: 0;">
+    <div style="background: rgba(0,0,0,0.9); width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; padding: 20px;">
+        <img id="modalImageSrc" src="" style="max-width: 100%; max-height: 100%; border-radius: 8px; border: 1px solid var(--card-border); object-fit: contain;">
+    </div>
+</div>
+
 <script>
     // AUTOMATISCHE CACHE-VERNIEUWING (VERSIE CHECK)
-    const APP_VERSION = "2.3";
+    const APP_VERSION = "2.4";
     
     async function checkAppVersion() {
         try {
@@ -945,6 +955,7 @@
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
     let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
+    let selectedImageBase64 = null;
 
     const defaultTemplate = [
         { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
@@ -1573,19 +1584,14 @@
         document.getElementById('replaceModal').style.display = 'none';
     }
 
-    // Hulpfunctie om te voorkomen dat exact hetzelfde systeembericht binnen 3 seconden dubbel wordt toegevoegd
     async function addSystemMessageIfUnique(msgText) {
         const now = Date.now();
         const timeStr = new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        // Controleer of de laatste 3 berichten exact dezelfde tekst hebben en minder dan 3 seconden geleden zijn geplaatst
         const recentMessages = messages.slice(-3);
         const isDuplicate = recentMessages.some(m => m.text === msgText && (now - (m.timestamp || 0) < 3000));
 
-        if (isDuplicate) {
-            console.log("Dubbel systeembericht tegengehouden:", msgText);
-            return;
-        }
+        if (isDuplicate) return;
 
         await db.ref('padelData/messages').push({
             author: "Systeem",
@@ -1638,7 +1644,6 @@
         });
     }
 
-    // Slimme functie om te bepalen of de tijd vandaag is of van een eerdere dag
     function formatMessageTime(timestamp, fallbackTijd) {
         if (!timestamp && !fallbackTijd) return "";
         
@@ -1652,11 +1657,29 @@
         const timeStr = fallbackTijd || msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         if (isToday) {
-            return timeStr; // Alleen tijd als het vandaag is
+            return timeStr;
         } else {
             const dateStr = msgDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
             return `${dateStr} ${timeStr}`;
         }
+    }
+
+    function handleImageSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (file.size > 2 * 1024 * 1024) {
+            alert("De afbeelding is te groot (maximaal 2MB).");
+            event.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            selectedImageBase64 = e.target.result;
+            document.getElementById('chatInput').placeholder = "📷 Foto gekozen (typ optioneel tekst)...";
+        };
+        reader.readAsDataURL(file);
     }
 
     function renderChat() {
@@ -1676,13 +1699,17 @@
                 `;
             }
 
+            let imageHtml = m.imageUrl ? `<img src="${m.imageUrl}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 4px; cursor: pointer; object-fit: cover;" onclick="openImageModal('${m.imageUrl}')">` : '';
+            let textHtml = (m.text && m.text !== "(Foto)") ? `<span>${m.text}</span>` : '';
+
             return `
                 <div class="message ${isSelf ? 'self' : ''}">
                     <div class="message-header">
                         <span class="author">${m.author} ${tijdWeergave}</span>
                         <button class="delete-msg-btn" onclick="deleteMessage(${index})">✕</button>
                     </div>
-                    <span>${m.text}</span>
+                    ${textHtml}
+                    ${imageHtml}
                 </div>
             `;
         }).join('');
@@ -1692,21 +1719,30 @@
     async function sendMessage() {
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
-        if (!text) return;
+        if (!text && !selectedImageBase64) return;
 
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        await db.ref('padelData/messages').push({
+        let messageData = {
             author: currentUserName,
-            text: text,
+            text: text || "",
             timestamp: firebase.database.ServerValue.TIMESTAMP,
             tijd: timeStr
-        });
+        };
 
-        await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, text);
+        if (selectedImageBase64) {
+            messageData.imageUrl = selectedImageBase64;
+        }
+
+        await db.ref('padelData/messages').push(messageData);
+
+        await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, text || "📷 [Foto bijlage]");
 
         input.value = '';
+        input.placeholder = "Typ een bericht...";
+        selectedImageBase64 = null;
+        document.getElementById('imageInput').value = '';
     }
 
     function handleKeyPress(e) {
@@ -1737,6 +1773,15 @@
         updateAlertUI();
 
         document.getElementById('chatCardSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function openImageModal(url) {
+        document.getElementById('modalImageSrc').src = url;
+        document.getElementById('imageModal').style.display = 'flex';
+    }
+
+    function closeImageModal() {
+        document.getElementById('imageModal').style.display = 'none';
     }
 </script>
 
