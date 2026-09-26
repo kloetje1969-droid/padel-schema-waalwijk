@@ -34,22 +34,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, message: 'Geen tokens aanwezig.' });
     }
 
-    // We sturen nu zowel 'notification' (voor automatische pop-ups) als 'data' mee
+    // We sturen nu alleen een data-payload zodat onBackgroundMessage in de service worker het netjes opvangt
     const message = {
       tokens: tokens,
-      notification: {
-        title: title || 'Padel Update',
-        body: body || 'Er is een wijziging in het padelschema!'
-      },
       data: {
+        title: title || 'Padel Update',
+        body: body || 'Er is een wijziging in het padelschema!',
         click_action: '/'
       },
       webpush: {
         headers: {
           'Urgency': 'high'
-        },
-        fcmOptions: {
-          link: '/'
         }
       }
     };
@@ -57,6 +52,13 @@ export default async function handler(req, res) {
     const response = await admin.messaging().sendEachForMulticast(message);
     
     console.log(`Notificatie verzonden. Succesvol: ${response.successCount}, Mislukt: ${response.failureCount}`);
+
+    // Optioneel: log eventuele mislukte tokens om te zien of er ongeldige tussen zitten
+    response.responses.forEach((resp, idx) => {
+      if (!resp.success) {
+        console.error(`Fout bij token ${tokens[idx]}:`, resp.error);
+      }
+    });
 
     return res.status(200).json({ 
       success: true, 
@@ -68,6 +70,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 }
+
 
 
 
