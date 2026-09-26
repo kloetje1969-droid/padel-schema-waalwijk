@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Padelschema - Rooster & Chat</title>
+    <!-- Cache control headers -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Padelschema - Rooster & Chat (v2.2)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -895,6 +899,26 @@
 </div>
 
 <script>
+    // AUTOMATISCHE CACHE-VERNIEUWING (VERSIE CHECK)
+    const APP_VERSION = "2.2";
+    
+    async function checkAppVersion() {
+        try {
+            const res = await fetch('index.html?v=' + Date.now(), { cache: 'no-store' });
+            const htmlText = await res.text();
+            if (htmlText.includes('APP_VERSION')) {
+                const match = htmlText.match(/const APP_VERSION = "([^"]+)"/);
+                if (match && match[1] && match[1] !== APP_VERSION) {
+                    console.WriteLine("Nieuwe versie ontdekt, cache wordt vernieuwd...");
+                    window.location.reload(true);
+                }
+            }
+        } catch (e) {
+            // Negeer netwerkfout bij versie check
+        }
+    }
+    setInterval(checkAppVersion, 30000); // Check elke 30 seconden op een update
+
     const firebaseConfig = {
         apiKey: "AIzaSyC2TvKuO8vSfzmaGu-CictLit5iuRnRFNU",
         authDomain: "padel-app-b8362.firebaseapp.com",
@@ -1567,15 +1591,15 @@
         let actualWeekNum = getCalendarWeekNum(activeModalWeek);
         let msgText = `🔄 Schema gewijzigd voor week ${actualWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
         
-        const nu = new Date();
-        const tijdStempel = nu.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         let msgRef = db.ref('padelData/messages').push();
         await msgRef.set({
             author: "Systeem",
             text: msgText,
             timestamp: firebase.database.ServerValue.TIMESTAMP,
-            tijd: tijdStempel,
+            tijd: timeStr,
             type: "system"
         });
 
@@ -1598,14 +1622,14 @@
             const statusText = newVal ? "afgemeld" : "aangemeld";
             let msgText = `📅 ${playerName} is ${statusText} voor week ${actualWeekNum} (${day}) (door ${currentUserName})`;
             
-            const nu = new Date();
-            const tijdStempel = nu.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             await db.ref('padelData/messages').push({
                 author: "Systeem",
                 text: msgText,
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
-                tijd: tijdStempel,
+                tijd: timeStr,
                 type: "system"
             });
 
@@ -1613,12 +1637,36 @@
         });
     }
 
+    // Slimme functie om te bepalen of de tijd vandaag is of van een eerdere dag
+    function formatMessageTime(timestamp, fallbackTijd) {
+        if (!timestamp && !fallbackTijd) return "";
+        
+        const msgDate = timestamp ? new Date(timestamp) : new Date();
+        const today = new Date();
+        
+        const isToday = msgDate.getDate() === today.getDate() &&
+                        msgDate.getMonth() === today.getMonth() &&
+                        msgDate.getFullYear() === today.getFullYear();
+
+        const timeStr = fallbackTijd || msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        if (isToday) {
+            return timeStr; // Alleen tijd als het vandaag is
+        } else {
+            // Anders datum erbij (bijv. "26 sep 14:30")
+            const dateStr = msgDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+            return `${dateStr} ${timeStr}`;
+        }
+    }
+
     function renderChat() {
         const windowDiv = document.getElementById('chatWindow');
         windowDiv.innerHTML = messages.map((m, index) => {
             const isSelf = (m.author === currentUserName);
             const isSystem = (m.type === "system" || m.author === "Systeem");
-            const tijdWeergave = m.tijd ? `<span style="font-size: 0.65rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${m.tijd}</span>` : '';
+            
+            const formattedTime = formatMessageTime(m.timestamp, m.tijd);
+            const tijdWeergave = formattedTime ? `<span style="font-size: 0.65rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${formattedTime}</span>` : '';
 
             if (isSystem) {
                 return `
@@ -1646,14 +1694,14 @@
         const text = input.value.trim();
         if (!text) return;
 
-        const nu = new Date();
-        const tijdStempel = nu.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         await db.ref('padelData/messages').push({
             author: currentUserName,
             text: text,
             timestamp: firebase.database.ServerValue.TIMESTAMP,
-            tijd: tijdStempel
+            tijd: timeStr
         });
 
         await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, text);
