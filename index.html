@@ -911,7 +911,6 @@
     }
     const db = firebase.database();
     
-    // Firebase Cloud Messaging initialisatie
     let messaging = null;
     try {
         if (firebase.messaging.isSupported()) {
@@ -973,7 +972,6 @@
         }
     }
 
-    // AANGEPAST: Slimme token-functie die alleen een token aanvraagt als die er nog niet is (voorkomt oneindig nieuwe tokens)
     async function subscribePush() {
         if (!messaging) {
             alert("Pushmeldingen worden niet ondersteund op dit apparaat/deze browser.");
@@ -985,7 +983,6 @@
                 let savedToken = localStorage.getItem('padel_fcm_token');
                 
                 if (savedToken) {
-                    console.log("Token is al bekend, hergebruiken...");
                     db.ref(`padelData/tokens/${currentUserName}`).set(savedToken);
                     alert("Pushmeldingen zijn al actief op dit apparaat!");
                     return;
@@ -1011,7 +1008,6 @@
         }
     }
 
-    // Ingebouwde Vercel API-trigger voor pushmeldingen
     async function triggerPushNotification(title, body) {
         try {
             const res = await fetch('/api/send-notification', {
@@ -1022,7 +1018,6 @@
             const data = await res.json();
             
             if (data.tokens && Array.isArray(data.tokens)) {
-                console.log("Actieve push tokens opgehaald via Vercel:", data.tokens.length);
                 if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
                     navigator.serviceWorker.controller.postMessage({
                         type: 'SHOW_NOTIFICATION',
@@ -1166,18 +1161,6 @@
                 userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
             }
         }, 3000);
-
-        window.addEventListener('beforeunload', () => {
-            userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
-        });
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') {
-                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
-            } else {
-                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
-            }
-        });
     }
 
     function formatLastSeen(timestamp) {
@@ -1584,11 +1567,15 @@
         let actualWeekNum = getCalendarWeekNum(activeModalWeek);
         let msgText = `🔄 Schema gewijzigd voor week ${actualWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
         
+        const nu = new Date();
+        const tijdStempel = nu.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
         let msgRef = db.ref('padelData/messages').push();
         await msgRef.set({
             author: "Systeem",
             text: msgText,
             timestamp: firebase.database.ServerValue.TIMESTAMP,
+            tijd: tijdStempel,
             type: "system"
         });
 
@@ -1611,10 +1598,14 @@
             const statusText = newVal ? "afgemeld" : "aangemeld";
             let msgText = `📅 ${playerName} is ${statusText} voor week ${actualWeekNum} (${day}) (door ${currentUserName})`;
             
+            const nu = new Date();
+            const tijdStempel = nu.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
             await db.ref('padelData/messages').push({
                 author: "Systeem",
                 text: msgText,
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
+                tijd: tijdStempel,
                 type: "system"
             });
 
@@ -1627,11 +1618,12 @@
         windowDiv.innerHTML = messages.map((m, index) => {
             const isSelf = (m.author === currentUserName);
             const isSystem = (m.type === "system" || m.author === "Systeem");
+            const tijdWeergave = m.tijd ? `<span style="font-size: 0.65rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${m.tijd}</span>` : '';
 
             if (isSystem) {
                 return `
                     <div class="message system-update">
-                        <span style="font-size: 0.75rem; color: var(--accent-blue);">${m.text}</span>
+                        <span style="font-size: 0.75rem; color: var(--accent-blue);">${m.text} ${tijdWeergave}</span>
                     </div>
                 `;
             }
@@ -1639,7 +1631,7 @@
             return `
                 <div class="message ${isSelf ? 'self' : ''}">
                     <div class="message-header">
-                        <span class="author">${m.author}</span>
+                        <span class="author">${m.author} ${tijdWeergave}</span>
                         <button class="delete-msg-btn" onclick="deleteMessage(${index})">✕</button>
                     </div>
                     <span>${m.text}</span>
@@ -1654,10 +1646,14 @@
         const text = input.value.trim();
         if (!text) return;
 
+        const nu = new Date();
+        const tijdStempel = nu.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
         await db.ref('padelData/messages').push({
             author: currentUserName,
             text: text,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            tijd: tijdStempel
         });
 
         await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, text);
