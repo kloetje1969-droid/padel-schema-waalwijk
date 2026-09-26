@@ -1272,10 +1272,28 @@
         return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
 
+    // Aangepaste functie: Verschuift de cyclus pas door op donderdag vanaf 23:59 uur
+    function getAdjustedBaseDate() {
+        let now = new Date();
+        let day = now.getDay(); // 0 = zo, 1 = ma, ..., 4 = do, ..., 6 = za
+        let hour = now.getHours();
+        let minute = now.getMinutes();
+
+        let target = getMonday(now);
+        target.setHours(0, 0, 0, 0);
+
+        // Als het na donderdag 23:59 is (vrijdag, zaterdag of zondag), tel er dan 7 dagen bij op voor de cyclus
+        let isAfterThursdayNight = (day > 4) || (day === 4 && (hour > 23 || (hour === 23 && minute >= 59)));
+
+        if (isAfterThursdayNight) {
+            target.setDate(target.getDate() + 7);
+        }
+
+        return target;
+    }
+
     function getCalendarWeekNum(templateIndex) {
-        let today = new Date();
-        let currentMonday = getMonday(today);
-        currentMonday.setHours(0, 0, 0, 0);
+        let currentMonday = getAdjustedBaseDate();
         let referenceMonday = new Date(2026, 8, 21);
 
         for (let i = 0; i < 6; i++) {
@@ -1294,10 +1312,7 @@
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
         
-        let today = new Date();
-        let currentMonday = getMonday(today);
-        currentMonday.setHours(0, 0, 0, 0);
-
+        let currentMonday = getAdjustedBaseDate();
         let referenceMonday = new Date(2026, 8, 21); 
 
         let html = '';
@@ -1473,9 +1488,7 @@
         const headerRow = document.getElementById('absenceHeaderRow');
         const tbody = document.getElementById('absenceTableBody');
         
-        let today = new Date();
-        let currentMonday = getMonday(today);
-        currentMonday.setHours(0, 0, 0, 0);
+        let currentMonday = getAdjustedBaseDate();
         let referenceMonday = new Date(2026, 8, 21);
 
         let activeSubs = new Set();
