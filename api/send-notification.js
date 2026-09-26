@@ -21,25 +21,21 @@ export default async function handler(req, res) {
   try {
     const { title, body } = req.body;
 
-    // Haal alle opgeslagen tokens op uit de Firebase Realtime Database
     const db = admin.database();
     const tokensSnapshot = await db.ref('padelData/tokens').once('value');
     const tokensData = tokensSnapshot.val();
 
     if (!tokensData) {
-      console.log('Geen actieve tokens gevonden in database.');
-      return res.status(200).json({ success: true, message: 'Geen actieve tokens gevonden om naar te versturen.' });
+      return res.status(200).json({ success: true, message: 'Geen actieve tokens gevonden.' });
     }
 
-    // Verzamel alle losse tokens uit de objecten
     const tokens = Object.values(tokensData);
 
     if (tokens.length === 0) {
-      console.log('Tokens lijst is leeg.');
       return res.status(200).json({ success: true, message: 'Geen tokens aanwezig.' });
     }
 
-    // Bouw het notificatiebericht voor multicast (naar meerdere apparaten tegelijk)
+    // Geoptimaliseerd voor Android, PC en iOS (PWA vanaf homescreen)
     const message = {
       tokens: tokens,
       notification: {
@@ -47,6 +43,9 @@ export default async function handler(req, res) {
         body: body || 'Er is een wijziging in het padelschema!'
       },
       webpush: {
+        headers: {
+          'Urgency': 'high'
+        },
         fcmOptions: {
           link: '/'
         }
@@ -55,7 +54,6 @@ export default async function handler(req, res) {
 
     const response = await admin.messaging().sendEachForMulticast(message);
     
-    // Dit zorgt ervoor dat je het resultaat direct in je Vercel logs ziet staan!
     console.log(`Notificatie verzonden. Succesvol: ${response.successCount}, Mislukt: ${response.failureCount}`);
 
     return res.status(200).json({ 
