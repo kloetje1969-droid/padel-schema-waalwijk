@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v2.9)</title>
+    <title>Padelschema - Rooster & Chat (v3.0)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -910,7 +910,7 @@
 
 <script>
     // AUTOMATISCHE CACHE-VERNIEUWING (VERSIE CHECK)
-    const APP_VERSION = "2.9";
+    const APP_VERSION = "3.0";
     
     async function checkAppVersion() {
         try {
@@ -960,7 +960,8 @@
     let selectedFileName = null;
     let selectedFileType = null;
 
-        const defaultTemplate = [
+    // Nieuwe geoptimaliseerde template (iedereen evenveel, minimaal 1x per week, Ronald en Robert 1x samen)
+    const defaultTemplate = [
         { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Mark"] },
         { dinsdag: ["Ronald", "Robert", "Dennis", "Sander"], donderdag: ["Marcel", "Mark", "Ronald", "Sander"] },
         { dinsdag: ["Marcel", "Dennis", "Mark", "Robert"], donderdag: ["Ronald", "Sander", "Dennis", "Marcel"] },
@@ -968,7 +969,6 @@
         { dinsdag: ["Marcel", "Sander", "Dennis", "Robert"], donderdag: ["Ronald", "Mark", "Marcel", "Sander"] },
         { dinsdag: ["Ronald", "Robert", "Dennis", "Mark"], donderdag: ["Marcel", "Sander", "Ronald", "Robert"] }
     ];
-     
 
     let liveOverrides = {};
     let allStatuses = {};
@@ -1307,24 +1307,10 @@
         return "-";
     }
 
-    // SLIMME MIGRATIE/FALLBACK: Leest unieke weeksleutel, maar migreert eenmalig automatisch vanuit de oude w{templateIndex} sleutel zodat eerdere invullingen niet kwijt zijn
-    function checkPlayerAbsent(playerName, uniqueWeekKey, templateIndex, day) {
+    // STRIKTE ISOLATIE: Controleer afwezigheid UITSLUITEND op basis van de unieke weeksleutel (jaar_wX)
+    function checkPlayerAbsent(playerName, uniqueWeekKey, day) {
         if (!absences[playerName]) return false;
-        
-        // 1. Check de nieuwe unieke sleutel (jaar_wX_dag)
-        if (absences[playerName][`${uniqueWeekKey}_${day}`] !== undefined) {
-            return !!absences[playerName][`${uniqueWeekKey}_${day}`];
-        }
-        
-        // 2. Fallback op oude index-sleutel (w{templateIndex}_dag) voor gegevens uit het verleden
-        let oldVal = absences[playerName][`w${templateIndex}_${day}`];
-        if (oldVal) {
-            // Migreer direct naar de nieuwe unieke sleutel in Firebase zodat het vanaf nu netjes op de juiste week vaststaat
-            db.ref(`padelData/absence/${playerName}/${uniqueWeekKey}_${day}`).set(true);
-            return true;
-        }
-        
-        return false;
+        return !!absences[playerName][`${uniqueWeekKey}_${day}`];
     }
 
     function renderSchedule() {
@@ -1378,8 +1364,8 @@
                     ⚠️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen op deze donderdagavond!
                  </div>` : '';
 
-            let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, templateIndex, 'dinsdag'));
-            let donderdagAbsentees = donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, templateIndex, 'donderdag'));
+            let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
+            let donderdagAbsentees = donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
 
             html += `
                 <div class="week-card">
@@ -1394,7 +1380,7 @@
                                 </div>
                                 ${dinsdagRainWarning}
                                 <div class="players-container">
-                                    ${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, templateIndex, 'dinsdag')}
+                                    ${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag')}
                                 </div>
                             </div>
                             <div class="match-action-container">
@@ -1413,7 +1399,7 @@
                                 </div>
                                 ${donderdagRainWarning}
                                 <div class="players-container">
-                                    ${renderPlayerChips(donderdagPlayers, uniqueWeekKey, templateIndex, 'donderdag')}
+                                    ${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag')}
                                 </div>
                             </div>
                             <div class="match-action-container">
@@ -1428,13 +1414,13 @@
         container.innerHTML = html;
     }
 
-    function renderPlayerChips(players, uniqueWeekKey, templateIndex, day) {
+    function renderPlayerChips(players, uniqueWeekKey, day) {
         if (!players || players.length < 4) return '';
 
         const createChip = (p) => {
             const isMe = (p === currentUserName);
             const isSub = !basePlayers.includes(p);
-            const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, templateIndex, day);
+            const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, day);
 
             let cls = "player-chip";
             if (isMe) cls += " me";
@@ -1478,7 +1464,7 @@
                 if (!counts[p]) {
                     counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                 }
-                const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, templateIndex, 'dinsdag');
+                const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag');
                 if (!isAbsent) {
                     counts[p].dinsdag++;
                     counts[p].totaal++;
@@ -1489,7 +1475,7 @@
                 if (!counts[p]) {
                     counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                 }
-                const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, templateIndex, 'donderdag');
+                const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, 'donderdag');
                 if (!isAbsent) {
                     counts[p].donderdag++;
                     counts[p].totaal++;
@@ -1577,18 +1563,13 @@
                 let yr = weekStart.getFullYear();
                 let uniqueWeekKey = `${yr}_w${wn}`;
 
-                let referenceMonday = new Date(2026, 8, 21);
-                let diffTime = weekStart.getTime() - referenceMonday.getTime();
-                let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
-                let templateIndex = ((diffWeeks % 6) + 6) % 6;
-
                 ['dinsdag', 'donderdag'].forEach(day => {
-                    const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, templateIndex, day);
+                    const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, day);
                     const isDisabled = (!isSub && !isMe);
 
                     rowHtml += `
                         <td>
-                            <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uniqueWeekKey}', ${templateIndex}, '${day}', ${wn})">
+                            <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uniqueWeekKey}', '${day}', ${wn})">
                                 ${isAbsent ? 'Afwezig' : 'Aanwezig'}
                             </button>
                         </td>
@@ -1695,19 +1676,15 @@
         closeModal();
     }
 
-    async function toggleAbsence(playerName, uniqueWeekKey, templateIndex, day, weekNum) {
+    async function toggleAbsence(playerName, uniqueWeekKey, day, weekNum) {
         const isSub = !basePlayers.includes(playerName);
         if (!isSub && playerName !== currentUserName) return;
         
-        // Sla direct op onder de unieke weeksleutel (bijv. 2026_w44_dinsdag)
         const path = `padelData/absence/${playerName}/${uniqueWeekKey}_${day}`;
         db.ref(path).once('value', async snapshot => {
             const currentVal = snapshot.val() || false;
             const newVal = !currentVal;
             await db.ref(path).set(newVal);
-
-            // Verwijder eventuele oude legacy sleutel om verwarring te voorkomen
-            db.ref(`padelData/absence/${playerName}/w${templateIndex}_${day}`).remove();
 
             const statusText = newVal ? "afgemeld" : "aangemeld";
             let msgText = `📅 ${playerName} is ${statusText} voor week ${weekNum} (${day}) (door ${currentUserName})`;
