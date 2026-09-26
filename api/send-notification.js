@@ -34,12 +34,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, message: 'Geen tokens aanwezig.' });
     }
 
-    // Aangepast naar 'data' zodat de Service Worker dit feilloos opvangt en forceert
+    // We sturen nu zowel 'notification' (voor automatische pop-ups) als 'data' mee
     const message = {
       tokens: tokens,
-      data: {
+      notification: {
         title: title || 'Padel Update',
         body: body || 'Er is een wijziging in het padelschema!'
+      },
+      data: {
+        click_action: '/'
       },
       webpush: {
         headers: {
@@ -65,6 +68,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 }
+
 
 
 
