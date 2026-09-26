@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v2.6)</title>
+    <title>Padelschema - Rooster & Chat (v2.7)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -911,7 +911,7 @@
 
 <script>
     // AUTOMATISCHE CACHE-VERNIEUWING (VERSIE CHECK)
-    const APP_VERSION = "2.6";
+    const APP_VERSION = "2.7";
     
     async function checkAppVersion() {
         try {
@@ -957,7 +957,6 @@
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
     let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
     
-    // Variabelen voor bijlagen (foto of bestand)
     let selectedFileBase64 = null;
     let selectedFileName = null;
     let selectedFileType = null;
@@ -1272,17 +1271,16 @@
         return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
 
-    // Aangepaste functie: Verschuift de cyclus pas door op donderdag vanaf 23:59 uur
+    // Verschuift de cyclus pas door op donderdag vanaf 23:59 uur
     function getAdjustedBaseDate() {
         let now = new Date();
-        let day = now.getDay(); // 0 = zo, 1 = ma, ..., 4 = do, ..., 6 = za
+        let day = now.getDay(); 
         let hour = now.getHours();
         let minute = now.getMinutes();
 
         let target = getMonday(now);
         target.setHours(0, 0, 0, 0);
 
-        // Als het na donderdag 23:59 is (vrijdag, zaterdag of zondag), tel er dan 7 dagen bij op voor de cyclus
         let isAfterThursdayNight = (day > 4) || (day === 4 && (hour > 23 || (hour === 23 && minute >= 59)));
 
         if (isAfterThursdayNight) {
@@ -1309,6 +1307,13 @@
         return "-";
     }
 
+    // Helper om afwezigheid zowel op nieuwe unieke sleutel als oude w{templateIndex} sleutel te controleren
+    function checkPlayerAbsent(playerName, uniqueWeekKey, templateIndex, day) {
+        if (!absences[playerName]) return false;
+        // Check nieuwe unieke sleutel (bijv. 2026_w40_dinsdag) of oude sleutel (bijv. w0_dinsdag)
+        return !!(absences[playerName][`${uniqueWeekKey}_${day}`] || absences[playerName][`w${templateIndex}_${day}`]);
+    }
+
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
         
@@ -1323,8 +1328,6 @@
 
             let currentWeekNum = getISOWeekNumber(weekStart);
             let currentYear = weekStart.getFullYear();
-
-            // Unieke sleutel per absoluut weeknummer (bijv. 2026_w40) zodat wijzigingen NIET doorlopen naar volgende cycli
             let uniqueWeekKey = `${currentYear}_w${currentWeekNum}`;
 
             let diffTime = weekStart.getTime() - referenceMonday.getTime();
@@ -1339,7 +1342,6 @@
 
             let tpl = defaultTemplate[templateIndex];
 
-            // Haal overrides op gekoppeld aan het unieke week-ID (in plaats van alleen de cyclus-index)
             let overrideData = liveOverrides[uniqueWeekKey] || {};
             let dinsdagPlayers = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
             let donderdagPlayers = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
@@ -1363,8 +1365,8 @@
                     ⚠️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen op deze donderdagavond!
                  </div>` : '';
 
-            let dinsdagAbsentees = dinsdagPlayers.filter(p => absences[p] && absences[p][`${uniqueWeekKey}_dinsdag`]);
-            let donderdagAbsentees = donderdagPlayers.filter(p => absences[p] && absences[p][`${uniqueWeekKey}_donderdag`]);
+            let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, templateIndex, 'dinsdag'));
+            let donderdagAbsentees = donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, templateIndex, 'donderdag'));
 
             html += `
                 <div class="week-card">
@@ -1379,7 +1381,7 @@
                                 </div>
                                 ${dinsdagRainWarning}
                                 <div class="players-container">
-                                    ${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag')}
+                                    ${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, templateIndex, 'dinsdag')}
                                 </div>
                             </div>
                             <div class="match-action-container">
@@ -1398,7 +1400,7 @@
                                 </div>
                                 ${donderdagRainWarning}
                                 <div class="players-container">
-                                    ${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag')}
+                                    ${renderPlayerChips(donderdagPlayers, uniqueWeekKey, templateIndex, 'donderdag')}
                                 </div>
                             </div>
                             <div class="match-action-container">
@@ -1413,13 +1415,13 @@
         container.innerHTML = html;
     }
 
-    function renderPlayerChips(players, uniqueWeekKey, day) {
+    function renderPlayerChips(players, uniqueWeekKey, templateIndex, day) {
         if (!players || players.length < 4) return '';
 
         const createChip = (p) => {
             const isMe = (p === currentUserName);
             const isSub = !basePlayers.includes(p);
-            const isAbsent = absences[p] && absences[p][`${uniqueWeekKey}_${day}`];
+            const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, templateIndex, day);
 
             let cls = "player-chip";
             if (isMe) cls += " me";
@@ -1463,7 +1465,7 @@
                 if (!counts[p]) {
                     counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                 }
-                const isAbsent = absences[p] && absences[p][`${uniqueWeekKey}_dinsdag`];
+                const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, templateIndex, 'dinsdag');
                 if (!isAbsent) {
                     counts[p].dinsdag++;
                     counts[p].totaal++;
@@ -1474,7 +1476,7 @@
                 if (!counts[p]) {
                     counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                 }
-                const isAbsent = absences[p] && absences[p][`${uniqueWeekKey}_donderdag`];
+                const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, templateIndex, 'donderdag');
                 if (!isAbsent) {
                     counts[p].donderdag++;
                     counts[p].totaal++;
@@ -1562,13 +1564,18 @@
                 let yr = weekStart.getFullYear();
                 let uniqueWeekKey = `${yr}_w${wn}`;
 
+                let referenceMonday = new Date(2026, 8, 21);
+                let diffTime = weekStart.getTime() - referenceMonday.getTime();
+                let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+                let templateIndex = ((diffWeeks % 6) + 6) % 6;
+
                 ['dinsdag', 'donderdag'].forEach(day => {
-                    const isAbsent = absences[p] && absences[p][`${uniqueWeekKey}_${day}`];
+                    const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, templateIndex, day);
                     const isDisabled = (!isSub && !isMe);
 
                     rowHtml += `
                         <td>
-                            <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uniqueWeekKey}', '${day}', ${wn})">
+                            <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uniqueWeekKey}', ${templateIndex}, '${day}', ${wn})">
                                 ${isAbsent ? 'Afwezig' : 'Aanwezig'}
                             </button>
                         </td>
@@ -1665,7 +1672,6 @@
             }
         }
 
-        // Sla de override op onder het unieke week-ID zodat dit volstrekt geïsoleerd blijft
         db.ref(`padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`).set(newPlayers);
         
         let msgText = `🔄 Schema gewijzigd voor week ${activeModalWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
@@ -1676,10 +1682,11 @@
         closeModal();
     }
 
-    async function toggleAbsence(playerName, uniqueWeekKey, day, weekNum) {
+    async function toggleAbsence(playerName, uniqueWeekKey, templateIndex, day, weekNum) {
         const isSub = !basePlayers.includes(playerName);
         if (!isSub && playerName !== currentUserName) return;
         
+        // Sla afwezigheid op onder de unieke weeksleutel zodat deze gekoppeld blijft aan exact deze week in de toekomst
         const path = `padelData/absence/${playerName}/${uniqueWeekKey}_${day}`;
         db.ref(path).once('value', async snapshot => {
             const currentVal = snapshot.val() || false;
@@ -1714,7 +1721,6 @@
         }
     }
 
-    // Bestand selecteren (foto's of PDF/documenten)
     function handleFileSelect(event) {
         const file = event.target.files[0];
         if (!file) return;
