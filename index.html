@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v2.4)</title>
+    <title>Padelschema - Rooster & Chat (v2.5)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -860,8 +860,9 @@
         </div>
         <div class="chat-messages" id="chatWindow"></div>
         <div class="chat-input-row">
-            <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
-            <button class="push-btn" onclick="document.getElementById('imageInput').click()" title="Foto toevoegen" style="padding: 9px 10px; font-size: 1rem;">📎</button>
+            <!-- Aangepast om zowel afbeeldingen als PDF/documenten te accepteren -->
+            <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx" style="display: none;" onchange="handleFileSelect(event)">
+            <button class="push-btn" onclick="document.getElementById('fileInput').click()" title="Foto of PDF bijvoegen" style="padding: 9px 10px; font-size: 1rem;">📎</button>
             <input type="text" id="chatInput" placeholder="Typ een bericht..." onkeypress="handleKeyPress(event)">
             <button class="btn-primary" onclick="sendMessage()">Verzend</button>
         </div>
@@ -910,7 +911,7 @@
 
 <script>
     // AUTOMATISCHE CACHE-VERNIEUWING (VERSIE CHECK)
-    const APP_VERSION = "2.4";
+    const APP_VERSION = "2.5";
     
     async function checkAppVersion() {
         try {
@@ -955,7 +956,11 @@
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
     let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
-    let selectedImageBase64 = null;
+    
+    // Variabelen voor bijlagen (foto of bestand)
+    let selectedFileBase64 = null;
+    let selectedFileName = null;
+    let selectedFileType = null;
 
     const defaultTemplate = [
         { dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Mark", "Robert", "Marcel", "Sander"] },
@@ -1664,20 +1669,31 @@
         }
     }
 
-    function handleImageSelect(event) {
+    // Bestand selecteren (foto's of PDF/documenten)
+    function handleFileSelect(event) {
         const file = event.target.files[0];
         if (!file) return;
 
-        if (file.size > 2 * 1024 * 1024) {
-            alert("De afbeelding is te groot (maximaal 2MB).");
+        // Limiet op ca. 4MB ingesteld voor veilige opslag in Realtime Database
+        if (file.size > 4 * 1024 * 1024) {
+            alert("Het bestand is te groot (maximaal 4MB).");
             event.target.value = '';
             return;
         }
 
         const reader = new FileReader();
         reader.onload = function(e) {
-            selectedImageBase64 = e.target.result;
-            document.getElementById('chatInput').placeholder = "📷 Foto gekozen (typ optioneel tekst)...";
+            selectedFileBase64 = e.target.result;
+            selectedFileName = file.name;
+            selectedFileType = file.type;
+            
+            if (selectedFileType.includes('pdf')) {
+                document.getElementById('chatInput').placeholder = "📄 PDF gekozen: " + file.name + " (typ optioneel tekst)...";
+            } else if (selectedFileType.includes('image')) {
+                document.getElementById('chatInput').placeholder = "📷 Foto gekozen: " + file.name + " (typ optioneel tekst)...";
+            } else {
+                document.getElementById('chatInput').placeholder = "📎 Bestand gekozen: " + file.name + " (typ optioneel tekst)...";
+            }
         };
         reader.readAsDataURL(file);
     }
@@ -1699,8 +1715,29 @@
                 `;
             }
 
-            let imageHtml = m.imageUrl ? `<img src="${m.imageUrl}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 4px; cursor: pointer; object-fit: cover;" onclick="openImageModal('${m.imageUrl}')">` : '';
-            let textHtml = (m.text && m.text !== "(Foto)") ? `<span>${m.text}</span>` : '';
+            let attachmentHtml = '';
+            if (m.fileUrl) {
+                if (m.fileType && m.fileType.includes('image')) {
+                    attachmentHtml = `<img src="${m.fileUrl}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 4px; cursor: pointer; object-fit: cover;" onclick="openImageModal('${m.fileUrl}')">`;
+                } else {
+                    // Stijl voor PDF of ander document als downloadbare link
+                    let icon = m.fileType && m.fileType.includes('pdf') ? '📄' : '📎';
+                    attachmentHtml = `
+                        <a href="${m.fileUrl}" download="${m.fileName || 'document'}" target="_blank" style="display: flex; align-items: center; gap: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 10px; border-radius: 6px; color: var(--accent-blue); text-decoration: none; margin-top: 4px; font-weight: 500;">
+                            <span style="font-size: 1.2rem;">${icon}</span>
+                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1;">
+                                <div style="font-size: 0.8rem; font-weight: bold;">${m.fileName || 'Bijlage openen'}</div>
+                                <div style="font-size: 0.65rem; color: var(--text-muted);">Klik om te downloaden/bekijken</div>
+                            </div>
+                        </a>
+                    `;
+                }
+            } else if (m.imageUrl) {
+                // Backward compatibility voor oude foto berichten
+                attachmentHtml = `<img src="${m.imageUrl}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 4px; cursor: pointer; object-fit: cover;" onclick="openImageModal('${m.imageUrl}')">`;
+            }
+
+            let textHtml = (m.text && m.text !== "(Bestand)" && m.text !== "(Foto)") ? `<span>${m.text}</span>` : '';
 
             return `
                 <div class="message ${isSelf ? 'self' : ''}">
@@ -1709,7 +1746,7 @@
                         <button class="delete-msg-btn" onclick="deleteMessage(${index})">✕</button>
                     </div>
                     ${textHtml}
-                    ${imageHtml}
+                    ${attachmentHtml}
                 </div>
             `;
         }).join('');
@@ -1719,7 +1756,7 @@
     async function sendMessage() {
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
-        if (!text && !selectedImageBase64) return;
+        if (!text && !selectedFileBase64) return;
 
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -1731,18 +1768,31 @@
             tijd: timeStr
         };
 
-        if (selectedImageBase64) {
-            messageData.imageUrl = selectedImageBase64;
+        if (selectedFileBase64) {
+            messageData.fileUrl = selectedFileBase64;
+            messageData.fileName = selectedFileName;
+            messageData.fileType = selectedFileType;
         }
 
         await db.ref('padelData/messages').push(messageData);
 
-        await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, text || "📷 [Foto bijlage]");
+        let notifBody = text;
+        if (selectedFileBase64) {
+            if (selectedFileType && selectedFileType.includes('pdf')) {
+                notifBody = text ? `${text} (📄 PDF: ${selectedFileName})` : `📄 [PDF bijlage: ${selectedFileName}]`;
+            } else {
+                notifBody = text ? `${text} (📷 Foto)` : "📷 [Foto bijlage]";
+            }
+        }
+
+        await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, notifBody);
 
         input.value = '';
         input.placeholder = "Typ een bericht...";
-        selectedImageBase64 = null;
-        document.getElementById('imageInput').value = '';
+        selectedFileBase64 = null;
+        selectedFileName = null;
+        selectedFileType = null;
+        document.getElementById('fileInput').value = '';
     }
 
     function handleKeyPress(e) {
