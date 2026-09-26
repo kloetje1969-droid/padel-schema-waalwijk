@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v3.0)</title>
+    <title>Padelschema - Rooster & Chat (v3.2)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -910,7 +910,7 @@
 
 <script>
     // AUTOMATISCHE CACHE-VERNIEUWING (VERSIE CHECK)
-    const APP_VERSION = "3.1";
+    const APP_VERSION = "3.2";
     
     async function checkAppVersion() {
         try {
@@ -954,6 +954,11 @@
     }
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
+    
+    // JOUW ECHTE IDENTITEIT IS ALTIJD ROBERT (voor rechten en knoppen)
+    const ECHTE_GEBRUIKER = "Robert";
+    
+    // Huidige weergave in de dropdown (kan gewijzigd worden om mee te kijken)
     let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
     
     let selectedFileBase64 = null;
@@ -1176,8 +1181,8 @@
             let disabledAttr = "";
             let displayName = p;
             
-            // Als de speler Robert is, maar de huidige kijker is NIET Robert
-            if (p === "Robert" && currentUserName !== "Robert") {
+            // Als de speler Robert is, maar de echte gebruiker is NIET Robert (voor het geval iemand anders op jouw app kijkt)
+            if (p === "Robert" && ECHTE_GEBRUIKER !== "Robert") {
                 disabledAttr = "disabled";
                 displayName = "Robert (🔒)";
             }
@@ -1185,10 +1190,10 @@
             return `<option value="${p}" ${p === currentUserName ? 'selected' : ''} ${disabledAttr}>${displayName}</option>`;
         }).join('');
 
-        // Beheerknop "Alles wissen" alleen tonen voor Robert
+        // Beheerknop "Alles wissen" alleen tonen voor Robert (echte gebruiker)
         const clearBtn = document.getElementById('clearAllChatBtn');
         if (clearBtn) {
-            if (currentUserName === "Robert") {
+            if (ECHTE_GEBRUIKER === "Robert") {
                 clearBtn.style.display = 'inline-flex';
             } else {
                 clearBtn.style.display = 'none';
@@ -1800,8 +1805,8 @@
 
             let textHtml = (m.text && m.text !== "(Bestand)" && m.text !== "(Foto)") ? `<span>${m.text}</span>` : '';
 
-            // Bepaal of het kruisje getoond mag worden (Robert mag alles wissen, anderen alleen hun eigen berichten)
-            let canDelete = (currentUserName === "Robert" || isSelf || m.author === currentUserName);
+            // Robert (echte gebruiker) mag alles wissen, anderen alleen hun eigen berichten
+            let canDelete = (ECHTE_GEBRUIKER === "Robert" || isSelf || m.author === currentUserName);
             let deleteBtnHtml = canDelete ? `<button class="delete-msg-btn" onclick="deleteMessage(${index})" title="Verwijder bericht">✕</button>` : '';
 
             return `
@@ -1877,7 +1882,7 @@
     }
 
     function clearAllChat() {
-        if (currentUserName === "Robert" && confirm("Weet je zeker dat je alle chatberichten wilt wissen?")) {
+        if (ECHTE_GEBRUIKER === "Robert" && confirm("Weet je zeker dat je alle chatberichten wilt wissen?")) {
             db.ref('padelData/messages').remove();
         }
     }
