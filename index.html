@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v2.2)</title>
+    <title>Padelschema - Rooster & Chat (v2.3)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -900,7 +900,7 @@
 
 <script>
     // AUTOMATISCHE CACHE-VERNIEUWING (VERSIE CHECK)
-    const APP_VERSION = "2.2";
+    const APP_VERSION = "2.3";
     
     async function checkAppVersion() {
         try {
@@ -909,7 +909,6 @@
             if (htmlText.includes('APP_VERSION')) {
                 const match = htmlText.match(/const APP_VERSION = "([^"]+)"/);
                 if (match && match[1] && match[1] !== APP_VERSION) {
-                    console.WriteLine("Nieuwe versie ontdekt, cache wordt vernieuwd...");
                     window.location.reload(true);
                 }
             }
@@ -917,7 +916,7 @@
             // Negeer netwerkfout bij versie check
         }
     }
-    setInterval(checkAppVersion, 30000); // Check elke 30 seconden op een update
+    setInterval(checkAppVersion, 30000);
 
     const firebaseConfig = {
         apiKey: "AIzaSyC2TvKuO8vSfzmaGu-CictLit5iuRnRFNU",
@@ -1574,6 +1573,29 @@
         document.getElementById('replaceModal').style.display = 'none';
     }
 
+    // Hulpfunctie om te voorkomen dat exact hetzelfde systeembericht binnen 3 seconden dubbel wordt toegevoegd
+    async function addSystemMessageIfUnique(msgText) {
+        const now = Date.now();
+        const timeStr = new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Controleer of de laatste 3 berichten exact dezelfde tekst hebben en minder dan 3 seconden geleden zijn geplaatst
+        const recentMessages = messages.slice(-3);
+        const isDuplicate = recentMessages.some(m => m.text === msgText && (now - (m.timestamp || 0) < 3000));
+
+        if (isDuplicate) {
+            console.log("Dubbel systeembericht tegengehouden:", msgText);
+            return;
+        }
+
+        await db.ref('padelData/messages').push({
+            author: "Systeem",
+            text: msgText,
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            tijd: timeStr,
+            type: "system"
+        });
+    }
+
     async function confirmReplacement() {
         let newPlayers = [];
         for (let i = 0; i < 4; i++) {
@@ -1591,18 +1613,7 @@
         let actualWeekNum = getCalendarWeekNum(activeModalWeek);
         let msgText = `🔄 Schema gewijzigd voor week ${actualWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
         
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        let msgRef = db.ref('padelData/messages').push();
-        await msgRef.set({
-            author: "Systeem",
-            text: msgText,
-            timestamp: firebase.database.ServerValue.TIMESTAMP,
-            tijd: timeStr,
-            type: "system"
-        });
-
+        await addSystemMessageIfUnique(msgText);
         await triggerPushNotification("Padel Schema Gewijzigd", msgText);
 
         closeModal();
@@ -1622,17 +1633,7 @@
             const statusText = newVal ? "afgemeld" : "aangemeld";
             let msgText = `📅 ${playerName} is ${statusText} voor week ${actualWeekNum} (${day}) (door ${currentUserName})`;
             
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            await db.ref('padelData/messages').push({
-                author: "Systeem",
-                text: msgText,
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                tijd: timeStr,
-                type: "system"
-            });
-
+            await addSystemMessageIfUnique(msgText);
             await triggerPushNotification("Padel Afwezigheid", msgText);
         });
     }
@@ -1653,7 +1654,6 @@
         if (isToday) {
             return timeStr; // Alleen tijd als het vandaag is
         } else {
-            // Anders datum erbij (bijv. "26 sep 14:30")
             const dateStr = msgDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
             return `${dateStr} ${timeStr}`;
         }
