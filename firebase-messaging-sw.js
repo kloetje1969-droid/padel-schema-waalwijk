@@ -13,22 +13,28 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Vang het achtergrondbericht op (wanneer de app gesloten is of op de achtergrond staat)
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Ontvangen achtergrondbericht:', payload);
-    const notificationTitle = payload.notification.title || 'Padel Update';
+    
+    // Haal de titel en body uit payload.data
+    const notificationTitle = payload.data?.title || 'Padel Update';
     const notificationOptions = {
-        body: payload.notification.body || 'Er is een nieuw bericht.',
-        icon: '/favicon.ico'
+        body: payload.data?.body || 'Er is een nieuw bericht.',
+        icon: '/favicon.ico',
+        badge: '/favicon.ico'
     };
+
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Vang het bericht van de app op en toon direct de melding
+// Vang eventuele berichten direct vanuit de app op
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
         self.registration.showNotification(event.data.title, {
             body: event.data.body,
-            icon: '/favicon.ico'
+            icon: '/favicon.ico',
+            badge: '/favicon.ico'
         });
     }
 });
