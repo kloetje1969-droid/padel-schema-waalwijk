@@ -856,7 +856,7 @@
     <div class="card" id="chatCardSection">
         <div class="card-header">
             <div class="section-title" style="font-size: 0.95rem;">💬 Team Chat</div>
-            <button class="btn-edit" onclick="clearAllChat()">Alles wissen</button>
+            <button class="btn-edit" id="clearAllChatBtn" onclick="clearAllChat()" style="display: none;">Alles wissen</button>
         </div>
         <div class="chat-messages" id="chatWindow"></div>
         <div class="chat-input-row">
@@ -910,7 +910,7 @@
 
 <script>
     // AUTOMATISCHE CACHE-VERNIEUWING (VERSIE CHECK)
-    const APP_VERSION = "3.0";
+    const APP_VERSION = "3.1";
     
     async function checkAppVersion() {
         try {
@@ -960,7 +960,6 @@
     let selectedFileName = null;
     let selectedFileType = null;
 
-    // Nieuwe geoptimaliseerde template (iedereen evenveel, minimaal 1x per week, Ronald en Robert 1x samen)
     const defaultTemplate = [
         { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Mark"] },
         { dinsdag: ["Ronald", "Robert", "Dennis", "Sander"], donderdag: ["Marcel", "Mark", "Ronald", "Sander"] },
@@ -1173,7 +1172,28 @@
 
     function initUserSelect() {
         const select = document.getElementById('userSelect');
-        select.innerHTML = basePlayers.map(p => `<option value="${p}" ${p === currentUserName ? 'selected' : ''}>${p}</option>`).join('');
+        select.innerHTML = basePlayers.map(p => {
+            let disabledAttr = "";
+            let displayName = p;
+            
+            // Als de speler Robert is, maar de huidige kijker is NIET Robert
+            if (p === "Robert" && currentUserName !== "Robert") {
+                disabledAttr = "disabled";
+                displayName = "Robert (🔒)";
+            }
+            
+            return `<option value="${p}" ${p === currentUserName ? 'selected' : ''} ${disabledAttr}>${displayName}</option>`;
+        }).join('');
+
+        // Beheerknop "Alles wissen" alleen tonen voor Robert
+        const clearBtn = document.getElementById('clearAllChatBtn');
+        if (clearBtn) {
+            if (currentUserName === "Robert") {
+                clearBtn.style.display = 'inline-flex';
+            } else {
+                clearBtn.style.display = 'none';
+            }
+        }
     }
 
     function changeUser() {
@@ -1184,7 +1204,9 @@
 
         db.ref(`padelData/presence/${oldUser}_${userSessionId}`).set({ name: oldUser, timestamp: firebase.database.ServerValue.TIMESTAMP });
         setupOnlinePresence();
+        initUserSelect(); // Vernieuw dropdown states en knoppen
         renderAll();
+        renderChat();
     }
 
     function setupOnlinePresence() {
@@ -1271,7 +1293,6 @@
         return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
 
-    // Verschuift de cyclus pas door op donderdag vanaf 23:59 uur
     function getAdjustedBaseDate() {
         let now = new Date();
         let day = now.getDay(); 
@@ -1307,7 +1328,6 @@
         return "-";
     }
 
-    // STRIKTE ISOLATIE: Controleer afwezigheid UITSLUITEND op basis van de unieke weeksleutel (jaar_wX)
     function checkPlayerAbsent(playerName, uniqueWeekKey, day) {
         if (!absences[playerName]) return false;
         return !!absences[playerName][`${uniqueWeekKey}_${day}`];
@@ -1780,11 +1800,15 @@
 
             let textHtml = (m.text && m.text !== "(Bestand)" && m.text !== "(Foto)") ? `<span>${m.text}</span>` : '';
 
+            // Bepaal of het kruisje getoond mag worden (Robert mag alles wissen, anderen alleen hun eigen berichten)
+            let canDelete = (currentUserName === "Robert" || isSelf || m.author === currentUserName);
+            let deleteBtnHtml = canDelete ? `<button class="delete-msg-btn" onclick="deleteMessage(${index})" title="Verwijder bericht">✕</button>` : '';
+
             return `
                 <div class="message ${isSelf ? 'self' : ''}">
                     <div class="message-header">
                         <span class="author">${m.author} ${tijdWeergave}</span>
-                        <button class="delete-msg-btn" onclick="deleteMessage(${index})">✕</button>
+                        ${deleteBtnHtml}
                     </div>
                     ${textHtml}
                     ${attachmentHtml}
@@ -1853,7 +1877,7 @@
     }
 
     function clearAllChat() {
-        if (confirm("Weet je zeker dat je alle chatberichten wilt wissen?")) {
+        if (currentUserName === "Robert" && confirm("Weet je zeker dat je alle chatberichten wilt wissen?")) {
             db.ref('padelData/messages').remove();
         }
     }
