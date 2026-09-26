@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v3.4)</title>
+    <title>Padelschema - Rooster & Chat (v3.5)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -910,7 +910,7 @@
 
 <script>
     // AUTOMATISCHE CACHE-VERNIEUWING (VERSIE CHECK)
-    const APP_VERSION = "3.4";
+    const APP_VERSION = "3.5";
     
     async function checkAppVersion() {
         try {
@@ -1173,16 +1173,7 @@
     function initUserSelect() {
         const select = document.getElementById('userSelect');
         select.innerHTML = basePlayers.map(p => {
-            let disabledAttr = "";
-            let displayName = p;
-            
-            // Robert is zichtbaar voor iedereen, maar alleen klikbaar/selecteerbaar als de huidige kijker zelf Robert is
-            if (p === "Robert" && currentUserName !== "Robert") {
-                disabledAttr = "disabled";
-                displayName = "Robert (🔒)";
-            }
-            
-            return `<option value="${p}" ${p === currentUserName ? 'selected' : ''} ${disabledAttr}>${displayName}</option>`;
+            return `<option value="${p}" ${p === currentUserName ? 'selected' : ''}>${p}</option>`;
         }).join('');
 
         // Beheerknop "Alles wissen" alleen tonen als Robert is geselecteerd
@@ -1198,13 +1189,26 @@
 
     function changeUser() {
         const select = document.getElementById('userSelect');
+        const gekozenNaam = select.value;
+
+        // Als iemand Robert probeert te selecteren, vraag om pincode 1412
+        if (gekozenNaam === "Robert" && currentUserName !== "Robert") {
+            let ingevoerdePincode = prompt("Voer de pincode in om als Robert in te loggen:");
+            
+            if (ingevoerdePincode !== "1412") {
+                alert("Onjuiste pincode!");
+                select.value = currentUserName; // Zet selectie terug naar vorige gebruiker
+                return;
+            }
+        }
+
         const oldUser = currentUserName;
-        currentUserName = select.value;
+        currentUserName = gekozenNaam;
         localStorage.setItem('padel_current_user', currentUserName);
 
         db.ref(`padelData/presence/${oldUser}_${userSessionId}`).set({ name: oldUser, timestamp: firebase.database.ServerValue.TIMESTAMP });
         setupOnlinePresence();
-        initUserSelect(); // Vernieuw dropdown en knoppen direct
+        initUserSelect(); // Vernieuw knoppen direct
         renderAll();
         renderChat();
     }
@@ -1770,8 +1774,7 @@
             const formattedTime = formatMessageTime(m.timestamp, m.tijd);
             const tijdWeergave = formattedTime ? `<span style="font-size: 0.65rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${formattedTime}</span>` : '';
 
-            // Robert (wanneer geselecteerd) mag ALLE berichten/meldingen (inclusief systeem/schema) verwijderen.
-            // Anderen mogen alleen hun eigen normale chatberichten verwijderen.
+            // Robert mag alles wissen, anderen alleen hun eigen normale chatberichten
             let canDelete = (currentUserName === "Robert" || isSelf || (isSystem && currentUserName === "Robert"));
             let deleteBtnHtml = canDelete ? `<button class="delete-msg-btn" onclick="deleteMessage(${index})" title="Verwijder bericht">✕</button>` : '';
 
