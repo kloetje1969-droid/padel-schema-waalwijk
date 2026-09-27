@@ -1088,7 +1088,6 @@
 
         setupOnlinePresence();
 
-        // Houd de statusweergave elke 10 seconden up-to-date zodat tijden (zoals "5m geleden") correct verspringen
         setInterval(() => {
             renderStatuses();
         }, 10000);
@@ -1199,7 +1198,6 @@
         renderChat();
     }
 
-    // ROBUUSTE FIREBASE ONLINE/OFFLINE REGISTRATIE
     function setupOnlinePresence() {
         const userPresenceRef = db.ref(`padelData/presence/${currentUserName}_${userSessionId}`);
         const connectedRef = db.ref('.info/connected');
@@ -1207,12 +1205,10 @@
         connectedRef.on('value', (snapshot) => {
             if (snapshot.val() === false) return;
 
-            // Zodra de verbinding wegvalt, zet Firebase server-side direct de offline timestamp
             userPresenceRef.onDisconnect().set({
                 name: currentUserName,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             }).then(() => {
-                // Direct online zetten bij actieve verbinding
                 userPresenceRef.set({
                     name: currentUserName,
                     timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -1221,7 +1217,6 @@
         });
     }
 
-    // NAUWKEURIGE TIJDNOTATIE (BIJV. "1d 2u geleden", "5m geleden", "zojuist" of "online")
     function formatLastSeen(timestamp) {
         if (!timestamp) return "offline";
         const diffMs = Date.now() - timestamp;
