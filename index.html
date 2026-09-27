@@ -1210,7 +1210,6 @@
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
 
-            // HEARTBEAT FIX: Elke 5 seconden de timestamp verversen zodat je online blijft
             if (window.presenceInterval) clearInterval(window.presenceInterval);
             window.presenceInterval = setInterval(() => {
                 userPresenceRef.update({
@@ -1377,30 +1376,31 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            if (dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) {
+            // INTEGRAATIE REGENLOGICA (dinsdag en donderdag om 18:00 uur, >= 60% neerslag, eenmalig)
+            if (dinsdagWeatherObj && dinsdagWeatherObj.rain >= 60) {
                 let rainKey = `rain_notified_${uniqueWeekKey}_dinsdag`;
                 if (!localStorage.getItem(rainKey)) {
                     localStorage.setItem(rainKey, 'true');
-                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${dinsdagWeatherObj.rain}% kans op regen op de dinsdagavond van week ${currentWeekNum}!`);
+                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${dinsdagWeatherObj.rain}% kans op regen om 18:00 uur op de dinsdagavond van week ${currentWeekNum}!`);
                 }
             }
 
-            if (donderdagWeatherObj && donderdagWeatherObj.rain > 60) {
+            if (donderdagWeatherObj && donderdagWeatherObj.rain >= 60) {
                 let rainKey = `rain_notified_${uniqueWeekKey}_donderdag`;
                 if (!localStorage.getItem(rainKey)) {
                     localStorage.setItem(rainKey, 'true');
-                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${donderdagWeatherObj.rain}% kans op regen op de donderdagavond van week ${currentWeekNum}!`);
+                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur op de donderdagavond van week ${currentWeekNum}!`);
                 }
             }
 
-            let dinsdagRainWarning = (dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) ? 
+            let dinsdagRainWarning = (dinsdagWeatherObj && dinsdagWeatherObj.rain >= 60) ? 
                 `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠️ <strong>Let op:</strong> ${dinsdagWeatherObj.rain}% kans op regen op deze dinsdagavond!
+                    ⚠️ <strong>Let op:</strong> ${dinsdagWeatherObj.rain}% kans op regen om 18:00 uur op deze dinsdagavond!
                  </div>` : '';
 
-            let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain > 60) ? 
+            let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain >= 60) ? 
                 `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen op deze donderdagavond!
+                    ⚠️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur op deze donderdagavond!
                  </div>` : '';
 
             let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
