@@ -897,7 +897,6 @@
 </div>
 
 <script>
-    // AUTOMATISCHE CACHE-VERNIEUWING (VERSIE CHECK)
     const APP_VERSION = "3.6";
     
     async function checkAppVersion() {
@@ -911,7 +910,6 @@
                 }
             }
         } catch (e) {
-            // Negeer netwerkfout bij versie check
         }
     }
     setInterval(checkAppVersion, 30000);
@@ -1373,6 +1371,23 @@
 
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
+
+            // Automatische pushmelding trigger bij >60% regen (met lokale opslag om dubbele meldingen op dezelfde dag te voorkomen)
+            if (dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) {
+                let rainKey = `rain_notified_${uniqueWeekKey}_dinsdag`;
+                if (!localStorage.getItem(rainKey)) {
+                    localStorage.setItem(rainKey, 'true');
+                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${dinsdagWeatherObj.rain}% kans op regen op de dinsdagavond van week ${currentWeekNum}!`);
+                }
+            }
+
+            if (donderdagWeatherObj && donderdagWeatherObj.rain > 60) {
+                let rainKey = `rain_notified_${uniqueWeekKey}_donderdag`;
+                if (!localStorage.getItem(rainKey)) {
+                    localStorage.setItem(rainKey, 'true');
+                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${donderdagWeatherObj.rain}% kans op regen op de donderdagavond van week ${currentWeekNum}!`);
+                }
+            }
 
             let dinsdagRainWarning = (dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) ? 
                 `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
