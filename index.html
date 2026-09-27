@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v3.5)</title>
+    <title>Padelschema - Rooster & Chat (v3.6)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -910,7 +910,7 @@
 
 <script>
     // AUTOMATISCHE CACHE-VERNIEUWING (VERSIE CHECK)
-    const APP_VERSION = "3.5";
+    const APP_VERSION = "3.6";
     
     async function checkAppVersion() {
         try {
@@ -1297,18 +1297,19 @@
         return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
 
+    // AANGEPASTE FUNCTIE VOOR HET WEGSCHUIVEN NA DONDERDAG 23:59
     function getAdjustedBaseDate() {
         let now = new Date();
-        let day = now.getDay(); 
-        let hour = now.getHours();
-        let minute = now.getMinutes();
+        let currentMonday = getMonday(now);
+        currentMonday.setHours(0, 0, 0, 0);
 
-        let target = getMonday(now);
-        target.setHours(0, 0, 0, 0);
+        let thursdayOfThisWeek = new Date(currentMonday);
+        thursdayOfThisWeek.setDate(currentMonday.getDate() + 3); // Maandag + 3 dagen = Donderdag
+        thursdayOfThisWeek.setHours(23, 59, 59, 999);
 
-        let isAfterThursdayNight = (day > 4) || (day === 4 && (hour > 23 || (hour === 23 && minute >= 59)));
+        let target = new Date(currentMonday);
 
-        if (isAfterThursdayNight) {
+        if (now > thursdayOfThisWeek) {
             target.setDate(target.getDate() + 7);
         }
 
