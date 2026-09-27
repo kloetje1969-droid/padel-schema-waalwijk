@@ -197,16 +197,10 @@
             padding-top: 10px;
         }
 
-        @keyframes pulseGreenText {
-            0% { color: #9ca3af; text-shadow: none; }
-            50% { color: #6ee7b7; text-shadow: 0 0 8px rgba(110, 231, 183, 0.8); }
-            100% { color: #9ca3af; text-shadow: none; }
-        }
-
-        @keyframes pulseOnlineMeText {
-            0% { color: rgba(110, 231, 183, 0.7); text-shadow: 0 0 4px rgba(110, 231, 183, 0.3); }
-            50% { color: #ffffff; text-shadow: 0 0 12px rgba(110, 231, 183, 1); }
-            100% { color: rgba(110, 231, 183, 0.7); text-shadow: 0 0 4px rgba(110, 231, 183, 0.3); }
+        @keyframes blinkGreen {
+            0% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #34d399; }
+            100% { opacity: 0.3; transform: scale(0.8); }
         }
 
         @keyframes pulseConnection {
@@ -257,47 +251,41 @@
             background: #374151;
             border: 1px solid #4b5563;
             color: var(--text-main);
-            padding: 3px 7px;
-            border-radius: 5px;
-            font-size: 0.65rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
         }
 
         .status-badge .badge-text {
             color: var(--text-muted);
         }
 
-        .status-badge.is-online .badge-text {
-            animation: pulseGreenText 2s infinite ease-in-out;
-            font-weight: 600;
-        }
-
         .status-badge.me {
             border-color: #6ee7b7;
             background: rgba(16, 185, 129, 0.2);
             box-shadow: 0 0 6px rgba(110, 231, 183, 0.3);
-        }
-
-        .status-badge.me.is-online .badge-text {
-            animation: pulseOnlineMeText 2s infinite ease-in-out;
-            font-weight: 700;
-            color: #6ee7b7;
+            font-weight: bold;
         }
 
         .status-dot {
-            width: 4px;
-            height: 4px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
-            background: var(--text-muted);
+            display: inline-block;
         }
 
-        .status-badge.me .status-dot,
         .status-dot.online {
-            background: #6ee7b7;
-            box-shadow: 0 0 4px #6ee7b7;
+            background: #34d399;
+            animation: blinkGreen 1.5s infinite ease-in-out;
+        }
+
+        .status-dot.offline {
+            background: #f87171;
+            animation: none;
         }
 
         @keyframes pulseRed {
@@ -977,7 +965,6 @@
     let lastSeenMessageCount = parseInt(localStorage.getItem('padel_last_seen_count') || '0');
 
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
-    let heartbeatInterval = null;
 
     document.addEventListener('DOMContentLoaded', () => {
         if (sessionStorage.getItem('padel_unlocked') === 'true') {
@@ -1101,9 +1088,10 @@
 
         setupOnlinePresence();
 
+        // Houd de statusweergave elke 10 seconden up-to-date zodat tijden (zoals "5m geleden") correct verspringen
         setInterval(() => {
             renderStatuses();
-        }, 5000);
+        }, 10000);
     }
 
     function fetchWaalwijkWeather() {
@@ -1176,7 +1164,6 @@
             return `<option value="${p}" ${p === currentUserName ? 'selected' : ''}>${p}</option>`;
         }).join('');
 
-        // Beheerknop "Alles wissen" alleen tonen als Robert is geselecteerd
         const clearBtn = document.getElementById('clearAllChatBtn');
         if (clearBtn) {
             if (currentUserName === "Robert") {
@@ -1191,13 +1178,12 @@
         const select = document.getElementById('userSelect');
         const gekozenNaam = select.value;
 
-        // Als iemand Robert probeert te selecteren, vraag om pincode 1412
         if (gekozenNaam === "Robert" && currentUserName !== "Robert") {
             let ingevoerdePincode = prompt("Voer de pincode in om als Robert in te loggen:");
             
             if (ingevoerdePincode !== "1412") {
                 alert("Onjuiste pincode!");
-                select.value = currentUserName; // Zet selectie terug naar vorige gebruiker
+                select.value = currentUserName;
                 return;
             }
         }
@@ -1206,39 +1192,54 @@
         currentUserName = gekozenNaam;
         localStorage.setItem('padel_current_user', currentUserName);
 
-        db.ref(`padelData/presence/${oldUser}_${userSessionId}`).set({ name: oldUser, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        db.ref(`padelData/presence/${oldUser}_${userSessionId}`).remove();
         setupOnlinePresence();
-        initUserSelect(); // Vernieuw knoppen direct
+        initUserSelect();
         renderAll();
         renderChat();
     }
 
+    // ROBUUSTE FIREBASE ONLINE/OFFLINE REGISTRATIE
     function setupOnlinePresence() {
         const userPresenceRef = db.ref(`padelData/presence/${currentUserName}_${userSessionId}`);
-        
-        userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
-        userPresenceRef.onDisconnect().set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        const connectedRef = db.ref('.info/connected');
 
-        if (heartbeatInterval) clearInterval(heartbeatInterval);
-        heartbeatInterval = setInterval(() => {
-            if (document.visibilityState === 'visible') {
-                userPresenceRef.set({ name: currentUserName, timestamp: firebase.database.ServerValue.TIMESTAMP });
-            }
-        }, 3000);
+        connectedRef.on('value', (snapshot) => {
+            if (snapshot.val() === false) return;
+
+            // Zodra de verbinding wegvalt, zet Firebase server-side direct de offline timestamp
+            userPresenceRef.onDisconnect().set({
+                name: currentUserName,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                // Direct online zetten bij actieve verbinding
+                userPresenceRef.set({
+                    name: currentUserName,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+            });
+        });
     }
 
+    // NAUWKEURIGE TIJDNOTATIE (BIJV. "1d 2u geleden", "5m geleden", "zojuist" of "online")
     function formatLastSeen(timestamp) {
         if (!timestamp) return "offline";
         const diffMs = Date.now() - timestamp;
+        
         const diffMins = Math.floor(diffMs / (1000 * 60));
         const diffHours = Math.floor(diffMins / 60);
         const diffDays = Math.floor(diffHours / 24);
 
         if (diffMs < 10000) return "online";
         if (diffMins < 1) return "zojuist";
+        
+        if (diffDays > 0) {
+            const remainingHours = diffHours % 24;
+            return remainingHours > 0 ? `${diffDays}d ${remainingHours}u geleden` : `${diffDays}d geleden`;
+        }
+        
         if (diffMins < 60) return `${diffMins}m geleden`;
-        if (diffHours < 24) return `${diffHours}u geleden`;
-        return `${diffDays}d geleden`;
+        return `${diffHours}u geleden`;
     }
 
     function renderStatuses() {
@@ -1264,8 +1265,8 @@
                 const statusText = isOnline ? "online" : formatLastSeen(ts);
 
                 return `
-                    <div class="status-badge ${isMe ? 'me' : ''} ${isOnline ? 'is-online' : ''}">
-                        <span class="status-dot ${isOnline ? 'online' : ''}"></span>
+                    <div class="status-badge ${isMe ? 'me' : ''}">
+                        <span class="status-dot ${isOnline ? 'online' : 'offline'}"></span>
                         <span>${player}:</span>
                         <span class="badge-text">${statusText}</span>
                     </div>
@@ -1297,14 +1298,13 @@
         return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
 
-    // AANGEPASTE FUNCTIE VOOR HET WEGSCHUIVEN NA DONDERDAG 23:59
     function getAdjustedBaseDate() {
         let now = new Date();
         let currentMonday = getMonday(now);
         currentMonday.setHours(0, 0, 0, 0);
 
         let thursdayOfThisWeek = new Date(currentMonday);
-        thursdayOfThisWeek.setDate(currentMonday.getDate() + 3); // Maandag + 3 dagen = Donderdag
+        thursdayOfThisWeek.setDate(currentMonday.getDate() + 3);
         thursdayOfThisWeek.setHours(23, 59, 59, 999);
 
         let target = new Date(currentMonday);
@@ -1775,7 +1775,6 @@
             const formattedTime = formatMessageTime(m.timestamp, m.tijd);
             const tijdWeergave = formattedTime ? `<span style="font-size: 0.65rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${formattedTime}</span>` : '';
 
-            // Robert mag alles wissen, anderen alleen hun eigen normale chatberichten
             let canDelete = (currentUserName === "Robert" || isSelf || (isSystem && currentUserName === "Robert"));
             let deleteBtnHtml = canDelete ? `<button class="delete-msg-btn" onclick="deleteMessage(${index})" title="Verwijder bericht">✕</button>` : '';
 
