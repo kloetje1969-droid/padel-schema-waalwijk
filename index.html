@@ -1203,15 +1203,20 @@
         connectedRef.on('value', (snapshot) => {
             if (snapshot.val() === false) return;
 
-            userPresenceRef.onDisconnect().set({
+            userPresenceRef.onDisconnect().remove();
+
+            userPresenceRef.set({
                 name: currentUserName,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
-            }).then(() => {
-                userPresenceRef.set({
-                    name: currentUserName,
+            });
+
+            // HEARTBEAT FIX: Elke 5 seconden de timestamp verversen zodat je online blijft
+            if (window.presenceInterval) clearInterval(window.presenceInterval);
+            window.presenceInterval = setInterval(() => {
+                userPresenceRef.update({
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
-            });
+            }, 5000);
         });
     }
 
@@ -1372,7 +1377,6 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            // Automatische pushmelding trigger bij >60% regen (met lokale opslag om dubbele meldingen op dezelfde dag te voorkomen)
             if (dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) {
                 let rainKey = `rain_notified_${uniqueWeekKey}_dinsdag`;
                 if (!localStorage.getItem(rainKey)) {
