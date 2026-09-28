@@ -1148,14 +1148,6 @@ let appInitialized = false;
         try {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
-                let savedToken = localStorage.getItem('padel_fcm_token');
-                
-                if (savedToken) {
-                    db.ref(`padelData/tokens/${currentUserName}`).set(savedToken);
-                    alert("Pushmeldingen zijn al actief op dit apparaat!");
-                    return;
-                }
-
                 const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js');
                 const token = await messaging.getToken({
                     vapidKey: 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg',
@@ -1164,8 +1156,13 @@ let appInitialized = false;
                 
                 if (token) {
                     localStorage.setItem('padel_fcm_token', token);
-                    db.ref(`padelData/tokens/${currentUserName}`).set(token);
-                    alert("Pushmeldingen succesvol ingeschakeld via Firebase!");
+                    
+                    // Voeg het token van dit apparaat toe aan de lijst in Firebase
+                    await db.ref(`padelData/tokens/${currentUserName}`).update({
+                        [token]: true
+                    });
+
+                    alert("Pushmeldingen succesvol ingeschakeld voor dit apparaat!");
                 }
             } else {
                 alert("Geen toestemming gegeven voor meldingen.");
@@ -1175,7 +1172,6 @@ let appInitialized = false;
             alert("Kon pushmeldingen niet activeren.");
         }
     }
-
     async function triggerPushNotification(title, body) {
         try {
             const res = await fetch('/api/send-notification', {
