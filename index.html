@@ -260,10 +260,6 @@
             gap: 5px;
         }
 
-        .status-badge .badge-text {
-            color: var(--text-muted);
-        }
-
         .status-badge.me {
             border-color: #6ee7b7;
             background: rgba(16, 185, 129, 0.2);
@@ -284,7 +280,7 @@
         }
 
         .status-dot.offline {
-            background: #f87171;
+            background: #6b7280;
             animation: none;
         }
 
@@ -756,12 +752,6 @@
             font-weight: 600; 
             font-size: 0.85rem; 
         }
-    
-/* =========================================================
-   iPHONE SPEELSCHEMA
-   De wedstrijd blijft één horizontale rij. De spelers
-   worden niet onder elkaar geplaatst door schermbreedte.
-   ========================================================= */
 
 #scheduleContainer {
     min-width: 0;
@@ -1032,7 +1022,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "3.6";
+    const APP_VERSION = "3.9";
     
     async function checkAppVersion() {
         try {
@@ -1077,7 +1067,6 @@
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
     let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
     
-    // Vaste identiteit voor online presence (voorkomt dat status wisselt bij "mee loeren")
     const myOriginalUserName = currentUserName;
 
     let selectedFileBase64 = null;
@@ -1102,7 +1091,6 @@
 
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
 
-    // Stabiele online/offline presence variabelen
     const PRESENCE_HEARTBEAT_MS = 15000;
     const PRESENCE_ONLINE_TIMEOUT_MS = 45000;
 
@@ -1343,87 +1331,82 @@
         renderAll();
         renderChat();
         
-        // Optioneel: herstart presence als je wilt dat je actieve account in de app meteen switcht, 
-        // of laat setupOnlinePresence draaien op myOriginalUserName voor vaste sessie-identiteit.
         setupOnlinePresence();
     }
 
     function stopOnlinePresence(removeRemote = true) {
-    if (presenceHeartbeat) {
-        clearInterval(presenceHeartbeat);
-        presenceHeartbeat = null;
-    }
-
-    if (presenceConnectedRef && presenceConnectedHandler) {
-        presenceConnectedRef.off('value', presenceConnectedHandler);
-    }
-
-    if (removeRemote && presenceRef) {
-        presenceRef.remove().catch(err => {
-            console.warn("Kon oude presence niet direct verwijderen:", err);
-        });
-    }
-
-    presenceRef = null;
-    presenceConnectedRef = null;
-    presenceConnectedHandler = null;
-    firebaseConnected = false;
-    updateConnectionIndicator();
-}
-
-function setupOnlinePresence() {
-    // Voorkom dubbele listeners
-    if (presenceConnectedRef && presenceConnectedHandler) {
-        presenceConnectedRef.off('value', presenceConnectedHandler);
-    }
-
-    if (presenceHeartbeat) {
-        clearInterval(presenceHeartbeat);
-        presenceHeartbeat = null;
-    }
-
-    const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
-
-    // Unieke referentie per tabblad/sessie
-    presenceRef = db.ref(`padelData/presence/${myRealName}_${userSessionId}`);
-    presenceConnectedRef = db.ref('.info/connected');
-
-    presenceConnectedHandler = (snapshot) => {
-        const connected = snapshot.val() === true;
-        firebaseConnected = connected;
-        updateConnectionIndicator();
-
-        if (!connected) {
-            if (presenceHeartbeat) {
-                clearInterval(presenceHeartbeat);
-                presenceHeartbeat = null;
-            }
-            return;
+        if (presenceHeartbeat) {
+            clearInterval(presenceHeartbeat);
+            presenceHeartbeat = null;
         }
 
-        // Direct status doorgeven bij verbinding
-        const updatePresenceData = () => {
-            if (!presenceRef) return;
-            presenceRef.set({
-                name: myRealName,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
+        if (presenceConnectedRef && presenceConnectedHandler) {
+            presenceConnectedRef.off('value', presenceConnectedHandler);
+        }
+
+        if (removeRemote && presenceRef) {
+            presenceRef.remove().catch(err => {
+                console.warn("Kon oude presence niet direct verwijderen:", err);
+            });
+        }
+
+        presenceRef = null;
+        presenceConnectedRef = null;
+        presenceConnectedHandler = null;
+        firebaseConnected = false;
+        updateConnectionIndicator();
+    }
+
+    function setupOnlinePresence() {
+        if (presenceConnectedRef && presenceConnectedHandler) {
+            presenceConnectedRef.off('value', presenceConnectedHandler);
+        }
+
+        if (presenceHeartbeat) {
+            clearInterval(presenceHeartbeat);
+            presenceHeartbeat = null;
+        }
+
+        const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
+
+        presenceRef = db.ref(`padelData/presence/${myRealName}_${userSessionId}`);
+        presenceConnectedRef = db.ref('.info/connected');
+
+        presenceConnectedHandler = (snapshot) => {
+            const connected = snapshot.val() === true;
+            firebaseConnected = connected;
+            updateConnectionIndicator();
+
+            if (!connected) {
+                if (presenceHeartbeat) {
+                    clearInterval(presenceHeartbeat);
+                    presenceHeartbeat = null;
+                }
+                return;
+            }
+
+            const updatePresenceData = () => {
+                if (!presenceRef) return;
+                presenceRef.set({
+                    name: myRealName,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                }).catch(err => {
+                    console.warn("Kon presence niet bijwerken:", err);
+                });
+            };
+
+            presenceRef.onDisconnect().remove().then(() => {
+                updatePresenceData();
+
+                if (presenceHeartbeat) clearInterval(presenceHeartbeat);
+                presenceHeartbeat = setInterval(updatePresenceData, PRESENCE_HEARTBEAT_MS);
             }).catch(err => {
-                console.warn("Kon presence niet bijwerken:", err);
+                console.warn("Kon onDisconnect niet instellen:", err);
             });
         };
 
-        presenceRef.onDisconnect().remove().then(() => {
-            updatePresenceData();
-
-            if (presenceHeartbeat) clearInterval(presenceHeartbeat);
-            presenceHeartbeat = setInterval(updatePresenceData, PRESENCE_HEARTBEAT_MS);
-        }).catch(err => {
-            console.warn("Kon onDisconnect niet instellen:", err);
-        });
-    };
-
-    presenceConnectedRef.on('value', presenceConnectedHandler);
-}
+        presenceConnectedRef.on('value', presenceConnectedHandler);
+    }
 
     function updateConnectionIndicator() {
         const indicator = document.getElementById('connectionIndicator');
@@ -1444,26 +1427,6 @@ function setupOnlinePresence() {
                 ? 'Live verbonden met database'
                 : 'Verbinding verbroken – opnieuw verbinden…';
         }
-    }
-
-    function formatLastSeen(timestamp) {
-        if (!timestamp) return "offline";
-        const diffMs = Date.now() - timestamp;
-        
-        const diffMins = Math.floor(diffMs / (1000 * 60));
-        const diffHours = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        if (diffMs < PRESENCE_ONLINE_TIMEOUT_MS) return "online";
-        if (diffMins < 1) return "zojuist";
-        
-        if (diffDays > 0) {
-            const remainingHours = diffHours % 24;
-            return remainingHours > 0 ? `${diffDays}d ${remainingHours}u geleden` : `${diffDays}d geleden`;
-        }
-        
-        if (diffMins < 60) return `${diffMins}m geleden`;
-        return `${diffHours}u geleden`;
     }
 
     function renderStatuses() {
@@ -1490,13 +1453,10 @@ function setupOnlinePresence() {
                     ? firebaseConnected
                     : !!(ts && (Date.now() - ts < PRESENCE_ONLINE_TIMEOUT_MS));
 
-                const statusText = isOnline ? "online" : formatLastSeen(ts);
-
                 return `
                     <div class="status-badge ${isMe ? 'me' : ''}">
                         <span class="status-dot ${isOnline ? 'online' : 'offline'}"></span>
-                        <span>${player}:</span>
-                        <span class="badge-text">${statusText}</span>
+                        <span>${player}</span>
                     </div>
                 `;
             }).join('');
