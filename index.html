@@ -767,135 +767,134 @@
             font-size: 0.85rem; 
         }
 
-#scheduleContainer {
-    min-width: 0;
-    max-width: 100%;
-    overflow-x: hidden;
-}
+        #scheduleContainer {
+            min-width: 0;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
 
-.week-card,
-.match-row-wrapper,
-.match-row,
-.match-info,
-.players-container {
-    min-width: 0;
-    max-width: 100%;
-    box-sizing: border-box;
-}
+        .week-card,
+        .match-row-wrapper,
+        .match-row,
+        .match-info,
+        .players-container {
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
 
-.match-row {
-    width: 100%;
-}
+        .match-row {
+            width: 100%;
+        }
 
-.match-info {
-    flex: 1 1 auto;
-    overflow: hidden;
-}
+        .match-info {
+            flex: 1 1 auto;
+            overflow: hidden;
+        }
 
-.players-container {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 1px;
-}
+        .players-container {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 1px;
+        }
 
-.players-container::-webkit-scrollbar {
-    display: none;
-}
+        .players-container::-webkit-scrollbar {
+            display: none;
+        }
 
-.players-container .player-chip,
-.players-container .vs-text {
-    flex: 0 0 auto;
-}
+        .players-container .player-chip,
+        .players-container .vs-text {
+            flex: 0 0 auto;
+        }
 
-.match-action-container {
-    flex: 0 0 auto;
-    min-width: max-content;
-}
+        .match-action-container {
+            flex: 0 0 auto;
+            min-width: max-content;
+        }
 
-@media (max-width: 600px) {
-    .week-card {
-        border-radius: 11px;
-    }
+        @media (max-width: 600px) {
+            .week-card {
+                border-radius: 11px;
+            }
 
-    .week-header {
-        padding: 9px 10px;
-        font-size: 0.82rem;
-    }
+            .week-header {
+                padding: 9px 10px;
+                font-size: 0.82rem;
+            }
 
-    .match-row {
-        padding: 9px 10px;
-        gap: 7px;
-        align-items: center;
-    }
+            .match-row {
+                padding: 9px 10px;
+                gap: 7px;
+                align-items: center;
+            }
 
-    .match-title {
-        gap: 4px;
-        font-size: 0.66rem;
-        margin-bottom: 5px;
-        overflow-x: auto;
-        scrollbar-width: none;
-    }
+            .match-title {
+                gap: 4px;
+                font-size: 0.66rem;
+                margin-bottom: 5px;
+                overflow-x: auto;
+                scrollbar-width: none;
+            }
 
-    .match-title::-webkit-scrollbar {
-        display: none;
-    }
+            .match-title::-webkit-scrollbar {
+                display: none;
+            }
 
-    .player-chip {
-        padding: 3px 5px;
-        font-size: 0.70rem;
-    }
+            .player-chip {
+                padding: 3px 5px;
+                font-size: 0.70rem;
+            }
 
-    .vs-text {
-        font-size: 0.64rem;
-        margin: 0 1px;
-    }
+            .vs-text {
+                font-size: 0.64rem;
+                margin: 0 1px;
+            }
 
-    .match-action-container .btn-edit {
-        padding: 5px 7px;
-        font-size: 0.72rem;
-        white-space: nowrap;
-    }
+            .match-action-container .btn-edit {
+                padding: 5px 7px;
+                font-size: 0.72rem;
+                white-space: nowrap;
+            }
 
-    .absence-alert {
-        font-size: 0.72rem;
-    }
-}
+            .absence-alert {
+                font-size: 0.72rem;
+            }
+        }
 
-@media (max-width: 390px) {
-    .match-row {
-        padding: 8px;
-        gap: 5px;
-    }
+        @media (max-width: 390px) {
+            .match-row {
+                padding: 8px;
+                gap: 5px;
+            }
 
-    .player-chip {
-        padding: 2px 4px;
-        font-size: 0.65rem;
-    }
+            .player-chip {
+                padding: 2px 4px;
+                font-size: 0.65rem;
+            }
 
-    .vs-text {
-        font-size: 0.60rem;
-    }
+            .vs-text {
+                font-size: 0.60rem;
+            }
 
-    .match-action-container .btn-edit {
-        padding: 4px 6px;
-        font-size: 0.68rem;
-    }
-}
+            .match-action-container .btn-edit {
+                padding: 4px 6px;
+                font-size: 0.68rem;
+            }
+        }
 
-#connectionIndicator.is-offline .status-dot.offline {
-    background: #f87171;
-    animation: none;
-}
+        #connectionIndicator.is-offline .status-dot.offline {
+            background: #f87171;
+            animation: none;
+        }
 
-#connectionIndicator.is-offline .connection-text {
-    color: #f87171;
-}
-
-</style>
+        #connectionIndicator.is-offline .connection-text {
+            color: #f87171;
+        }
+    </style>
 </head>
 <body>
 
@@ -1452,7 +1451,7 @@
         if (diffSec < 60) {
             return "zojuist";
         } else if (diffMin < 60) {
-            return `${diffMin} min${diffMin === 1 ? '' : ''} geleden`;
+            return `${diffMin} min geleden`;
         } else if (diffHours < 24) {
             const remMin = diffMin % 60;
             return remMin > 0 ? `${diffHours} uur ${remMin} min geleden` : `${diffHours} uur geleden`;
@@ -1550,23 +1549,6 @@
         }
 
         return target;
-    }
-
-    function getCalendarWeekNum(templateIndex) {
-        let currentMonday = getAdjustedBaseDate();
-        let referenceMonday = new Date(2026, 8, 21);
-
-        for (let i = 0; i < 6; i++) {
-            let weekStart = new Date(currentMonday);
-            weekStart.setDate(currentMonday.getDate() + (i * 7));
-            let diffTime = weekStart.getTime() - referenceMonday.getTime();
-            let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
-            let tIdx = ((diffWeeks % 6) + 6) % 6;
-            if (tIdx === templateIndex) {
-                return getISOWeekNumber(weekStart);
-            }
-        }
-        return "-";
     }
 
     function checkPlayerAbsent(playerName, uniqueWeekKey, day) {
