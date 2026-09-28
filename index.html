@@ -1451,17 +1451,17 @@
         if (diffSec < 60) {
             return "zojuist";
         } else if (diffMin < 60) {
-            return `${diffMin} min geleden`;
+            return `${diffMin} min`;
         } else if (diffHours < 24) {
             const remMin = diffMin % 60;
-            return remMin > 0 ? `${diffHours} uur ${remMin} min geleden` : `${diffHours} uur geleden`;
+            return remMin > 0 ? `${diffHours} uur ${remMin} min` : `${diffHours} uur`;
         } else {
             const remHours = diffHours % 24;
             let res = `${diffDays} dag${diffDays === 1 ? '' : 'en'}`;
             if (remHours > 0) {
                 res += ` en ${remHours} uur`;
             }
-            return res + " geleden";
+            return res;
         }
     }
 
@@ -1491,7 +1491,7 @@
                 let subText = "";
                 if (!isOnline) {
                     if (ts) {
-                        subText = `<span class="status-time">Laatst: ${getFormattedOfflineTime(diff)}</span>`;
+                        subText = `<span class="status-time">${getFormattedOfflineTime(diff)}</span>`;
                     } else {
                         subText = `<span class="status-time">Offline</span>`;
                     }
