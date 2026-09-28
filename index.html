@@ -1471,14 +1471,12 @@
             if (!container) return;
 
             let uniqueUsers = {};
-            const MAX_VALID_OFFLINE_MS = 12 * 60 * 60 * 1000; // Maximaal 12 uur oud
 
             if (typeof allStatuses === 'object' && allStatuses !== null) {
                 Object.values(allStatuses).forEach(s => {
                     if (s && s.name && s.timestamp) {
                         let ts = s.timestamp;
                         
-                        // Ondersteuning voor zowel oude als nieuwe timestamp-formaten
                         if (ts < 10000000000) {
                             ts = ts * 1000;
                         }
@@ -1486,10 +1484,8 @@
                         const age = Date.now() - ts;
                         let adjustedAge = age < 0 ? Math.abs(age) : age;
 
-                        if (adjustedAge < MAX_VALID_OFFLINE_MS) {
-                            if (!uniqueUsers[s.name] || ts > uniqueUsers[s.name]) {
-                                uniqueUsers[s.name] = ts;
-                            }
+                        if (!uniqueUsers[s.name] || ts > uniqueUsers[s.name]) {
+                            uniqueUsers[s.name] = ts;
                         }
                     }
                 });
@@ -1501,7 +1497,9 @@
 
                 const diff = ts ? (Date.now() - ts) : Infinity;
                 const positiveDiff = diff < 0 ? Math.abs(diff) : diff;
-                const isOnline = isMe ? firebaseConnected : (positiveDiff < PRESENCE_ONLINE_TIMEOUT_MS);
+                
+                // Alleen online als de gebruiker zelf verbonden is (voor 'Jij') óf als de timestamp binnen 45 seconden valt
+                const isOnline = isMe ? firebaseConnected : (ts && positiveDiff < PRESENCE_ONLINE_TIMEOUT_MS);
 
                 let subText = "";
                 if (!isOnline) {
