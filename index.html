@@ -1476,10 +1476,19 @@
             if (typeof allStatuses === 'object' && allStatuses !== null) {
                 Object.values(allStatuses).forEach(s => {
                     if (s && s.name && s.timestamp) {
-                        const age = Date.now() - s.timestamp;
-                        if (age >= 0 && age < MAX_VALID_OFFLINE_MS) {
-                            if (!uniqueUsers[s.name] || s.timestamp > uniqueUsers[s.name]) {
-                                uniqueUsers[s.name] = s.timestamp;
+                        let ts = s.timestamp;
+                        
+                        // Ondersteuning voor zowel oude als nieuwe timestamp-formaten
+                        if (ts < 10000000000) {
+                            ts = ts * 1000;
+                        }
+
+                        const age = Date.now() - ts;
+                        let adjustedAge = age < 0 ? Math.abs(age) : age;
+
+                        if (adjustedAge < MAX_VALID_OFFLINE_MS) {
+                            if (!uniqueUsers[s.name] || ts > uniqueUsers[s.name]) {
+                                uniqueUsers[s.name] = ts;
                             }
                         }
                     }
@@ -1491,12 +1500,13 @@
                 const isMe = (player === currentUserName);
 
                 const diff = ts ? (Date.now() - ts) : Infinity;
-                const isOnline = isMe ? firebaseConnected : (diff < PRESENCE_ONLINE_TIMEOUT_MS);
+                const positiveDiff = diff < 0 ? Math.abs(diff) : diff;
+                const isOnline = isMe ? firebaseConnected : (positiveDiff < PRESENCE_ONLINE_TIMEOUT_MS);
 
                 let subText = "";
                 if (!isOnline) {
                     if (ts) {
-                        subText = `<span class="status-time">${getFormattedOfflineTime(diff)}</span>`;
+                        subText = `<span class="status-time">${getFormattedOfflineTime(positiveDiff)}</span>`;
                     } else {
                         subText = `<span class="status-time">Offline</span>`;
                     }
