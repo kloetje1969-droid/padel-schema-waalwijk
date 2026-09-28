@@ -1349,93 +1349,81 @@
     }
 
     function stopOnlinePresence(removeRemote = true) {
-        if (presenceHeartbeat) {
-            clearInterval(presenceHeartbeat);
-            presenceHeartbeat = null;
-        }
-
-        if (presenceConnectedRef && presenceConnectedHandler) {
-            presenceConnectedRef.off('value', presenceConnectedHandler);
-        }
-
-        if (removeRemote && presenceRef) {
-            presenceRef.remove().catch(err => {
-                console.warn("Kon oude presence niet direct verwijderen:", err);
-            });
-        }
-
-        presenceRef = null;
-        presenceConnectedRef = null;
-        presenceConnectedHandler = null;
-        firebaseConnected = false;
-        updateConnectionIndicator();
-        renderStatuses();
+    if (presenceHeartbeat) {
+        clearInterval(presenceHeartbeat);
+        presenceHeartbeat = null;
     }
 
-    function setupOnlinePresence() {
-        if (presenceConnectedRef && presenceConnectedHandler) {
-            presenceConnectedRef.off('value', presenceConnectedHandler);
+    if (presenceConnectedRef && presenceConnectedHandler) {
+        presenceConnectedRef.off('value', presenceConnectedHandler);
+    }
+
+    if (removeRemote && presenceRef) {
+        presenceRef.remove().catch(err => {
+            console.warn("Kon oude presence niet direct verwijderen:", err);
+        });
+    }
+
+    presenceRef = null;
+    presenceConnectedRef = null;
+    presenceConnectedHandler = null;
+    firebaseConnected = false;
+    updateConnectionIndicator();
+}
+
+function setupOnlinePresence() {
+    // Voorkom dubbele listeners
+    if (presenceConnectedRef && presenceConnectedHandler) {
+        presenceConnectedRef.off('value', presenceConnectedHandler);
+    }
+
+    if (presenceHeartbeat) {
+        clearInterval(presenceHeartbeat);
+        presenceHeartbeat = null;
+    }
+
+    const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
+
+    // Unieke referentie per tabblad/sessie
+    presenceRef = db.ref(`padelData/presence/${myRealName}_${userSessionId}`);
+    presenceConnectedRef = db.ref('.info/connected');
+
+    presenceConnectedHandler = (snapshot) => {
+        const connected = snapshot.val() === true;
+        firebaseConnected = connected;
+        updateConnectionIndicator();
+
+        if (!connected) {
+            if (presenceHeartbeat) {
+                clearInterval(presenceHeartbeat);
+                presenceHeartbeat = null;
+            }
+            return;
         }
 
-        if (presenceHeartbeat) {
-            clearInterval(presenceHeartbeat);
-            presenceHeartbeat = null;
-        }
-
-        // VASTE IDENTITEIT: Dit zorgt ervoor dat je status gekoppeld blijft aan jou, 
-        // ook al klik je in de dropdown op iemand anders om mee te loeren.
-        const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
-
-        presenceRef = db.ref(`padelData/presence/${myRealName}_${userSessionId}`);
-        presenceConnectedRef = db.ref('.info/connected');
-
-        presenceConnectedHandler = async (snapshot) => {
-            const connected = snapshot.val() === true;
-            firebaseConnected = connected;
-            updateConnectionIndicator();
-
-            if (!connected) {
-                if (presenceHeartbeat) {
-                    clearInterval(presenceHeartbeat);
-                    presenceHeartbeat = null;
-                }
-                renderStatuses();
-                return;
-            }
-
-            try {
-                // Eerst onDisconnect instellen, daarna pas online schrijven.
-                await presenceRef.onDisconnect().remove();
-
-                await presenceRef.set({
-                    name: myRealName,
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                });
-
-                if (presenceHeartbeat) {
-                    clearInterval(presenceHeartbeat);
-                }
-
-                presenceHeartbeat = setInterval(() => {
-                    if (!firebaseConnected || !presenceRef) return;
-
-                    presenceRef.update({
-                        name: myRealName,
-                        timestamp: firebase.database.ServerValue.TIMESTAMP
-                    }).catch(err => {
-                        console.warn("Presence heartbeat mislukt:", err);
-                    });
-                }, PRESENCE_HEARTBEAT_MS);
-
-                renderStatuses();
-            } catch (err) {
-                console.warn("Kon online presence niet instellen:", err);
-                renderStatuses();
-            }
+        // Direct status doorgeven bij verbinding
+        const updatePresenceData = () => {
+            if (!presenceRef) return;
+            presenceRef.set({
+                name: myRealName,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            }).catch(err => {
+                console.warn("Kon presence niet bijwerken:", err);
+            });
         };
 
-        presenceConnectedRef.on('value', presenceConnectedHandler);
-    }
+        presenceRef.onDisconnect().remove().then(() => {
+            updatePresenceData();
+
+            if (presenceHeartbeat) clearInterval(presenceHeartbeat);
+            presenceHeartbeat = setInterval(updatePresenceData, PRESENCE_HEARTBEAT_MS);
+        }).catch(err => {
+            console.warn("Kon onDisconnect niet instellen:", err);
+        });
+    };
+
+    presenceConnectedRef.on('value', presenceConnectedHandler);
+}
 
     function updateConnectionIndicator() {
         const indicator = document.getElementById('connectionIndicator');
