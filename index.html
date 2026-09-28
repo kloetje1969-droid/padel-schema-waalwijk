@@ -1141,49 +1141,40 @@ let appInitialized = false;
     }
 
     async function subscribePush() {
-        console.log("1. subscribePush gestart");
-        console.log("Huidige gebruiker (currentUserName):", window.currentUserName || currentUserName);
-
         if (!messaging) {
-            console.error("Geen messaging object gevonden!");
             alert("Pushmeldingen worden niet ondersteund op dit apparaat/deze browser.");
             return;
         }
         try {
             const permission = await Notification.requestPermission();
-            console.log("2. Notificatie permissie status:", permission);
-
             if (permission === 'granted') {
-                const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js');
-                console.log("3. Service Worker geregistreerd:", registration);
+                // 1. Registreer de Service Worker
+                await navigator.serviceWorker.register('firebase-messaging-sw.js');
+                
+                // 2. Wacht tot deze daadwerkelijk actief en klaar is
+                const registration = await navigator.serviceWorker.ready;
 
+                // 3. Vraag nu pas het token op met de actieve registratie
                 const token = await messaging.getToken({
                     vapidKey: 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg',
                     serviceWorkerRegistration: registration
                 });
                 
-                console.log("4. Ontvangen FCM token:", token);
-
                 if (token) {
                     localStorage.setItem('padel_fcm_token', token);
                     
                     const targetUser = window.currentUserName || currentUserName;
-                    console.log("5. Opslaan in Firebase onder gebruiker:", targetUser);
-
                     await db.ref(`padelData/tokens/${targetUser}`).update({
                         [token]: true
                     });
 
-                    console.log("6. Succesvol opgeslagen in Firebase!");
                     alert("Pushmeldingen succesvol ingeschakeld voor dit apparaat!");
-                } else {
-                    console.warn("Geen token ontvangen van Firebase Messaging.");
                 }
             } else {
-                alert("Geen toestemming gegeven voor meldingen (permissie is: " + permission + ").");
+                alert("Geen toestemming gegeven voor meldingen.");
             }
         } catch (err) {
-            console.error("Fout bij activeren pushmeldingen (catch blok):", err);
+            console.error("Fout bij activeren pushmeldingen:", err);
             alert("Kon pushmeldingen niet activeren: " + err.message);
         }
     }
