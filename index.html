@@ -1402,7 +1402,7 @@
                 if (!presenceRef) return;
                 presenceRef.set({
                     name: myRealName,
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                    timestamp: Date.now()
                 }).catch(err => {
                     console.warn("Kon presence niet bijwerken:", err);
                 });
@@ -1471,11 +1471,16 @@
             if (!container) return;
 
             let uniqueUsers = {};
+            const MAX_VALID_OFFLINE_MS = 12 * 60 * 60 * 1000; // Maximaal 12 uur oud
+
             if (typeof allStatuses === 'object' && allStatuses !== null) {
                 Object.values(allStatuses).forEach(s => {
                     if (s && s.name && s.timestamp) {
-                        if (!uniqueUsers[s.name] || s.timestamp > uniqueUsers[s.name]) {
-                            uniqueUsers[s.name] = s.timestamp;
+                        const age = Date.now() - s.timestamp;
+                        if (age >= 0 && age < MAX_VALID_OFFLINE_MS) {
+                            if (!uniqueUsers[s.name] || s.timestamp > uniqueUsers[s.name]) {
+                                uniqueUsers[s.name] = s.timestamp;
+                            }
                         }
                     }
                 });
