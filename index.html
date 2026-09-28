@@ -1106,6 +1106,7 @@
 
     const PRESENCE_HEARTBEAT_MS = 15000;
     const PRESENCE_ONLINE_TIMEOUT_MS = 45000;
+    const MAX_OFFLINE_DISPLAY_MS = 7 * 24 * 60 * 60 * 1000; // Maximaal 7 dagen tonen om spook-sessies te weren
 
     let presenceRef = null;
     let presenceConnectedRef = null;
@@ -1421,6 +1422,27 @@
         presenceConnectedRef.on('value', presenceConnectedHandler);
     }
 
+    function updateConnectionIndicator() {
+        const indicator = document.getElementById('connectionIndicator');
+        if (!indicator) return;
+
+        const dot = indicator.querySelector('.status-dot');
+        const text = indicator.querySelector('.connection-text');
+
+        indicator.classList.toggle('is-online', firebaseConnected);
+        indicator.classList.toggle('is-offline', !firebaseConnected);
+
+        if (dot) {
+            dot.className = 'status-dot ' + (firebaseConnected ? 'online' : 'offline');
+        }
+
+        if (text) {
+            text.textContent = firebaseConnected
+                ? 'Live verbonden met database'
+                : 'Verbinding verbroken – opnieuw verbinden…';
+        }
+    }
+
     function getFormattedOfflineTime(diffMs) {
         const diffSec = Math.floor(diffMs / 1000);
         const diffMin = Math.floor(diffSec / 60);
@@ -1460,14 +1482,16 @@
                             ts = ts * 1000;
                         }
 
-                        // Als de timestamp in de toekomst ligt (door kleine klokverschillen), zet hem op nu
                         if (ts > Date.now()) {
                             ts = Date.now();
                         }
 
-                        // Bewaar altijd de meest recente (hoogste) timestamp per speler
-                        if (!uniqueUsers[s.name] || ts > uniqueUsers[s.name]) {
-                            uniqueUsers[s.name] = ts;
+                        const age = Date.now() - ts;
+                        // Negeer sessies die ouder zijn dan 7 dagen om spookdata te voorkomen
+                        if (age <= MAX_OFFLINE_DISPLAY_MS) {
+                            if (!uniqueUsers[s.name] || ts > uniqueUsers[s.name]) {
+                                uniqueUsers[s.name] = ts;
+                            }
                         }
                     }
                 });
@@ -1480,7 +1504,6 @@
                 const diff = ts ? (Date.now() - ts) : Infinity;
                 const positiveDiff = diff < 0 ? 0 : diff;
                 
-                // Alleen online als de timestamp binnen 45 seconden valt (of actieve verbinding voor jezelf)
                 const isOnline = isMe ? firebaseConnected : (ts && positiveDiff < PRESENCE_ONLINE_TIMEOUT_MS);
 
                 let subText = "";
