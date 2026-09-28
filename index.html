@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v3.8)</title>
+    <title>Padelschema - Rooster & Chat (v3.9)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -758,69 +758,137 @@
         }
     
 /* =========================================================
-   v3.8 - STABIELE ONLINE/OFFLINE + iPHONE SPEELSCHEMA
+   iPHONE SPEELSCHEMA
+   De wedstrijd blijft één horizontale rij. De spelers
+   worden niet onder elkaar geplaatst door schermbreedte.
    ========================================================= */
-#connectionIndicator { white-space: nowrap; }
-#connectionIndicator .connection-dot { width:9px; height:9px; min-width:9px; border-radius:50%; display:inline-block; }
-#connectionIndicator .connection-dot.online { background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,.15); }
-#connectionIndicator .connection-dot.offline { background:#ef4444; box-shadow:0 0 0 3px rgba(239,68,68,.12); }
-#connectionIndicator.is-offline .connection-text { color:#ef4444; }
 
-/* De wedstrijdrij blijft één compacte rij; alleen de spelerslijst
-   mag intern horizontaal scrollen wanneer een scherm echt te smal is. */
-#scheduleContainer .match-row { min-width:0; box-sizing:border-box; }
-#scheduleContainer .match-info { min-width:0; flex:1 1 auto; }
-#scheduleContainer .match-action-container { flex:0 0 auto; }
-#scheduleContainer .players-container { min-width:0; }
-#scheduleContainer .player-chip { flex:0 0 auto; }
-
-@media (max-width: 600px) {
-    body { max-width:100vw; overflow-x:hidden; }
-
-    #scheduleContainer { width:100% !important; max-width:100%; box-sizing:border-box; }
-    #scheduleContainer .week-card { width:100%; max-width:100%; box-sizing:border-box; overflow:hidden; }
-    #scheduleContainer .match-row { padding:9px 8px; gap:6px; align-items:center; }
-
-    #scheduleContainer .match-info { min-width:0; width:auto; }
-    #scheduleContainer .match-title { font-size:10px; gap:4px; margin-bottom:4px; max-width:100%; overflow:hidden; }
-    #scheduleContainer .weather-badge { font-size:9px; padding:1px 4px; }
-
-    /* Vier spelers + VS blijven op één regel. Bij een zeer smal scherm
-       scrollt alleen dit kleine spelersveld, niet de hele pagina. */
-    #scheduleContainer .players-container {
-        display:flex;
-        flex-wrap:nowrap;
-        align-items:center;
-        gap:2px;
-        max-width:100%;
-        overflow-x:auto;
-        overflow-y:hidden;
-        -webkit-overflow-scrolling:touch;
-        scrollbar-width:none;
-        padding-bottom:1px;
-    }
-    #scheduleContainer .players-container::-webkit-scrollbar { display:none; }
-    #scheduleContainer .player-chip {
-        font-size:10px;
-        line-height:1.2;
-        padding:2px 4px;
-        border-radius:4px;
-    }
-    #scheduleContainer .vs-text { font-size:9px; flex:0 0 auto; }
-
-    #scheduleContainer .match-action-container { gap:3px; }
-    #scheduleContainer .btn-edit { font-size:10px; padding:4px 6px; gap:2px; }
-
-    #scheduleContainer .absence-alert { padding:6px 8px; font-size:10px; line-height:1.25; }
-
-    #connectionIndicator { max-width:100%; font-size:11px; gap:5px; }
+#scheduleContainer {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
-@media (max-width: 370px) {
-    #scheduleContainer .match-row { padding:8px 6px; gap:4px; }
-    #scheduleContainer .player-chip { font-size:9px; padding:2px 3px; }
-    #scheduleContainer .vs-text { font-size:8px; }
-    #scheduleContainer .btn-edit { font-size:9px; padding:3px 5px; }
+.week-card,
+.match-row-wrapper,
+.match-row,
+.match-info,
+.players-container {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.match-row {
+    width: 100%;
+}
+
+.match-info {
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+.players-container {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 1px;
+}
+
+.players-container::-webkit-scrollbar {
+    display: none;
+}
+
+.players-container .player-chip,
+.players-container .vs-text {
+    flex: 0 0 auto;
+}
+
+.match-action-container {
+    flex: 0 0 auto;
+    min-width: max-content;
+}
+
+@media (max-width: 600px) {
+    .week-card {
+        border-radius: 11px;
+    }
+
+    .week-header {
+        padding: 9px 10px;
+        font-size: 0.82rem;
+    }
+
+    .match-row {
+        padding: 9px 10px;
+        gap: 7px;
+        align-items: center;
+    }
+
+    .match-title {
+        gap: 4px;
+        font-size: 0.66rem;
+        margin-bottom: 5px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .match-title::-webkit-scrollbar {
+        display: none;
+    }
+
+    .player-chip {
+        padding: 3px 5px;
+        font-size: 0.70rem;
+    }
+
+    .vs-text {
+        font-size: 0.64rem;
+        margin: 0 1px;
+    }
+
+    .match-action-container .btn-edit {
+        padding: 5px 7px;
+        font-size: 0.72rem;
+        white-space: nowrap;
+    }
+
+    .absence-alert {
+        font-size: 0.72rem;
+    }
+}
+
+@media (max-width: 390px) {
+    .match-row {
+        padding: 8px;
+        gap: 5px;
+    }
+
+    .player-chip {
+        padding: 2px 4px;
+        font-size: 0.65rem;
+    }
+
+    .vs-text {
+        font-size: 0.60rem;
+    }
+
+    .match-action-container .btn-edit {
+        padding: 4px 6px;
+        font-size: 0.68rem;
+    }
+}
+
+#connectionIndicator.is-offline .status-dot.offline {
+    background: #f87171;
+    animation: none;
+}
+
+#connectionIndicator.is-offline .connection-text {
+    color: #f87171;
 }
 
 </style>
@@ -832,7 +900,7 @@
     <div class="pin-box">
         <h2>🔒 Padel App</h2>
         <p>Voer de pincode in om toegang te krijgen:</p>
-        <input type="password" id="pinInput" maxlength="4" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" placeholder="••••" onkeydown="handlePinKey(event)">
+        <input type="password" id="pinInput" maxlength="4" placeholder="••••" onkeypress="handlePinKey(event)">
         <div id="pinError" class="pin-error">Onjuiste pincode. Probeer het opnieuw.</div>
         <button class="btn-primary" onclick="checkPin()">Ontgrendelen</button>
     </div>
@@ -851,9 +919,9 @@
             </div>
             
             <div class="header-actions-row">
-                <div class="db-connection-status connection-indicator is-offline" id="connectionIndicator">
-                    <span class="connection-dot offline"></span>
-                    <span class="connection-text">Verbinding maken met database…</span>
+                <div id="connectionIndicator" class="db-connection-status is-online">
+                    <span class="status-dot online"></span>
+                    <span class="connection-text">Live verbonden met database</span>
                 </div>
                 <button class="push-btn" onclick="subscribePush()">🔔 Meldingen aan</button>
             </div>
@@ -1031,86 +1099,38 @@
 
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
 
-    // Stabiele presence-instellingen
-    const PRESENCE_HEARTBEAT_MS = 15000;
-    const PRESENCE_ONLINE_TIMEOUT_MS = 45000;
+// Stabiele online/offline presence
+const PRESENCE_HEARTBEAT_MS = 15000;
+const PRESENCE_ONLINE_TIMEOUT_MS = 45000;
 
-    let presenceRef = null;
-    let presenceConnectedRef = null;
-    let presenceConnectedHandler = null;
-    let presenceHeartbeat = null;
-    let firebaseConnected = false;
-    let appInitialized = false;
+let presenceRef = null;
+let presenceConnectedRef = null;
+let presenceConnectedHandler = null;
+let presenceHeartbeat = null;
+let firebaseConnected = false;
+let appInitialized = false;
 
     document.addEventListener('DOMContentLoaded', () => {
         if (sessionStorage.getItem('padel_unlocked') === 'true') {
-            const overlay = document.getElementById('pinOverlay');
-            if (overlay) overlay.style.display = 'none';
+            document.getElementById('pinOverlay').style.display = 'none';
             initApp();
         } else {
-            const input = document.getElementById('pinInput');
-            if (input) {
-                input.focus();
-                input.select();
-            }
+            document.getElementById('pinInput').focus();
         }
     });
 
     function checkPin() {
-        const input = document.getElementById('pinInput');
+        const inputVal = document.getElementById('pinInput').value;
         const errDiv = document.getElementById('pinError');
-        const overlay = document.getElementById('pinOverlay');
-
-        if (!input || !overlay) {
-            console.error("PIN-elementen niet gevonden.");
-            return false;
-        }
-
-        // Alleen cijfers/spaties rondom de invoer zijn toegestaan.
-        const inputVal = String(input.value || '').trim();
 
         if (inputVal === "0416") {
             sessionStorage.setItem('padel_unlocked', 'true');
-
-            // Eerst de overlay verbergen, daarna de app starten.
-            // Zo blijft de PIN niet hangen als Firebase even moet verbinden.
-            overlay.style.display = 'none';
-            if (errDiv) errDiv.style.display = 'none';
-
-            try {
-                initApp();
-            } catch (err) {
-                console.error("Fout bij starten van de app na PIN:", err);
-                // PIN blijft geldig; toon de app-overlay niet opnieuw.
-            }
-
-            return true;
-        }
-
-        if (errDiv) errDiv.style.display = 'block';
-        input.value = '';
-        input.focus();
-        return false;
-    }
-
-    function handlePinKey(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            checkPin();
-        }
-    }
-
-    function resetPinLock() {
-        sessionStorage.removeItem('padel_unlocked');
-        const overlay = document.getElementById('pinOverlay');
-        const input = document.getElementById('pinInput');
-        const errDiv = document.getElementById('pinError');
-
-        if (overlay) overlay.style.display = 'flex';
-        if (errDiv) errDiv.style.display = 'none';
-        if (input) {
-            input.value = '';
-            input.focus();
+            document.getElementById('pinOverlay').style.display = 'none';
+            initApp();
+        } else {
+            errDiv.style.display = 'block';
+            document.getElementById('pinInput').value = '';
+            document.getElementById('pinInput').focus();
         }
     }
 
@@ -1180,6 +1200,7 @@
     }
 
     function initApp() {
+        // Voorkom dubbele Firebase listeners wanneer de app opnieuw wordt geactiveerd.
         if (appInitialized) return;
         appInitialized = true;
 
@@ -1217,7 +1238,7 @@
 
         setInterval(() => {
             renderStatuses();
-        }, 10000);
+        }, 5000);
     }
 
     function fetchWaalwijkWeather() {
@@ -1306,7 +1327,7 @@
 
         if (gekozenNaam === "Robert" && currentUserName !== "Robert") {
             let ingevoerdePincode = prompt("Voer de pincode in om als Robert in te loggen:");
-            
+
             if (ingevoerdePincode !== "1412") {
                 alert("Onjuiste pincode!");
                 select.value = currentUserName;
@@ -1316,16 +1337,16 @@
 
         const oldUser = currentUserName;
 
-        // Oude listener + heartbeat eerst opruimen.
+        // Oude heartbeat en Firebase-listener eerst netjes stoppen.
         stopOnlinePresence(true);
 
         currentUserName = gekozenNaam;
         localStorage.setItem('padel_current_user', currentUserName);
 
         initUserSelect();
-        setupOnlinePresence();
         renderAll();
         renderChat();
+        setupOnlinePresence();
     }
 
     function stopOnlinePresence(removeRemote = true) {
@@ -1353,10 +1374,10 @@
     }
 
     function setupOnlinePresence() {
-        // Nooit meerdere .info/connected-listeners tegelijk.
         if (presenceConnectedRef && presenceConnectedHandler) {
             presenceConnectedRef.off('value', presenceConnectedHandler);
         }
+
         if (presenceHeartbeat) {
             clearInterval(presenceHeartbeat);
             presenceHeartbeat = null;
@@ -1366,10 +1387,11 @@
         presenceConnectedRef = db.ref('.info/connected');
 
         presenceConnectedHandler = async (snapshot) => {
-            firebaseConnected = snapshot.val() === true;
+            const connected = snapshot.val() === true;
+            firebaseConnected = connected;
             updateConnectionIndicator();
 
-            if (!firebaseConnected) {
+            if (!connected) {
                 if (presenceHeartbeat) {
                     clearInterval(presenceHeartbeat);
                     presenceHeartbeat = null;
@@ -1379,20 +1401,27 @@
             }
 
             try {
-                // Bij iedere reconnect opnieuw registreren.
+                // Eerst onDisconnect instellen, daarna pas online schrijven.
                 await presenceRef.onDisconnect().remove();
+
                 await presenceRef.set({
                     name: currentUserName,
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
 
-                if (presenceHeartbeat) clearInterval(presenceHeartbeat);
+                if (presenceHeartbeat) {
+                    clearInterval(presenceHeartbeat);
+                }
+
                 presenceHeartbeat = setInterval(() => {
                     if (!firebaseConnected || !presenceRef) return;
+
                     presenceRef.update({
                         name: currentUserName,
                         timestamp: firebase.database.ServerValue.TIMESTAMP
-                    }).catch(err => console.warn("Presence heartbeat mislukt:", err));
+                    }).catch(err => {
+                        console.warn("Presence heartbeat mislukt:", err);
+                    });
                 }, PRESENCE_HEARTBEAT_MS);
 
                 renderStatuses();
@@ -1409,15 +1438,21 @@
         const indicator = document.getElementById('connectionIndicator');
         if (!indicator) return;
 
-        const dot = indicator.querySelector('.connection-dot');
+        const dot = indicator.querySelector('.status-dot');
         const text = indicator.querySelector('.connection-text');
+
         indicator.classList.toggle('is-online', firebaseConnected);
         indicator.classList.toggle('is-offline', !firebaseConnected);
 
-        if (dot) dot.className = 'connection-dot ' + (firebaseConnected ? 'online' : 'offline');
-        if (text) text.textContent = firebaseConnected
-            ? 'Verbonden met database'
-            : 'Verbinding verbroken – opnieuw verbinden…';
+        if (dot) {
+            dot.className = 'status-dot ' + (firebaseConnected ? 'online' : 'offline');
+        }
+
+        if (text) {
+            text.textContent = firebaseConnected
+                ? 'Live verbonden met database'
+                : 'Verbinding verbroken – opnieuw verbinden…';
+        }
     }
 
     function formatLastSeen(timestamp) {
@@ -1459,9 +1494,11 @@
             container.innerHTML = basePlayers.map(player => {
                 const ts = uniqueUsers[player];
                 const isMe = (player === currentUserName);
+
                 const isOnline = isMe
                     ? firebaseConnected
                     : !!(ts && (Date.now() - ts < PRESENCE_ONLINE_TIMEOUT_MS));
+
                 const statusText = isOnline ? "online" : formatLastSeen(ts);
 
                 return `
