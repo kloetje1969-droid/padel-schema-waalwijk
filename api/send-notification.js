@@ -16,7 +16,6 @@ if (!admin.apps.length) {
 }
 
 export default async function handler(req, res) {
-    // Alleen POST-aanvragen toestaan
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -36,17 +35,32 @@ export default async function handler(req, res) {
             return res.status(200).json({ message: "Geen tokens gevonden om te pushen." });
         }
 
-        // Verzamel alle unieke tokens
-        let tokens = Object.values(tokensData);
+        let tokens = [];
 
-        // Zorg ervoor dat de afzender (indien meegeestuurd) ook in de lijst staat, 
-        // zodat deze de melding ook op zijn eigen scherm krijgt.
+        // Loop door alle gebruikers heen in de tokens-map
+        Object.values(tokensData).forEach(userTokens => {
+            if (typeof userTokens === 'string') {
+                // Oud formaat: direct een string token
+                tokens.push(userTokens);
+            } else if (typeof userTokens === 'object' && userTokens !== null) {
+                // Nieuw formaat: een object/lijst van tokens per apparaat (bijv. { tokenA: true, tokenB: true })
+                tokens.push(...Object.keys(userTokens));
+            }
+        });
+
+        // Verwijder eventuele dubbele tokens uit de lijst
+        tokens = [...new Set(tokens)];
+
+        // Zorg ervoor dat de afzender (indien meegeestuurd) ook in de lijst staat
         if (senderToken && !tokens.includes(senderToken)) {
             tokens.push(senderToken);
         }
 
-        // 2. Stel de pushmelding samen met een echt 'notification'-blok 
-        // Dit zorgt voor een zichtbare pop-up op het scherm (ook bij vergrendelde telefoon).
+        if (tokens.length === 0) {
+            return res.status(200).json({ message: "Geen geldige tokens om naar te pushen." });
+        }
+
+        // 2. Stel de pushmelding samen
         const message = {
             notification: {
                 title: title,
