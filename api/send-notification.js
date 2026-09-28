@@ -40,10 +40,8 @@ export default async function handler(req, res) {
         // Loop door alle gebruikers heen in de tokens-map
         Object.values(tokensData).forEach(userTokens => {
             if (typeof userTokens === 'string') {
-                // Oud formaat: direct een string token
                 tokens.push(userTokens);
             } else if (typeof userTokens === 'object' && userTokens !== null) {
-                // Nieuw formaat: een object/lijst van tokens per apparaat (bijv. { tokenA: true, tokenB: true })
                 tokens.push(...Object.keys(userTokens));
             }
         });
@@ -51,38 +49,31 @@ export default async function handler(req, res) {
         // Verwijder eventuele dubbele tokens uit de lijst
         tokens = [...new Set(tokens)];
 
-        // Zorg ervoor dat de afzender (indien meegeestuurd) ook in de lijst staat
-        if (senderToken && !tokens.includes(senderToken)) {
-            tokens.push(senderToken);
-        }
-
         if (tokens.length === 0) {
             return res.status(200).json({ message: "Geen geldige tokens om naar te pushen." });
         }
 
-        // 2. Stel de pushmelding samen
+        // 2. Stel de pushmelding samen met ALLEEN een data-payload (voorkomt dubbel!)
         const message = {
-            notification: {
+            data: {
                 title: title,
-                body: body
+                body: body,
+                click_action: "/"
             },
             tokens: tokens
         };
 
-        // 3. Verstuur via Firebase Messaging (Multicast)
-        const responseFCM = await admin.messaging().sendEachForMulticast(message);
-
-        console.log(`Notificatie verzonden. Succesvol: ${responseFCM.successCount}, Mislukt: ${responseFCM.failureCount}`);
+        // 3. Verstuur de berichten via multicast naar alle tokens
+        const response = await admin.messaging().sendEachForMulticast(message);
 
         return res.status(200).json({ 
             success: true, 
-            message: "Notificatie succesvol verzonden!", 
-            successCount: responseFCM.successCount,
-            failureCount: responseFCM.failureCount
+            successCount: response.successCount,
+            failureCount: response.failureCount 
         });
 
     } catch (error) {
-        console.error("Fout bij verzenden notificatie:", error);
+        console.error("Fout bij versturen pushmelding:", error);
         return res.status(500).json({ error: error.message });
     }
 }
