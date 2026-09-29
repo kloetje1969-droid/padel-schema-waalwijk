@@ -1587,6 +1587,7 @@
         let referenceMonday = new Date(2026, 8, 21); 
 
         let html = '';
+        let now = new Date();
 
         for (let i = 0; i < 6; i++) {
             let weekStart = new Date(currentMonday);
@@ -1621,19 +1622,30 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            if (dinsdagWeatherObj && dinsdagWeatherObj.rain >= 60) {
+            // Dynamische controle: alleen op de actuele speeldag zelf vanaf 18:00 uur
+            let isDinsdagToday = now.getFullYear() === dinsdagDate.getFullYear() &&
+                                 now.getMonth() === dinsdagDate.getMonth() &&
+                                 now.getDate() === dinsdagDate.getDate();
+
+            let isDonderdagToday = now.getFullYear() === donderdagDate.getFullYear() &&
+                                   now.getMonth() === donderdagDate.getMonth() &&
+                                   now.getDate() === donderdagDate.getDate();
+
+            let isAfter18 = now.getHours() >= 18;
+
+            if (isDinsdagToday && isAfter18 && dinsdagWeatherObj && dinsdagWeatherObj.rain >= 60) {
                 let rainKey = `rain_notified_${uniqueWeekKey}_dinsdag`;
                 if (!localStorage.getItem(rainKey)) {
                     localStorage.setItem(rainKey, 'true');
-                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${dinsdagWeatherObj.rain}% kans op regen om 18:00 uur op de dinsdagavond van week ${currentWeekNum}!`);
+                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${dinsdagWeatherObj.rain}% kans op regen vanavond om 18:00 uur op deze dinsdag (week ${currentWeekNum})!`);
                 }
             }
 
-            if (donderdagWeatherObj && donderdagWeatherObj.rain >= 60) {
+            if (isDonderdagToday && isAfter18 && donderdagWeatherObj && donderdagWeatherObj.rain >= 60) {
                 let rainKey = `rain_notified_${uniqueWeekKey}_donderdag`;
                 if (!localStorage.getItem(rainKey)) {
                     localStorage.setItem(rainKey, 'true');
-                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur op de donderdagavond van week ${currentWeekNum}!`);
+                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${donderdagWeatherObj.rain}% kans op regen vanavond om 18:00 uur op deze donderdag (week ${currentWeekNum})!`);
                 }
             }
 
@@ -1888,7 +1900,6 @@
             if (currentUserName === "Robert") {
                 availableOpts = [...basePlayers, "Extern / Invaller"];
             } else {
-                // Niet-beheerders mogen alleen hun eigen naam of een invaller selecteren
                 availableOpts = [currentUserName, "Extern / Invaller"];
             }
 
@@ -1960,14 +1971,12 @@
             let inp = document.getElementById(`p${i}Custom`);
             let chosenVal = sel.value === "Extern / Invaller" ? (inp.value.trim() || "Invaller") : sel.value;
             
-            // BEVEILIGING: Controleer of een niet-beheerder niet stiekem iemands anders naam invult
             if (currentUserName !== "Robert") {
                 let tpl = defaultTemplate[activeTemplateIndex];
                 let overrideData = liveOverrides[activeModalUniqueKey] || {};
                 let originalPlayers = overrideData[activeModalDay] !== undefined ? overrideData[activeModalDay] : tpl[activeModalDay];
                 let originalVal = originalPlayers[i];
 
-                // Als de gekozen naam niet gelijk is aan de ingelogde gebruiker, niet de oorspronkelijke naam, en geen invaller/custom naam is... blokkeer of corrigeer
                 if (chosenVal !== currentUserName && chosenVal !== originalVal && !inp.value.trim()) {
                     alert("Je mag alleen je eigen naam invullen op een vrije of afgewezen plek!");
                     return;
