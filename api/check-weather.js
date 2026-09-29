@@ -1,8 +1,8 @@
-import { initializeApp, getApps } from 'firebase-admin/app';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
 import { getMessaging } from 'firebase-admin/messaging';
 
-// Firebase Admin initialiseren (zorg dat je FIREBASE_SERVICE_ACCOUNT in je Vercel Environment Variables hebt gezet)
+// Firebase Admin initialiseren
 if (!getApps().length) {
     initializeApp({
         credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
@@ -22,6 +22,15 @@ export default async function handler(req, res) {
 
     try {
         const today = new Date();
+
+        // 1. Controleer of het in Nederland (Europe/Amsterdam) vandaag Dinsdag (Tue) of Donderdag (Thu) is
+        const optionsDay = { timeZone: 'Europe/Amsterdam', weekday: 'short' };
+        const currentDay = new Intl.DateTimeFormat('en-US', optionsDay).format(today);
+
+        if (currentDay !== 'Tue' && currentDay !== 'Thu') {
+            return res.status(200).json({ message: `Vandaag is ${currentDay}, geen speeldag. Geen actie vereist.` });
+        }
+
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const dayNum = String(today.getDate()).padStart(2, '0');
