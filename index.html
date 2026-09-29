@@ -1097,6 +1097,7 @@
 
     let liveOverrides = {};
     let allStatuses = {};
+    let allLastSeen = {};
     let absences = {};
     let messages = [];
     let weatherCache = {};
@@ -1217,6 +1218,11 @@
 
         db.ref('padelData/presence').on('value', (snapshot) => {
             allStatuses = snapshot.val() || {};
+            renderStatuses();
+        });
+
+        db.ref('padelData/lastSeen').on('value', (snapshot) => {
+            allLastSeen = snapshot.val() || {};
             renderStatuses();
         });
 
@@ -1384,6 +1390,7 @@
         const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
 
         presenceRef = db.ref(`padelData/presence/${myRealName}_${userSessionId}`);
+        const userLastSeenRef = db.ref(`padelData/lastSeen/${myRealName}`);
         presenceConnectedRef = db.ref('.info/connected');
 
         presenceConnectedHandler = (snapshot) => {
@@ -1410,6 +1417,7 @@
             };
 
             presenceRef.onDisconnect().remove().then(() => {
+                userLastSeenRef.set(firebase.database.ServerValue.TIMESTAMP);
                 updatePresenceData();
 
                 if (presenceHeartbeat) clearInterval(presenceHeartbeat);
@@ -1452,17 +1460,11 @@
         if (diffSec < 60) {
             return "zojuist";
         } else if (diffMin < 60) {
-            return `${diffMin} min`;
+            return `${diffMin} minuten`;
         } else if (diffHours < 24) {
-            const remMin = diffMin % 60;
-            return remMin > 0 ? `${diffHours} uur ${remMin} min` : `${diffHours} uur`;
+            return `${diffHours} uur`;
         } else {
-            const remHours = diffHours % 24;
-            let res = `${diffDays} dag${diffDays === 1 ? '' : 'en'}`;
-            if (remHours > 0) {
-                res += ` en ${remHours} uur`;
-            }
-            return res;
+            return `${diffDays} dagen`;
         }
     }
 
@@ -1471,45 +1473,37 @@
             const container = document.getElementById('statusList');
             if (!container) return;
 
-            let uniqueUsers = {};
-
+            let activeUsers = {};
             if (typeof allStatuses === 'object' && allStatuses !== null) {
                 Object.values(allStatuses).forEach(s => {
                     if (s && s.name && s.timestamp) {
                         let ts = s.timestamp;
-                        
-                        if (ts < 10000000000) {
-                            ts = ts * 1000;
-                        }
-
-                        if (ts > Date.now()) {
-                            ts = Date.now();
-                        }
-
+                        if (ts < 10000000000) ts = ts * 1000;
+                        if (ts > Date.now()) ts = Date.now();
                         const age = Date.now() - ts;
-                        // Negeer sessies die ouder zijn dan 7 dagen om spookdata te voorkomen
-                        if (age <= MAX_OFFLINE_DISPLAY_MS) {
-                            if (!uniqueUsers[s.name] || ts > uniqueUsers[s.name]) {
-                                uniqueUsers[s.name] = ts;
-                            }
+                        if (age <= PRESENCE_ONLINE_TIMEOUT_MS) {
+                            activeUsers[s.name] = true;
                         }
                     }
                 });
             }
 
             container.innerHTML = basePlayers.map(player => {
-                const ts = uniqueUsers[player];
                 const isMe = (player === currentUserName);
-
-                const diff = ts ? (Date.now() - ts) : Infinity;
-                const positiveDiff = diff < 0 ? 0 : diff;
-                
-                const isOnline = isMe ? firebaseConnected : (ts && positiveDiff < PRESENCE_ONLINE_TIMEOUT_MS);
+                const isOnline = isMe ? firebaseConnected : !!activeUsers[player];
 
                 let subText = "";
                 if (!isOnline) {
-                    if (ts) {
-                        subText = `<span class="status-time">${getFormattedOfflineTime(positiveDiff)}</span>`;
+                    let lastSeenTs = allLastSeen[player];
+                    if (lastSeenTs) {
+                        if (lastSeenTs < 10000000000) lastSeenTs = lastSeenTs * 1000;
+                        if (lastSeenTs > Date.now()) lastSeenTs = Date.now();
+                        const diff = Date.now() - lastSeenTs;
+                        if (diff >= 0 && diff <= MAX_OFFLINE_DISPLAY_MS) {
+                            subText = `<span class="status-time">${getFormattedOfflineTime(diff)}</span>`;
+                        } else {
+                            subText = `<span class="status-time">Offline</span>`;
+                        }
                     } else {
                         subText = `<span class="status-time">Offline</span>`;
                     }
