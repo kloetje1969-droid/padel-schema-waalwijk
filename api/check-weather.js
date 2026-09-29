@@ -1,97 +1,85 @@
-import admin from 'firebase-admin';
+import { initializeApp, getApps } from 'firebase-admin/app';
+import { getDatabase } from 'firebase-admin/database';
+import { getMessaging } from 'firebase-admin/messaging';
 
-// Initialiseer Firebase Admin (zelfde als je andere API)
-if (!admin.apps.length) {
-    let serviceAccount;
-    try {
-        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    } catch (e) {
-        serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
-    }
-
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+// Firebase Admin initialiseren (zorg dat je FIREBASE_SERVICE_ACCOUNT in je Vercel Environment Variables hebt gezet)
+if (!getApps().length) {
+    initializeApp({
+        credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
         databaseURL: "https://padel-app-b8362-default-rtdb.europe-west1.firebasedatabase.app"
     });
 }
 
+const db = getDatabase();
+const messaging = getMessaging();
+
 export default async function handler(req, res) {
-    // Vercel Cron beveiliging (optioneel maar handig)
+    // Beveiliging: Vercel cronjobs sturen een specifieke header mee
+    const authHeader = req.headers['authorization'];
+    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     try {
         const today = new Date();
-        const dayOfWeek = today.getDay(); // 2 = Dinsdag, 4 = Donderdag
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const dayNum = String(today.getDate()).padStart(2, '0');
+        const dateKey = `${year}-${month}-${dayNum}`;
 
-        // We controleren alleen op dinsdag (2) en donderdag (4)
-        if (dayOfWeek !== 2 && dayOfWeek !== 4) {
-            return res.status(200).json({ message: "Geen padeldag vandaag, geen actie vereist." });
-        }
-
-        const dateStr = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
-        
-        // Controleer in Firebase of we voor deze datum al een regenmelding hebben gestuurd (zodat we niet dubbel sturen)
-        const sentRef = admin.database().ref(`padelData/rainNotified/${dateStr}`);
-        const snapshot = await sentRef.once("value");
+        // Controleer of er voor vandaag al een melding is gestuurd om dubbele notificaties te voorkomen
+        const notificationRef = db.ref(`padelData/sentWeatherNotifications/${dateKey}`);
+        const snapshot = await notificationRef.once('value');
         if (snapshot.exists()) {
-            return res.status(200).json({ message: "Regenmelding voor vandaag is al verstuurd." });
+            return res.status(200).json({ message: 'Melding voor vandaag is al verzonden.' });
         }
 
-        // Haal het weer op voor Waalwijk via Open-Meteo (lat: 51.68, lon: 5.07)
-        const weatherRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=51.68&longitude=5.07&hourly=precipitation_probability&timezone=Europe%2FAmsterdam');
+        // Haal het weer op via Open-Meteo voor Waalwijk om 18:00 uur vandaag
+        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=precipitation_probability&start_date=${dateKey}&end_date=${dateKey}&timezone=Europe/Amsterdam`;
+        const weatherRes = await fetch(weatherUrl);
         const weatherData = await weatherRes.json();
 
-        // Zoek het uur van 18:00 uur vandaag in de API data
-        const hours = weatherData.hourly.time;
-        const probabilities = weatherData.hourly.precipitation_probability;
-        
-        const targetHourStr = `${dateStr}T18:00`;
-        const hourIndex = hours.findIndex(h => h.startsWith(targetHourStr));
-
-        if (hourIndex === -1) {
-            return res.status(400).json({ error: "Kon het weer voor 18:00 uur niet vinden." });
+        if (!weatherData || !weatherData.hourly || !weatherData.hourly.precipitation_probability) {
+            return res.status(500).json({ error: 'Kon weerdata niet ophalen' });
         }
 
-        const rainChance = probabilities[hourIndex];
+        // Zoek de index op voor 18:00 uur (uur 18 in de array van die dag)
+        const rainChance = weatherData.hourly.precipitation_probability[18] || 0;
 
-        // Als de kans op regen 60% of hoger is, stuur de notificatie!
         if (rainChance >= 60) {
-            const tokensSnapshot = await admin.database().ref("padelData/tokens").once("value");
-            const tokensData = tokensSnapshot.val();
+            // Haal alle opgeslagen FCM tokens op uit Firebase
+            const tokensSnapshot = await db.ref('padelData/tokens').once('value');
+            const tokensData = tokensSnapshot.val() || {};
 
-            if (!tokensData) {
-                return res.status(200).json({ message: "Geen tokens gevonden." });
-            }
-
-            let tokens = [];
+            let allTokens = [];
             Object.values(tokensData).forEach(userTokens => {
-                if (typeof userTokens === 'string') tokens.push(userTokens);
-                else if (typeof userTokens === 'object' && userTokens !== null) tokens.push(...Object.keys(userTokens));
+                if (userTokens) {
+                    allTokens.push(...Object.keys(userTokens));
+                }
             });
-            tokens = [...new Set(tokens)];
 
-            if (tokens.length > 0) {
-                const dayName = dayOfWeek === 2 ? "dinsdag" : "donderdag";
+            if (allTokens.length > 0) {
                 const message = {
-                    data: {
+                    notification: {
                         title: "⚠️ Padel Weerwaarschuwing",
-                        body: `Let op! ${rainChance}% kans om te regenen vanavond om 18:00 uur!`,
-                        click_action: "/"
+                        body: `Let op! Er is ${rainChance}% kans op regen om 18:00 uur vanavond!`
                     },
-                    tokens: tokens
+                    tokens: allTokens
                 };
 
-                await admin.messaging().sendEachForMulticast(message);
-                
-                // Sla in Firebase op dat we deze dag al een melding hebben gestuurd
-                await sentRef.set(true);
-
-                return res.status(200).json({ success: true, message: `Weerwaarschuwing (${rainChance}%) verzonden voor ${dateStr}.` });
+                await messaging.sendEachForMulticast(message);
             }
+
+            // Sla op dat de melding voor deze datum is verzonden
+            await notificationRef.set(true);
+
+            return res.status(200).json({ success: true, message: `Weerwaarschuwing verstuurd (${rainChance}% neerslag).` });
         }
 
-        return res.status(200).json({ message: `Kans op regen is ${rainChance}%, geen melding nodig (< 60%).` });
+        return res.status(200).json({ success: true, message: `Neerslagkans is ${rainChance}%, geen melding nodig.` });
 
     } catch (error) {
-        console.error("Fout in weather cron:", error);
+        console.error("Fout in cronjob:", error);
         return res.status(500).json({ error: error.message });
     }
 }
