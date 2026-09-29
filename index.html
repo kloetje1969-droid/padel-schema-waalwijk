@@ -1462,9 +1462,15 @@
         } else if (diffMin < 60) {
             return `${diffMin} minuten`;
         } else if (diffHours < 24) {
-            return `${diffHours} uur`;
+            const remMin = diffMin % 60;
+            return remMin > 0 ? `${diffHours} uur en ${remMin} minuten` : `${diffHours} uur`;
         } else {
-            return `${diffDays} dagen`;
+            const remHours = diffHours % 24;
+            let res = `${diffDays} dagen`;
+            if (remHours > 0) {
+                res += ` en ${remHours} uur`;
+            }
+            return res;
         }
     }
 
