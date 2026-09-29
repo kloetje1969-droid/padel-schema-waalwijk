@@ -1334,6 +1334,14 @@
         const select = document.getElementById('userSelect');
         const gekozenNaam = select.value;
 
+        // Beveiliging: Alleen Robert mag ingelogd worden (met pincode 1412 als switch).
+        // Andere gebruikers mogen niet zomaar op een andere naam dan hun eigen naam overschakelen.
+        if (gekozenNaam !== "Robert" && gekozenNaam !== myOriginalUserName && currentUserName !== "Robert") {
+            // Als je niet Robert bent, mag je alleen jezelf geselecteerd hebben
+            select.value = currentUserName;
+            return;
+        }
+
         if (gekozenNaam === "Robert" && currentUserName !== "Robert") {
             let ingevoerdePincode = prompt("Voer de pincode in om als Robert in te loggen:");
 
@@ -1878,18 +1886,38 @@
             let sel = document.getElementById(`p${i}Select`);
             let inp = document.getElementById(`p${i}Custom`);
             
-            let allOpts = [...basePlayers, "Extern / Invaller"];
-            sel.innerHTML = allOpts.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+            // BEVEILIGING: Als de ingelogde gebruiker GEEN Robert is, mag hij in de modal alleen zichzelf selecteren of een invaller.
+            // Robert mag iedereen selecteren.
+            let availableOpts = [];
+            if (currentUserName === "Robert") {
+                availableOpts = [...basePlayers, "Extern / Invaller"];
+            } else {
+                // Andere gebruikers mogen alleen hun eigen naam of invaller selecteren in de dropdown
+                availableOpts = [currentUserName, "Extern / Invaller"];
+            }
+
+            sel.innerHTML = availableOpts.map(opt => `<option value="${opt}">${opt}</option>`).join('');
 
             let pVal = currentPlayers[i] || basePlayers[i];
-            if (basePlayers.includes(pVal)) {
+            
+            // Als niet-Robert een speler opent waar hij zelf niet staat, zorgen we dat de optie er wel tijdelijk in staat zodat het netjes rendert, of vastgezet wordt.
+            if (currentUserName !== "Robert" && !availableOpts.includes(pVal)) {
+                // Voeg de huidige speler toe zodat de optie zichtbaar blijft, maar disabled of geselecteerd indien nodig
+                sel.innerHTML = `<option value="${pVal}">${pVal}</option>` + sel.innerHTML;
+            }
+
+            if (basePlayers.includes(pVal) || (currentUserName !== "Robert" && pVal === currentUserName)) {
                 sel.value = pVal;
                 inp.style.display = "none";
                 inp.value = "";
+            } else if (pVal === "Extern / Invaller" || !basePlayers.includes(pVal)) {
+                if (availableOpts.includes("Extern / Invaller")) {
+                    sel.value = "Extern / Invaller";
+                    inp.style.display = "block";
+                    inp.value = pVal;
+                }
             } else {
-                sel.value = "Extern / Invaller";
-                inp.style.display = "block";
-                inp.value = pVal;
+                sel.value = pVal;
             }
         }
 
