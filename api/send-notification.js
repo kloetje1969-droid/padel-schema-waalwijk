@@ -21,24 +21,27 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { title, body, force } = req.body;
+        const { title, body, type, force } = req.body;
 
         if (!title || !body) {
             return res.status(400).json({ error: 'Titel en bericht (body) zijn verplicht.' });
         }
 
-        // Bepaal de huidige datum in YYYY-MM-DD formaat om eenmalige verzending per dag te garanderen
         const today = new Date().toISOString().split('T')[0];
-        const notifiedRef = admin.database().ref(`padelData/notified/${today}`);
+        let notifiedRef = null;
 
-        // Controleer of er vandaag al een melding is gestuurd (tenzij 'force' true is)
-        if (!force) {
-            const snapshot = await notifiedRef.once("value");
-            if (snapshot.exists()) {
-                return res.status(200).json({ 
-                    success: false, 
-                    message: "Er is vandaag al een melding verzonden." 
-                });
+        // Controleer alleen op eenmalige verzending als het specifiek om een regenmelding gaat (type === 'rain')
+        if (type === 'rain') {
+            notifiedRef = admin.database().ref(`padelData/notified/rain/${today}`);
+            
+            if (!force) {
+                const snapshot = await notifiedRef.once("value");
+                if (snapshot.exists()) {
+                    return res.status(200).json({ 
+                        success: false, 
+                        message: "De regenmelding is vandaag al verzonden." 
+                    });
+                }
             }
         }
 
@@ -61,14 +64,14 @@ export default async function handler(req, res) {
             }
         });
 
-        // Verwijder eventuele dubbele tokens uit de lijst
+        // Verwijder eventuele dubbele tokens uit laagdrempelige lijsten
         tokens = [...new Set(tokens)];
 
         if (tokens.length === 0) {
             return res.status(200).json({ message: "Geen geldige tokens om naar te pushen." });
         }
 
-        // 2. Stel de pushmelding samen met ALLEEN een data-payload
+        // 2. Stel de pushmelding samen
         const message = {
             data: {
                 title: title,
@@ -81,12 +84,14 @@ export default async function handler(req, res) {
         // 3. Verstuur de berichten via multicast naar alle tokens
         const response = await admin.messaging().sendEachForMulticast(message);
 
-        // 4. Sla direct in Firebase op dat er vandaag een melding is verstuurd
-        await notifiedRef.set({
-            timestamp: Date.now(),
-            title: title,
-            successCount: response.successCount
-        });
+        // 4. Sla de status alleen op in Firebase als het een regenmelding betreft
+        if (notifiedRef) {
+            await notifiedRef.set({
+                timestamp: Date.now(),
+                title: title,
+                successCount: response.successCount
+            });
+        }
 
         return res.status(200).json({ 
             success: true, 
