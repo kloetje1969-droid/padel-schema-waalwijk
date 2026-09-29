@@ -3,8 +3,13 @@
     {
       "path": "/api/check-weather",
       "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/match-reminder",
+      "schedule": "0 17 * * 2,4"
     }
   ]
 }
+
 
 
