@@ -496,6 +496,7 @@
             border-color: var(--danger);
             color: var(--danger);
             text-decoration: line-through;
+            font-weight: bold;
         }
 
         .vs-text {
@@ -1334,10 +1335,7 @@
         const select = document.getElementById('userSelect');
         const gekozenNaam = select.value;
 
-        // Beveiliging: Alleen Robert mag ingelogd worden (met pincode 1412 als switch).
-        // Andere gebruikers mogen niet zomaar op een andere naam dan hun eigen naam overschakelen.
         if (gekozenNaam !== "Robert" && gekozenNaam !== myOriginalUserName && currentUserName !== "Robert") {
-            // Als je niet Robert bent, mag je alleen jezelf geselecteerd hebben
             select.value = currentUserName;
             return;
         }
@@ -1886,13 +1884,11 @@
             let sel = document.getElementById(`p${i}Select`);
             let inp = document.getElementById(`p${i}Custom`);
             
-            // BEVEILIGING: Als de ingelogde gebruiker GEEN Robert is, mag hij in de modal alleen zichzelf selecteren of een invaller.
-            // Robert mag iedereen selecteren.
             let availableOpts = [];
             if (currentUserName === "Robert") {
                 availableOpts = [...basePlayers, "Extern / Invaller"];
             } else {
-                // Andere gebruikers mogen alleen hun eigen naam of invaller selecteren in de dropdown
+                // Niet-beheerders mogen alleen hun eigen naam of een invaller selecteren
                 availableOpts = [currentUserName, "Extern / Invaller"];
             }
 
@@ -1900,9 +1896,7 @@
 
             let pVal = currentPlayers[i] || basePlayers[i];
             
-            // Als niet-Robert een speler opent waar hij zelf niet staat, zorgen we dat de optie er wel tijdelijk in staat zodat het netjes rendert, of vastgezet wordt.
             if (currentUserName !== "Robert" && !availableOpts.includes(pVal)) {
-                // Voeg de huidige speler toe zodat de optie zichtbaar blijft, maar disabled of geselecteerd indien nodig
                 sel.innerHTML = `<option value="${pVal}">${pVal}</option>` + sel.innerHTML;
             }
 
@@ -1964,11 +1958,23 @@
         for (let i = 0; i < 4; i++) {
             let sel = document.getElementById(`p${i}Select`);
             let inp = document.getElementById(`p${i}Custom`);
-            if (sel.value === "Extern / Invaller") {
-                newPlayers.push(inp.value.trim() || "Invaller");
-            } else {
-                newPlayers.push(sel.value);
+            let chosenVal = sel.value === "Extern / Invaller" ? (inp.value.trim() || "Invaller") : sel.value;
+            
+            // BEVEILIGING: Controleer of een niet-beheerder niet stiekem iemands anders naam invult
+            if (currentUserName !== "Robert") {
+                let tpl = defaultTemplate[activeTemplateIndex];
+                let overrideData = liveOverrides[activeModalUniqueKey] || {};
+                let originalPlayers = overrideData[activeModalDay] !== undefined ? overrideData[activeModalDay] : tpl[activeModalDay];
+                let originalVal = originalPlayers[i];
+
+                // Als de gekozen naam niet gelijk is aan de ingelogde gebruiker, niet de oorspronkelijke naam, en geen invaller/custom naam is... blokkeer of corrigeer
+                if (chosenVal !== currentUserName && chosenVal !== originalVal && !inp.value.trim()) {
+                    alert("Je mag alleen je eigen naam invullen op een vrije of afgewezen plek!");
+                    return;
+                }
             }
+
+            newPlayers.push(chosenVal);
         }
 
         db.ref(`padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`).set(newPlayers);
