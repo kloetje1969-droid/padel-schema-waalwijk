@@ -2,8 +2,9 @@
   "crons": [
     {
       "path": "/api/check-weather",
-      "schedule": "0 18 * * 2,4"
+      "schedule": "0 16 * * *"
     }
   ]
 }
+
 
