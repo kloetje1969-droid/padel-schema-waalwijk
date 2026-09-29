@@ -21,29 +21,36 @@ export default async function handler(req, res) {
     }
 
     try {
-        const today = new Date();
+        const now = new Date();
 
-        // 1. Controleer of het in Nederland (Europe/Amsterdam) vandaag Dinsdag (Tue) of Donderdag (Thu) is
+        // 1. Controleer de dag én het uur in de juiste tijdzone (Europe/Amsterdam)
         const optionsDay = { timeZone: 'Europe/Amsterdam', weekday: 'short' };
-        const currentDay = new Intl.DateTimeFormat('en-US', optionsDay).format(today);
+        const optionsHour = { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false };
 
-        if (currentDay !== 'Tue' && currentDay !== 'Thu') {
-            return res.status(200).json({ message: `Vandaag is ${currentDay}, geen speeldag. Geen actie vereist.` });
+        const currentDay = new Intl.DateTimeFormat('en-US', optionsDay).format(now); // 'Tue' of 'Thu'
+        const currentHour = parseInt(new Intl.DateTimeFormat('en-US', optionsHour).format(now), 10); // getal 0 t/m 23
+
+        // 2. Strenge check: Het MOET dinsdag of donderdag zijn, én het MOET exact 18:00 uur zijn
+        if ((currentDay !== 'Tue' && currentDay !== 'Thu') || currentHour !== 18) {
+            return res.status(200).json({ 
+                message: `Geen actie: Vandaag is ${currentDay} en het is ${currentHour}:00 uur (vereist: di of do om 18:00).` 
+            });
         }
 
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const dayNum = String(today.getDate()).padStart(2, '0');
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const dayNum = String(now.getDate()).padStart(2, '0');
         const dateKey = `${year}-${month}-${dayNum}`;
+        const dayName = currentDay === 'Tue' ? 'dinsdag' : 'donderdag';
 
-        // Controleer of er voor vandaag al een melding is gestuurd om dubbele notificaties te voorkomen
+        // 3. Controleer of er voor VANDAAG al een melding is gestuurd om dubbele notificaties te voorkomen
         const notificationRef = db.ref(`padelData/sentWeatherNotifications/${dateKey}`);
         const snapshot = await notificationRef.once('value');
         if (snapshot.exists()) {
-            return res.status(200).json({ message: 'Melding voor vandaag is al verzonden.' });
+            return res.status(200).json({ message: `Melding voor ${dayName} (${dateKey}) is al verzonden.` });
         }
 
-        // Haal het weer op via Open-Meteo voor Waalwijk om 18:00 uur vandaag
+        // 4. Haal het weer op via Open-Meteo voor VANDAAG om 18:00 uur
         const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=precipitation_probability&start_date=${dateKey}&end_date=${dateKey}&timezone=Europe/Amsterdam`;
         const weatherRes = await fetch(weatherUrl);
         const weatherData = await weatherRes.json();
@@ -55,8 +62,8 @@ export default async function handler(req, res) {
         // Zoek de index op voor 18:00 uur (uur 18 in de array van die dag)
         const rainChance = weatherData.hourly.precipitation_probability[18] || 0;
 
+        // 5. Als de regenkans vandaag om 18:00 uur 60% of hoger is, stuur de notificatie
         if (rainChance >= 60) {
-            // Haal alle opgeslagen FCM tokens op uit Firebase
             const tokensSnapshot = await db.ref('padelData/tokens').once('value');
             const tokensData = tokensSnapshot.val() || {};
 
@@ -71,7 +78,7 @@ export default async function handler(req, res) {
                 const message = {
                     notification: {
                         title: "⚠️ Padel Weerwaarschuwing",
-                        body: `Let op! Er is ${rainChance}% kans op regen om 18:00 uur vanavond!`
+                        body: `Let op! Er is ${rainChance}% kans op regen om 18:00 uur vanavond (${dayName})!`
                     },
                     tokens: allTokens
                 };
@@ -82,10 +89,10 @@ export default async function handler(req, res) {
             // Sla op dat de melding voor deze datum is verzonden
             await notificationRef.set(true);
 
-            return res.status(200).json({ success: true, message: `Weerwaarschuwing verstuurd (${rainChance}% neerslag).` });
+            return res.status(200).json({ success: true, message: `Weerwaarschuwing verstuurd voor ${dayName} (${rainChance}% neerslag).` });
         }
 
-        return res.status(200).json({ success: true, message: `Neerslagkans is ${rainChance}%, geen melding nodig.` });
+        return res.status(200).json({ success: true, message: `Neerslagkans voor ${dayName} is ${rainChance}%, geen melding nodig.` });
 
     } catch (error) {
         console.error("Fout in cronjob:", error);
