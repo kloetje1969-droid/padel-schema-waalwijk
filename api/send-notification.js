@@ -21,10 +21,25 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { title, body, senderToken } = req.body;
+        const { title, body, force } = req.body;
 
         if (!title || !body) {
             return res.status(400).json({ error: 'Titel en bericht (body) zijn verplicht.' });
+        }
+
+        // Bepaal de huidige datum in YYYY-MM-DD formaat om eenmalige verzending per dag te garanderen
+        const today = new Date().toISOString().split('T')[0];
+        const notifiedRef = admin.database().ref(`padelData/notified/${today}`);
+
+        // Controleer of er vandaag al een melding is gestuurd (tenzij 'force' true is)
+        if (!force) {
+            const snapshot = await notifiedRef.once("value");
+            if (snapshot.exists()) {
+                return res.status(200).json({ 
+                    success: false, 
+                    message: "Er is vandaag al een melding verzonden." 
+                });
+            }
         }
 
         // 1. Haal alle tokens op uit de Firebase Database
@@ -53,7 +68,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ message: "Geen geldige tokens om naar te pushen." });
         }
 
-        // 2. Stel de pushmelding samen met ALLEEN een data-payload (voorkomt dubbel!)
+        // 2. Stel de pushmelding samen met ALLEEN een data-payload
         const message = {
             data: {
                 title: title,
@@ -65,6 +80,13 @@ export default async function handler(req, res) {
 
         // 3. Verstuur de berichten via multicast naar alle tokens
         const response = await admin.messaging().sendEachForMulticast(message);
+
+        // 4. Sla direct in Firebase op dat er vandaag een melding is verstuurd
+        await notifiedRef.set({
+            timestamp: Date.now(),
+            title: title,
+            successCount: response.successCount
+        });
 
         return res.status(200).json({ 
             success: true, 
