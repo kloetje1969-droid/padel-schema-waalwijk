@@ -1622,7 +1622,7 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            // Dynamische controle: alleen op de actuele speeldag zelf vanaf 18:00 uur
+            // Strenge controle voor de pushnotificatie: alleen op de speeldag zelf vanaf 18:00 uur
             let isDinsdagToday = now.getFullYear() === dinsdagDate.getFullYear() &&
                                  now.getMonth() === dinsdagDate.getMonth() &&
                                  now.getDate() === dinsdagDate.getDate();
