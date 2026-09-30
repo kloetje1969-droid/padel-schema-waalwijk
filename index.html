@@ -1701,7 +1701,7 @@
                 let rainKey = `rain_notified_${uniqueWeekKey}_dinsdag`;
                 if (!localStorage.getItem(rainKey)) {
                     localStorage.setItem(rainKey, 'true');
-                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${dinsdagWeatherObj.rain}% kans op regen vanavond om 18:00 uur op deze dinsdag (week ${currentWeekNum})!`);
+                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${dinsdagWeatherObj.rain}% kans op regen om 18:00 uur (week ${currentWeekNum})!`);
                 }
             }
 
@@ -1709,7 +1709,7 @@
                 let rainKey = `rain_notified_${uniqueWeekKey}_donderdag`;
                 if (!localStorage.getItem(rainKey)) {
                     localStorage.setItem(rainKey, 'true');
-                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${donderdagWeatherObj.rain}% kans op regen vanavond om 18:00 uur op deze donderdag (week ${currentWeekNum})!`);
+                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur (week ${currentWeekNum})!`);
                 }
             }
 
