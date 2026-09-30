@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v5.1)</title>
+    <title>Padelschema - Rooster & Chat (v5.2)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -1132,7 +1132,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "5.1";
+    const APP_VERSION = "5.2";
     
     async function checkAppVersion() {
         try {
@@ -1169,6 +1169,21 @@
     try {
         if (firebase.messaging.isSupported()) {
             messaging = firebase.messaging();
+            
+            // Foreground message handler zodat meldingen ook binnenkomen als de app open staat
+            messaging.onMessage((payload) => {
+                if (payload && payload.notification) {
+                    const { title, body } = payload.notification;
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.ready.then(registration => {
+                            registration.showNotification(title, {
+                                body: body,
+                                icon: 'https://cdn-icons-png.flaticon.com/512/33/33736.png'
+                            });
+                        });
+                    }
+                }
+            });
         }
     } catch (e) {
         console.log("Messaging niet ondersteund:", e);
@@ -1354,22 +1369,21 @@
 
     async function triggerPushNotification(title, body) {
         try {
-            const res = await fetch('/api/send-notification', {
+            // Zorg ervoor dat de melding direct ook lokaal bij jezelf op het scherm verschijnt
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification(title, {
+                        body: body,
+                        icon: 'https://cdn-icons-png.flaticon.com/512/33/33736.png'
+                    });
+                });
+            }
+
+            await fetch('/api/send-notification', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title, body })
             });
-            const data = await res.json();
-            
-            if (data.tokens && Array.isArray(data.tokens)) {
-                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.controller.postMessage({
-                        type: 'SHOW_NOTIFICATION',
-                        title: title,
-                        body: body
-                    });
-                }
-            }
         } catch (e) {
             console.error("Fout bij triggeren pushmelding via Vercel:", e);
         }
@@ -1935,7 +1949,7 @@
                 let rainKey = `rain_notified_${uniqueWeekKey}_donderdag`;
                 if (!localStorage.getItem(rainKey)) {
                     localStorage.setItem(rainKey, 'true');
-                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur (week ${currentWeekNum})!`);
+                    triggerPushNotification("⚠️️ Padel Weerwaarschuwing", `Let op! ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur (week ${currentWeekNum})!`);
                 }
             }
 
@@ -1988,7 +2002,7 @@
                                 </div>
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig</button>
+                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️️ Wijzig</button>
                             </div>
                         </div>
                         ${donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
