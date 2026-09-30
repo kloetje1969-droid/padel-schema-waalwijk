@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v5.0)</title>
+    <title>Padelschema - Rooster & Chat (v5.1)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -38,8 +38,6 @@
         .tennis-ball {
             display: inline-block;
             font-size: 1.1em;
-            color: #d9f99d;
-            text-shadow: 0 0 8px rgba(217, 249, 157, 0.6);
             font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
         }
 
@@ -390,24 +388,24 @@
             padding-bottom: 6px;
         }
 
-        /* Inklapbare Baan Boeking Header */
+        /* Inklapbare Baan Boeking Header - Altijd recht, geen draaiende tekst op de kop */
         .collapsible-header {
             cursor: pointer;
             user-select: none;
         }
 
         .collapse-arrow {
-            font-size: 0.8rem;
-            transition: transform 0.3s ease;
+            font-size: 0.75rem;
+            font-weight: 600;
             color: var(--accent-green);
-        }
-
-        .collapse-arrow.rotated {
-            transform: rotate(180deg);
+            background: rgba(52, 211, 153, 0.1);
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(52, 211, 153, 0.2);
         }
 
         #baanBoekingenBody {
-            display: none; /* Standaard ingeklapt of pas aan naar wens */
+            display: none; /* Standaard ingeklapt */
             flex-direction: column;
             gap: 8px;
             margin-top: 6px;
@@ -984,7 +982,7 @@
 
 <div class="container">
     <header>
-        <h1><span class="tennis-ball">&#127934;</span> Padelschema <span class="tennis-ball">&#127934;</span></h1>
+        <h1><span class="tennis-ball">🥎</span> Padelschema <span class="tennis-ball">🥎</span></h1>
         
         <div class="user-select-row">
             <div class="user-select-container">
@@ -1056,9 +1054,9 @@
     <div class="card">
         <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
             <div class="section-title" style="font-size: 0.95rem;">
-                <span class="tennis-ball">&#127934;</span> Baan Boeken & Stand
+                <span class="tennis-ball">🥎</span> Baan Boeken & Stand
             </div>
-            <span id="collapseArrow" class="collapse-arrow">▼ Inklappen / Uitklappen</span>
+            <span id="collapseArrow" class="collapse-arrow">▼ Menu</span>
         </div>
         <div id="baanBoekingenBody">
             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
@@ -1134,7 +1132,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "5.0";
+    const APP_VERSION = "5.1";
     
     async function checkAppVersion() {
         try {
@@ -1254,10 +1252,10 @@
         const arrow = document.getElementById('collapseArrow');
         if (body.style.display === 'flex') {
             body.style.display = 'none';
-            arrow.classList.remove('rotated');
+            arrow.innerText = '▼ Menu';
         } else {
             body.style.display = 'flex';
-            arrow.classList.add('rotated');
+            arrow.innerText = '▲ Sluiten';
         }
     }
 
@@ -1468,7 +1466,7 @@
                     const canDelete = (currentUserName === "Robert" || b.player === currentUserName);
                     const deleteBtn = canDelete ? `<button onclick="deleteBaanBoeking('${b.id}')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
                     return `<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--card-border);">
-                        <span><span class="tennis-ball">&#127934;</span> <strong>${b.player}</strong>: ${formattedDt}</span>
+                        <span><span class="tennis-ball">🥎</span> <strong>${b.player}</strong>: ${formattedDt}</span>
                         ${deleteBtn}
                     </div>`;
                 }).join('');
@@ -1500,10 +1498,10 @@
             });
 
             const formattedDt = formatExactDateTime(new Date(gekozenDatum).getTime());
-            const berichtTekst = `🎾 ${gekozenSpeler} heeft een baan geboekt voor ${formattedDt}!`;
+            const berichtTekst = `🥎 ${gekozenSpeler} heeft een baan geboekt voor ${formattedDt}!`;
             await addSystemMessageIfUnique(berichtTekst);
 
-            await triggerPushNotification("🎾 Nieuwe Baan Boeking!", `${gekozenSpeler} heeft een baan geboekt voor ${formattedDt}!`);
+            await triggerPushNotification("🥎 Nieuwe Baan Boeking!", `${gekozenSpeler} heeft een baan geboekt voor ${formattedDt}!`);
 
             select.value = "";
             dateInput.value = "";
@@ -1562,7 +1560,7 @@
     }
 
     function formatWeatherBadge(w) {
-        if (!w) return `<span class="weather-badge">☁️️ Weer volgt</span>`;
+        if (!w) return `<span class="weather-badge">☁ Weer volgt</span>`;
         const emoji = getWeatherEmoji(w.code);
         return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
     }
