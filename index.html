@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v4.3)</title>
+    <title>Padelschema - Rooster & Chat (v4.4)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -251,15 +251,15 @@
             background: #374151;
             border: 1px solid #4b5563;
             color: var(--text-main);
-            padding: 5px 8px;
-            border-radius: 6px;
+            padding: 6px 10px;
+            border-radius: 8px;
             font-size: 0.72rem;
             font-weight: 500;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
-            min-width: 110px;
+            gap: 3px;
+            min-width: 130px; /* Voldoende breedte voor datum, tijd en duur */
         }
 
         .status-badge.me {
@@ -273,14 +273,15 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            font-weight: 600;
         }
 
         .status-time {
-            font-size: 0.58rem;
+            font-size: 0.62rem;
             color: var(--text-muted);
             font-weight: normal;
             text-align: center;
-            line-height: 1.1;
+            line-height: 1.2;
         }
 
         .status-dot {
@@ -1046,7 +1047,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "4.3";
+    const APP_VERSION = "4.4";
     
     async function checkAppVersion() {
         try {
@@ -1308,7 +1309,7 @@
     }
 
     function getWeatherEmoji(code) {
-        if (code === 0) return "☀️";
+        if (code === 0) return "☀️️";
         if (code >= 1 && code <= 3) return "⛅";
         if (code >= 51 && code <= 67) return "🌧️";
         if (code >= 71 && code <= 77) return "❄";
@@ -1436,7 +1437,7 @@
                 const durationText = formatSessionDurationText(finalDurationMs);
 
                 userLastSeenRef.set({
-                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    timestamp: Date.now(), // Gebruik lokale clienttijd i.p.v. ServerValue.TIMESTAMP zodat we zeker weten dat het een vergelijkbaar getal is
                     duration: durationText
                 });
 
@@ -1453,7 +1454,7 @@
     }
 
     function formatSessionDurationText(ms) {
-        if (!ms || ms < 30000) return "korter dan 1 min";
+        if (!ms || ms < 10000) return "korter dan 1 min";
         const minutes = Math.floor(ms / 60000);
         const hours = Math.floor(minutes / 60);
         const remMins = minutes % 60;
@@ -1486,9 +1487,11 @@
     }
 
     function formatExactDateTime(ts) {
+        if (!ts) return "";
         const date = new Date(ts);
+        if (isNaN(date.getTime())) return "";
+
         const today = new Date();
-        
         const isToday = date.getDate() === today.getDate() &&
                         date.getMonth() === today.getMonth() &&
                         date.getFullYear() === today.getFullYear();
@@ -1549,9 +1552,11 @@
                         
                         if (diff >= 0 && diff <= MAX_OFFLINE_DISPLAY_MS) {
                             let exactTimeStr = formatExactDateTime(lastSeenTs);
-                            subText = `<span class="status-time">${exactTimeStr}</span>`;
+                            if (exactTimeStr) {
+                                subText += `<span class="status-time">Laatst: ${exactTimeStr}</span>`;
+                            }
                             if (durationStr) {
-                                subText += `<span class="status-time" style="color: var(--accent-green);">Duur: ${durationStr}</span>`;
+                                subText += `<span class="status-time" style="color: var(--accent-green);">Actief: ${durationStr}</span>`;
                             }
                         } else {
                             subText = `<span class="status-time">Offline</span>`;
@@ -1690,7 +1695,7 @@
 
             let dinsdagRainWarning = (dinsdagWeatherObj && dinsdagWeatherObj.rain >= 60) ? 
                 `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠️ <strong>Let op:</strong> ${dinsdagWeatherObj.rain}% kans op regen om 18:00 uur op deze dinsdagavond!
+                    ⚠️️ <strong>Let op:</strong> ${dinsdagWeatherObj.rain}% kans op regen om 18:00 uur op deze dinsdagavond!
                  </div>` : '';
 
             let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain >= 60) ? 
