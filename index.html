@@ -1720,7 +1720,7 @@
 
             let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain >= 60) ? 
                 `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen om 18:00
+                    ⚠ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur
                  </div>` : '';
 
             let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
