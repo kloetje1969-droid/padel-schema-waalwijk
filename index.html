@@ -2,13 +2,12 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <!-- Aangepast: interactive-widget=resizes-content helpt mobiele browsers om de viewport aan te passen aan het toetsenbord -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, interactive-widget=resizes-content">
     <!-- Cache control headers -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v4.2)</title>
+    <title>Padelschema - Rooster & Chat (v4.3)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -191,7 +190,7 @@
         .status-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
+            gap: 6px;
             justify-content: center;
             width: 100%;
             border-top: 1px solid var(--card-border);
@@ -252,15 +251,15 @@
             background: #374151;
             border: 1px solid #4b5563;
             color: var(--text-main);
-            padding: 4px 8px;
+            padding: 5px 8px;
             border-radius: 6px;
-            font-size: 0.7rem;
+            font-size: 0.72rem;
             font-weight: 500;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 2px;
-            min-width: 95px;
+            min-width: 110px;
         }
 
         .status-badge.me {
@@ -280,6 +279,8 @@
             font-size: 0.58rem;
             color: var(--text-muted);
             font-weight: normal;
+            text-align: center;
+            line-height: 1.1;
         }
 
         .status-dot {
@@ -670,7 +671,6 @@
             font-size: 0.7rem; 
         }
 
-        /* CHAT INVOER & AUTOMATISCH MEEGROEIEND TEKSTVELD */
         .chat-input-row { 
             display: flex; 
             gap: 6px; 
@@ -999,7 +999,6 @@
         <div class="chat-input-row">
             <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx" style="display: none;" onchange="handleFileSelect(event)">
             <button class="push-btn" onclick="document.getElementById('fileInput').click()" title="Foto of PDF bijvoegen" style="padding: 9px 10px; font-size: 1rem; height: 38px;">📎</button>
-            <!-- Automatisch meegroeiend tekstveld (textarea) -->
             <textarea id="chatInput" rows="1" placeholder="Typ een bericht..." onkeydown="handleKeyDown(event)"></textarea>
             <button class="btn-primary" onclick="sendMessage()">Verzend</button>
         </div>
@@ -1047,7 +1046,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "4.2";
+    const APP_VERSION = "4.3";
     
     async function checkAppVersion() {
         try {
@@ -1312,7 +1311,7 @@
         if (code === 0) return "☀️";
         if (code >= 1 && code <= 3) return "⛅";
         if (code >= 51 && code <= 67) return "🌧️";
-        if (code >= 71 && code <= 77) return "❄️️";
+        if (code >= 71 && code <= 77) return "❄";
         if (code >= 95) return "⛈️";
         return "☁️";
     }
@@ -1460,7 +1459,7 @@
         const remMins = minutes % 60;
 
         if (hours > 0) {
-            return remMins > 0 ? `${hours} uur en ${remMins} min` : `${hours} uur`;
+            return remMins > 0 ? `${hours}u ${remMins}m` : `${hours} uur`;
         }
         return `${minutes} min`;
     }
@@ -1486,26 +1485,21 @@
         }
     }
 
-    function getFormattedOfflineTime(diffMs) {
-        const diffSec = Math.floor(diffMs / 1000);
-        const diffMin = Math.floor(diffSec / 60);
-        const diffHours = Math.floor(diffMin / 60);
-        const diffDays = Math.floor(diffHours / 24);
+    function formatExactDateTime(ts) {
+        const date = new Date(ts);
+        const today = new Date();
+        
+        const isToday = date.getDate() === today.getDate() &&
+                        date.getMonth() === today.getMonth() &&
+                        date.getFullYear() === today.getFullYear();
 
-        if (diffSec < 60) {
-            return "zojuist";
-        } else if (diffMin < 60) {
-            return `${diffMin} min geleden`;
-        } else if (diffHours < 24) {
-            const remMin = diffMin % 60;
-            return remMin > 0 ? `${diffHours}u ${remMin}m geleden` : `${diffHours} uur geleden`;
+        const timeStr = date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+
+        if (isToday) {
+            return `Vandaag om ${timeStr}`;
         } else {
-            const remHours = diffHours % 24;
-            let res = `${diffDays} dagen`;
-            if (remHours > 0) {
-                res += ` en ${remHours}u`;
-            }
-            return res + " geleden";
+            const dateStr = date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+            return `${dateStr} om ${timeStr}`;
         }
     }
 
@@ -1554,10 +1548,10 @@
                         const diff = Date.now() - lastSeenTs;
                         
                         if (diff >= 0 && diff <= MAX_OFFLINE_DISPLAY_MS) {
-                            let timeAgoStr = getFormattedOfflineTime(diff);
-                            subText = `<span class="status-time">${timeAgoStr}</span>`;
+                            let exactTimeStr = formatExactDateTime(lastSeenTs);
+                            subText = `<span class="status-time">${exactTimeStr}</span>`;
                             if (durationStr) {
-                                subText += `<span class="status-time" style="color: var(--accent-green);">Actief: ${durationStr}</span>`;
+                                subText += `<span class="status-time" style="color: var(--accent-green);">Duur: ${durationStr}</span>`;
                             }
                         } else {
                             subText = `<span class="status-time">Offline</span>`;
@@ -1701,7 +1695,7 @@
 
             let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain >= 60) ? 
                 `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠️️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur op deze donderdagavond!
+                    ⚠️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur op deze donderdagavond!
                  </div>` : '';
 
             let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
