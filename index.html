@@ -34,10 +34,13 @@
             --main-glow: 0 16px 60px rgba(52, 211, 153, 0.22), 0 0 40px rgba(52, 211, 153, 0.12);
         }
 
-        /* Forceer een losse tennisbal en voorkom dat Android er een racket bij zet */
+        /* Expliciete styling voor gegarandeerde weergave van de tennisbal */
         .tennis-ball {
+            display: inline-block;
+            font-size: 1.1em;
+            color: #d9f99d;
+            text-shadow: 0 0 8px rgba(217, 249, 157, 0.6);
             font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-            font-variant-emoji: text;
         }
 
         /* Pull-to-refresh indicator */
@@ -385,6 +388,29 @@
             justify-content: space-between;
             border-bottom: 1px solid var(--card-border);
             padding-bottom: 6px;
+        }
+
+        /* Inklapbare Baan Boeking Header */
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapse-arrow {
+            font-size: 0.8rem;
+            transition: transform 0.3s ease;
+            color: var(--accent-green);
+        }
+
+        .collapse-arrow.rotated {
+            transform: rotate(180deg);
+        }
+
+        #baanBoekingenBody {
+            display: none; /* Standaard ingeklapt of pas aan naar wens */
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 6px;
         }
 
         .section-title {
@@ -958,7 +984,7 @@
 
 <div class="container">
     <header>
-        <h1><span class="tennis-ball">🎾</span> Padelschema <span class="tennis-ball">🎾</span></h1>
+        <h1><span class="tennis-ball">&#127934;</span> Padelschema <span class="tennis-ball">&#127934;</span></h1>
         
         <div class="user-select-row">
             <div class="user-select-container">
@@ -1026,12 +1052,15 @@
         </div>
     </div>
 
-    <!-- BAAN BOEKINGEN KAART -->
+    <!-- BAAN BOEKINGEN KAART (INKLAPBAAR PULLED-DOWN BLOK) -->
     <div class="card">
-        <div class="card-header">
-            <div class="section-title" style="font-size: 0.95rem;"><span class="tennis-ball">🎾</span> Baan Boeken & Stand</div>
+        <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
+            <div class="section-title" style="font-size: 0.95rem;">
+                <span class="tennis-ball">&#127934;</span> Baan Boeken & Stand
+            </div>
+            <span id="collapseArrow" class="collapse-arrow">▼ Inklappen / Uitklappen</span>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div id="baanBoekingenBody">
             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
                 <select id="boekingDropdown" style="flex-grow: 1; min-width: 120px; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none;">
                     <option value="">-- Wie boekt? --</option>
@@ -1218,6 +1247,19 @@
             window.visualViewport.addEventListener('scroll', handleResize);
         }
     });
+
+    // --- TOGGLE FUNCTIE VOOR HET BAAN BOEKEN BLOK ---
+    function toggleBaanBoekingMenu() {
+        const body = document.getElementById('baanBoekingenBody');
+        const arrow = document.getElementById('collapseArrow');
+        if (body.style.display === 'flex') {
+            body.style.display = 'none';
+            arrow.classList.remove('rotated');
+        } else {
+            body.style.display = 'flex';
+            arrow.classList.add('rotated');
+        }
+    }
 
     // --- PULL-TO-REFRESH LOGICA ---
     let touchStartY = 0;
@@ -1426,7 +1468,7 @@
                     const canDelete = (currentUserName === "Robert" || b.player === currentUserName);
                     const deleteBtn = canDelete ? `<button onclick="deleteBaanBoeking('${b.id}')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
                     return `<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--card-border);">
-                        <span><span class="tennis-ball">🎾</span> <strong>${b.player}</strong>: ${formattedDt}</span>
+                        <span><span class="tennis-ball">&#127934;</span> <strong>${b.player}</strong>: ${formattedDt}</span>
                         ${deleteBtn}
                     </div>`;
                 }).join('');
@@ -1520,7 +1562,7 @@
     }
 
     function formatWeatherBadge(w) {
-        if (!w) return `<span class="weather-badge">☁️ Weer volgt</span>`;
+        if (!w) return `<span class="weather-badge">☁️️ Weer volgt</span>`;
         const emoji = getWeatherEmoji(w.code);
         return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
     }
