@@ -1311,7 +1311,7 @@
     }
 
     function getWeatherEmoji(code) {
-        if (code === 0) return "☀️️";
+        if (code === 0) return "☀";
         if (code >= 1 && code <= 3) return "⛅";
         if (code >= 51 && code <= 67) return "🌧️";
         if (code >= 71 && code <= 77) return "❄";
@@ -1400,8 +1400,6 @@
     function saveCurrentSessionLastSeen() {
         const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
         const disconnectTime = Date.now();
-
-        // Opgeslagen als los getal, net als bij Robert
         db.ref(`padelData/lastSeen/${myRealName}`).set(disconnectTime);
     }
 
@@ -1448,9 +1446,7 @@
             };
 
             presenceRef.onDisconnect().remove().then(() => {
-                // Opgeslagen als los getal, net als bij Robert
                 userLastSeenRef.set(Date.now());
-
                 updatePresenceData();
 
                 if (presenceHeartbeat) clearInterval(presenceHeartbeat);
@@ -1527,37 +1523,52 @@
                         if (ts > Date.now()) ts = Date.now();
                         const age = Date.now() - ts;
                         if (age <= PRESENCE_ONLINE_TIMEOUT_MS) {
-                            activeUsers[s.name] = true;
+                            activeUsers[s.name] = ts;
                         }
                     }
                 });
             }
 
-            container.innerHTML = basePlayers.map(player => {
+            let playerActivityList = basePlayers.map(player => {
                 const isMe = (player === currentUserName);
                 const isOnline = isMe ? firebaseConnected : !!activeUsers[player];
 
-                let subText = "";
-                if (!isOnline) {
+                let lastSeenTs = 0;
+                if (isOnline) {
+                    lastSeenTs = Date.now();
+                } else {
                     let lastSeenData = allLastSeen[player];
-                    let lastSeenTs = null;
-
                     if (lastSeenData) {
                         if (typeof lastSeenData === 'object' && lastSeenData !== null) {
-                            lastSeenTs = lastSeenData.timestamp;
+                            lastSeenTs = lastSeenData.timestamp || 0;
                         } else {
-                            lastSeenTs = lastSeenData; // Direct getal zoals bij Robert
+                            lastSeenTs = lastSeenData;
                         }
+                        if (lastSeenTs < 10000000000) lastSeenTs = lastSeenTs * 1000;
                     }
+                }
 
-                    if (lastSeenTs) {
-                        let normTs = lastSeenTs;
-                        if (normTs < 10000000000) normTs = normTs * 1000;
-                        if (normTs > Date.now()) normTs = Date.now();
-                        const diff = Date.now() - normTs;
-                        
+                return {
+                    player,
+                    isMe,
+                    isOnline,
+                    lastSeenTs
+                };
+            });
+
+            playerActivityList.sort((a, b) => b.lastSeenTs - a.lastSeenTs);
+
+            container.innerHTML = playerActivityList.map(item => {
+                const player = item.player;
+                const isMe = item.isMe;
+                const isOnline = item.isOnline;
+
+                let subText = "";
+                if (!isOnline) {
+                    if (item.lastSeenTs > 0) {
+                        const diff = Date.now() - item.lastSeenTs;
                         if (diff >= 0 && diff <= MAX_OFFLINE_DISPLAY_MS) {
-                            let exactTimeStr = formatExactDateTime(normTs);
+                            let exactTimeStr = formatExactDateTime(item.lastSeenTs);
                             if (exactTimeStr) {
                                 subText += `<span class="status-time">Laatst: ${exactTimeStr}</span>`;
                             }
@@ -1698,7 +1709,7 @@
 
             let dinsdagRainWarning = (dinsdagWeatherObj && dinsdagWeatherObj.rain >= 60) ? 
                 `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠️️ <strong>Let op:</strong> ${dinsdagWeatherObj.rain}% kans op regen om 18:00 uur op deze dinsdagavond!
+                    ⚠ <strong>Let op:</strong> ${dinsdagWeatherObj.rain}% kans op regen om 18:00 uur op deze dinsdagavond!
                  </div>` : '';
 
             let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain >= 60) ? 
