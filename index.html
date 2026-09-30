@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v4.5)</title>
+    <title>Padelschema - Rooster & Chat (v4.7)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -259,7 +259,7 @@
             flex-direction: column;
             align-items: center;
             gap: 3px;
-            min-width: 140px; /* Ruim genoeg voor alle gegevens */
+            min-width: 145px;
         }
 
         .status-badge.me {
@@ -1047,7 +1047,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "4.5";
+    const APP_VERSION = "4.7";
     
     async function checkAppVersion() {
         try {
@@ -1130,7 +1130,7 @@
     let appInitialized = false;
 
     document.addEventListener('DOMContentLoaded', () => {
-        sessionStartTime = Date.now(); // Houd exact bij wanneer de app geopend is
+        sessionStartTime = Date.now();
 
         if (sessionStorage.getItem('padel_unlocked') === 'true') {
             document.getElementById('pinOverlay').style.display = 'none';
@@ -1311,7 +1311,7 @@
     }
 
     function getWeatherEmoji(code) {
-        if (code === 0) return "☀️";
+        if (code === 0) return "☀️️";
         if (code >= 1 && code <= 3) return "⛅";
         if (code >= 51 && code <= 67) return "🌧️";
         if (code >= 71 && code <= 77) return "❄️";
@@ -1384,12 +1384,11 @@
             }
         }
 
-        // Voordat we van gebruiker wisselen of sluiten, slaan we de huidige sessie netjes op
         saveCurrentSessionLastSeen();
 
         currentUserName = gekozenNaam;
         localStorage.setItem('padel_current_user', currentUserName);
-        sessionStartTime = Date.now(); // Reset sessiestart voor de nieuwe gebruiker
+        sessionStartTime = Date.now();
 
         initUserSelect();
         renderAll();
@@ -1405,7 +1404,6 @@
         const durationText = formatSessionDurationText(finalDurationMs);
         const disconnectTime = Date.now();
 
-        // Direct wegschrijven naar Firebase
         db.ref(`padelData/lastSeen/${myRealName}`).set({
             timestamp: disconnectTime,
             duration: durationText
@@ -1475,23 +1473,22 @@
         presenceConnectedRef.on('value', presenceConnectedHandler);
     }
 
-    // Ook opslaan bij het sluiten/verlaten van de pagina (beforeunload)
     window.addEventListener('beforeunload', () => {
         saveCurrentSessionLastSeen();
     });
 
     function formatSessionDurationText(ms) {
-        if (!ms || ms < 5000) return "1 min";
-        const minutes = Math.floor(ms / 60000);
-        const hours = Math.floor(minutes / 60);
-        const remMins = minutes % 60;
+        if (!ms || ms < 10000) return "1 min";
+        const totalMinutes = Math.floor(ms / 60000);
+        const hours = Math.floor(totalMinutes / 60);
+        const remMins = totalMinutes % 60;
 
-        if (minutes < 1) return "1 min";
+        if (totalMinutes < 1) return "1 min";
 
         if (hours > 0) {
             return remMins > 0 ? `${hours}u ${remMins}m` : `${hours} uur`;
         }
-        return `${minutes} min`;
+        return `${totalMinutes} min`;
     }
 
     function updateConnectionIndicator() {
@@ -1571,6 +1568,7 @@
                             durationStr = lastSeenData.duration || "";
                         } else {
                             lastSeenTs = lastSeenData;
+                            durationStr = "1 min";
                         }
                     }
 
@@ -1729,7 +1727,7 @@
 
             let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain >= 60) ? 
                 `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠️️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur op deze donderdagavond!
+                    ⚠️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur op deze donderdagavond!
                  </div>` : '';
 
             let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
