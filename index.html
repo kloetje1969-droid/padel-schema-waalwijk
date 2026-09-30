@@ -1311,7 +1311,7 @@
     }
 
     function getWeatherEmoji(code) {
-        if (code === 0) return "☀️";
+        if (code === 0) return "☀️️";
         if (code >= 1 && code <= 3) return "⛅";
         if (code >= 51 && code <= 67) return "🌧️";
         if (code >= 71 && code <= 77) return "❄";
@@ -1401,7 +1401,7 @@
         const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
         const disconnectTime = Date.now();
 
-        // Opgeslagen als los getal, net als bij Dennis
+        // Opgeslagen als los getal, net als bij Robert
         db.ref(`padelData/lastSeen/${myRealName}`).set(disconnectTime);
     }
 
@@ -1448,7 +1448,7 @@
             };
 
             presenceRef.onDisconnect().remove().then(() => {
-                // Opgeslagen als los getal, net als bij Dennis
+                // Opgeslagen als los getal, net als bij Robert
                 userLastSeenRef.set(Date.now());
 
                 updatePresenceData();
@@ -1546,7 +1546,7 @@
                         if (typeof lastSeenData === 'object' && lastSeenData !== null) {
                             lastSeenTs = lastSeenData.timestamp;
                         } else {
-                            lastSeenTs = lastSeenData; // Direct getal zoals bij Dennis
+                            lastSeenTs = lastSeenData; // Direct getal zoals bij Robert
                         }
                     }
 
@@ -1698,7 +1698,7 @@
 
             let dinsdagRainWarning = (dinsdagWeatherObj && dinsdagWeatherObj.rain >= 60) ? 
                 `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠️ <strong>Let op:</strong> ${dinsdagWeatherObj.rain}% kans op regen om 18:00 uur op deze dinsdagavond!
+                    ⚠️️ <strong>Let op:</strong> ${dinsdagWeatherObj.rain}% kans op regen om 18:00 uur op deze dinsdagavond!
                  </div>` : '';
 
             let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain >= 60) ? 
