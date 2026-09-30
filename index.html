@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v4.7)</title>
+    <title>Padelschema - Rooster & Chat (v4.8)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -1047,7 +1047,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "4.7";
+    const APP_VERSION = "4.8";
     
     async function checkAppVersion() {
         try {
@@ -1117,8 +1117,8 @@
 
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
 
-    const PRESENCE_HEARTBEAT_MS = 15000;
-    const PRESENCE_ONLINE_TIMEOUT_MS = 45000;
+    const PRESENCE_HEARTBEAT_MS = 10000;
+    const PRESENCE_ONLINE_TIMEOUT_MS = 30000;
     const MAX_OFFLINE_DISPLAY_MS = 7 * 24 * 60 * 60 * 1000;
 
     let presenceRef = null;
@@ -1311,7 +1311,7 @@
     }
 
     function getWeatherEmoji(code) {
-        if (code === 0) return "☀️️";
+        if (code === 0) return "☀️";
         if (code >= 1 && code <= 3) return "⛅";
         if (code >= 51 && code <= 67) return "🌧️";
         if (code >= 71 && code <= 77) return "❄️";
@@ -1514,7 +1514,13 @@
 
     function formatExactDateTime(ts) {
         if (!ts) return "";
-        const date = new Date(ts);
+        let date = new Date(ts);
+        
+        // Automatische correctie als de timestamp in seconden is in plaats van milliseconden
+        if (ts < 10000000000) {
+            date = new Date(ts * 1000);
+        }
+
         if (isNaN(date.getTime())) return "";
 
         const today = new Date();
@@ -1573,12 +1579,13 @@
                     }
 
                     if (lastSeenTs) {
-                        if (lastSeenTs < 10000000000) lastSeenTs = lastSeenTs * 1000;
-                        if (lastSeenTs > Date.now()) lastSeenTs = Date.now();
-                        const diff = Date.now() - lastSeenTs;
+                        let normTs = lastSeenTs;
+                        if (normTs < 10000000000) normTs = normTs * 1000;
+                        if (normTs > Date.now()) normTs = Date.now();
+                        const diff = Date.now() - normTs;
                         
                         if (diff >= 0 && diff <= MAX_OFFLINE_DISPLAY_MS) {
-                            let exactTimeStr = formatExactDateTime(lastSeenTs);
+                            let exactTimeStr = formatExactDateTime(normTs);
                             if (exactTimeStr) {
                                 subText += `<span class="status-time">Laatst: ${exactTimeStr}</span>`;
                             }
