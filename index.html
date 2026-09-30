@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v5.2)</title>
+    <title>Padelschema - Rooster & Chat (v5.3)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -39,6 +39,18 @@
             display: inline-block;
             font-size: 1.1em;
             font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+        }
+
+        /* Zacht groene styling voor de boekingsvelden */
+        .booking-input-soft {
+            background-color: rgba(52, 211, 153, 0.08) !important;
+            color: #d1fae5 !important;
+            border: 1px solid rgba(52, 211, 153, 0.3) !important;
+        }
+        
+        .booking-input-soft option {
+            background-color: var(--card-bg);
+            color: var(--text-main);
         }
 
         /* Pull-to-refresh indicator */
@@ -1060,10 +1072,10 @@
         </div>
         <div id="baanBoekingenBody">
             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                <select id="boekingDropdown" style="flex-grow: 1; min-width: 120px; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none;">
+                <select id="boekingDropdown" class="booking-input-soft" style="flex-grow: 1; min-width: 120px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none;">
                     <option value="">-- Wie boekt? --</option>
                 </select>
-                <input type="datetime-local" id="boekingDateTime" style="background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); padding: 7px; border-radius: 6px; font-size: 0.8rem; outline: none;">
+                <input type="datetime-local" id="boekingDateTime" class="booking-input-soft" style="padding: 7px; border-radius: 6px; font-size: 0.8rem; outline: none; color-scheme: dark;">
                 <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
             </div>
             <div id="baanBoekingStanden" style="font-size: 0.75rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
@@ -1132,7 +1144,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "5.2";
+    const APP_VERSION = "5.3";
     
     async function checkAppVersion() {
         try {
@@ -1170,7 +1182,6 @@
         if (firebase.messaging.isSupported()) {
             messaging = firebase.messaging();
             
-            // Foreground message handler zodat meldingen ook binnenkomen als de app open staat
             messaging.onMessage((payload) => {
                 if (payload && payload.notification) {
                     const { title, body } = payload.notification;
@@ -1369,7 +1380,6 @@
 
     async function triggerPushNotification(title, body) {
         try {
-            // Zorg ervoor dat de melding direct ook lokaal bij jezelf op het scherm verschijnt
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.ready.then(registration => {
                     registration.showNotification(title, {
@@ -1949,7 +1959,7 @@
                 let rainKey = `rain_notified_${uniqueWeekKey}_donderdag`;
                 if (!localStorage.getItem(rainKey)) {
                     localStorage.setItem(rainKey, 'true');
-                    triggerPushNotification("⚠️️ Padel Weerwaarschuwing", `Let op! ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur (week ${currentWeekNum})!`);
+                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur (week ${currentWeekNum})!`);
                 }
             }
 
@@ -1986,7 +1996,7 @@
                                 <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig</button>
                             </div>
                         </div>
-                        ${dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
+                        ${dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️️ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
                     </div>
 
                     <div class="match-row-wrapper">
@@ -2002,7 +2012,7 @@
                                 </div>
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️️ Wijzig</button>
+                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig</button>
                             </div>
                         </div>
                         ${donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
