@@ -1314,7 +1314,7 @@
         if (code === 0) return "☀️";
         if (code >= 1 && code <= 3) return "⛅";
         if (code >= 51 && code <= 67) return "🌧️";
-        if (code >= 71 && code <= 77) return "❄️";
+        if (code >= 71 && code <= 77) return "❄️️";
         if (code >= 95) return "⛈️";
         return "☁️";
     }
@@ -1568,15 +1568,12 @@
                 if (!isOnline) {
                     let lastSeenData = allLastSeen[player];
                     let lastSeenTs = null;
-                    let durationStr = "";
 
                     if (lastSeenData) {
                         if (typeof lastSeenData === 'object') {
                             lastSeenTs = lastSeenData.timestamp;
-                            durationStr = lastSeenData.duration || "";
                         } else {
                             lastSeenTs = lastSeenData;
-                            durationStr = "";
                         }
                     }
 
@@ -1590,10 +1587,6 @@
                             let exactTimeStr = formatExactDateTime(normTs);
                             if (exactTimeStr) {
                                 subText += `<span class="status-time">Laatst: ${exactTimeStr}</span>`;
-                            }
-                            
-                            if (durationStr) {
-                                subText += `<span class="status-time" style="color: var(--accent-green);">Actief: ${durationStr}</span>`;
                             }
                         } else {
                             subText = `<span class="status-time">Offline</span>`;
