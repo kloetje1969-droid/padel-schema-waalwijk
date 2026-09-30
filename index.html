@@ -462,7 +462,6 @@
             flex-shrink: 0;
         }
 
-        /* Aangepaste stijl voor de gele zon in de weersvoorspelling */
         .weather-sun {
             color: #facc15;
             text-shadow: 0 0 6px rgba(250, 204, 21, 0.4);
@@ -997,6 +996,25 @@
         </div>
     </div>
 
+    <!-- BAAN BOEKINGEN KAART -->
+    <div class="card">
+        <div class="card-header">
+            <div class="section-title" style="font-size: 0.95rem;">🎾 Baan Boeken & Stand</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <select id="boekingDropdown" style="flex-grow: 1; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none;">
+                    <option value="">-- Wie heeft er een baan geboekt? --</option>
+                </select>
+                <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
+            </div>
+            <div id="baanBoekingStanden" style="font-size: 0.75rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
+                <!-- Wordt dynamisch gevuld met live standen -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TEAM CHAT KAART -->
     <div class="card" id="chatCardSection">
         <div class="card-header">
             <div class="section-title" style="font-size: 0.95rem;">💬 Team Chat</div>
@@ -1103,6 +1121,7 @@
     let selectedFileBase64 = null;
     let selectedFileName = null;
     let selectedFileType = null;
+    let baanBoekingenData = {};
 
     const defaultTemplate = [
         { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Mark"] },
@@ -1272,6 +1291,11 @@
             renderAll();
         });
 
+        db.ref('padelData/baanBoekingen').on('value', (snapshot) => {
+            baanBoekingenData = snapshot.val() || {};
+            renderBaanBoekingen();
+        });
+
         db.ref('padelData/messages').on('value', (snapshot) => {
             messages = snapshot.val() ? Object.values(snapshot.val()) : [];
             
@@ -1289,6 +1313,51 @@
         setInterval(() => {
             renderStatuses();
         }, 5000);
+    }
+
+    function renderBaanBoekingen() {
+        const select = document.getElementById('boekingDropdown');
+        if (select) {
+            const currentVal = select.value;
+            select.innerHTML = `<option value="">-- Wie heeft er een baan geboekt? --</option>` +
+                basePlayers.map(p => `<option value="${p}">${p}</option>`).join('');
+            select.value = currentVal;
+        }
+
+        const standenContainer = document.getElementById('baanBoekingStanden');
+        if (standenContainer) {
+            standenContainer.innerHTML = basePlayers.map(p => {
+                const count = baanBoekingenData[p] || 0;
+                return `<span style="background: var(--bg-color); border: 1px solid var(--card-border); padding: 3px 8px; border-radius: 4px;">${p}: <strong>${count}</strong></span>`;
+            }).join('');
+        }
+    }
+
+    async function registreerBoekingDropdown() {
+        const select = document.getElementById('boekingDropdown');
+        const gekozenSpeler = select.value;
+
+        if (!gekozenSpeler) {
+            alert("Selecteer eerst een speler uit het menu!");
+            return;
+        }
+
+        const huidigeStand = baanBoekingenData[gekozenSpeler] || 0;
+        const nieuweStand = huidigeStand + 1;
+
+        try {
+            await db.ref(`padelData/baanBoekingen/${gekozenSpeler}`).set(nieuweStand);
+
+            const berichtTekst = `🎾 ${gekozenSpeler} heeft een baan geboekt! (Totaal nu: ${nieuweStand})`;
+            await addSystemMessageIfUnique(berichtTekst);
+
+            await triggerPushNotification("🎾 Nieuwe Baan Boeking!", `${gekozenSpeler} heeft zojuist een baan geboekt! (Totaal: ${nieuweStand})`);
+
+            select.value = "";
+        } catch (error) {
+            console.error("Fout bij het registreren van de boeking:", error);
+            alert("Er ging iets mis bij het opslaan of versturen van de melding.");
+        }
     }
 
     function fetchWaalwijkWeather() {
