@@ -8,7 +8,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v4.1)</title>
+    <title>Padelschema - Rooster & Chat (v4.2)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -260,7 +260,7 @@
             flex-direction: column;
             align-items: center;
             gap: 2px;
-            min-width: 90px;
+            min-width: 95px;
         }
 
         .status-badge.me {
@@ -277,7 +277,7 @@
         }
 
         .status-time {
-            font-size: 0.6rem;
+            font-size: 0.58rem;
             color: var(--text-muted);
             font-weight: normal;
         }
@@ -675,7 +675,7 @@
             display: flex; 
             gap: 6px; 
             margin-top: 4px; 
-            align-items: flex-end; /* Zorgt dat knoppen netjes onderaan blijven bij meersporige invoer */
+            align-items: flex-end; 
         }
         
         .chat-input-row textarea { 
@@ -686,7 +686,7 @@
             padding: 8px 10px; 
             border-radius: 6px; 
             outline: none; 
-            font-size: 16px; /* 16px voorkomt automatisch inzoomen op iOS */
+            font-size: 16px; 
             resize: none; 
             min-height: 38px;
             max-height: 120px; 
@@ -1047,7 +1047,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "4.1";
+    const APP_VERSION = "4.2";
     
     async function checkAppVersion() {
         try {
@@ -1125,6 +1125,7 @@
     let presenceConnectedRef = null;
     let presenceConnectedHandler = null;
     let presenceHeartbeat = null;
+    let sessionStartTime = null;
     let firebaseConnected = false;
     let appInitialized = false;
 
@@ -1136,7 +1137,6 @@
             document.getElementById('pinInput').focus();
         }
 
-        // 1. Automatisch meegroeien van het tekstveld én automatisch scrollen bij typen
         const chatInput = document.getElementById('chatInput');
         const chatWindow = document.getElementById('chatWindow');
 
@@ -1147,10 +1147,8 @@
             });
         }
 
-        // 2. Visual Viewport API koppeling zodat de chat-sectie altijd netjes boven het toetsenbord blijft
         if (window.visualViewport) {
             const handleResize = () => {
-                // Scroll direct naar beneden zodat de laatste chatberichten en het veld zichtbaar blijven
                 if (chatWindow) {
                     chatWindow.scrollTop = chatWindow.scrollHeight;
                 }
@@ -1314,7 +1312,7 @@
         if (code === 0) return "☀️";
         if (code >= 1 && code <= 3) return "⛅";
         if (code >= 51 && code <= 67) return "🌧️";
-        if (code >= 71 && code <= 77) return "❄️";
+        if (code >= 71 && code <= 77) return "❄️️";
         if (code >= 95) return "⛈️";
         return "☁️";
     }
@@ -1405,6 +1403,7 @@
         }
 
         const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
+        sessionStartTime = Date.now();
 
         presenceRef = db.ref(`padelData/presence/${myRealName}_${userSessionId}`);
         const userLastSeenRef = db.ref(`padelData/lastSeen/${myRealName}`);
@@ -1434,7 +1433,14 @@
             };
 
             presenceRef.onDisconnect().remove().then(() => {
-                userLastSeenRef.set(firebase.database.ServerValue.TIMESTAMP);
+                const finalDurationMs = Date.now() - sessionStartTime;
+                const durationText = formatSessionDurationText(finalDurationMs);
+
+                userLastSeenRef.set({
+                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    duration: durationText
+                });
+
                 updatePresenceData();
 
                 if (presenceHeartbeat) clearInterval(presenceHeartbeat);
@@ -1445,6 +1451,18 @@
         };
 
         presenceConnectedRef.on('value', presenceConnectedHandler);
+    }
+
+    function formatSessionDurationText(ms) {
+        if (!ms || ms < 30000) return "korter dan 1 min";
+        const minutes = Math.floor(ms / 60000);
+        const hours = Math.floor(minutes / 60);
+        const remMins = minutes % 60;
+
+        if (hours > 0) {
+            return remMins > 0 ? `${hours} uur en ${remMins} min` : `${hours} uur`;
+        }
+        return `${minutes} min`;
     }
 
     function updateConnectionIndicator() {
@@ -1477,17 +1495,17 @@
         if (diffSec < 60) {
             return "zojuist";
         } else if (diffMin < 60) {
-            return `${diffMin} minuten`;
+            return `${diffMin} min geleden`;
         } else if (diffHours < 24) {
             const remMin = diffMin % 60;
-            return remMin > 0 ? `${diffHours} uur en ${remMin} minuten` : `${diffHours} uur`;
+            return remMin > 0 ? `${diffHours}u ${remMin}m geleden` : `${diffHours} uur geleden`;
         } else {
             const remHours = diffHours % 24;
             let res = `${diffDays} dagen`;
             if (remHours > 0) {
-                res += ` en ${remHours} uur`;
+                res += ` en ${remHours}u`;
             }
-            return res;
+            return res + " geleden";
         }
     }
 
@@ -1517,13 +1535,30 @@
 
                 let subText = "";
                 if (!isOnline) {
-                    let lastSeenTs = allLastSeen[player];
+                    let lastSeenData = allLastSeen[player];
+                    let lastSeenTs = null;
+                    let durationStr = "";
+
+                    if (lastSeenData) {
+                        if (typeof lastSeenData === 'object') {
+                            lastSeenTs = lastSeenData.timestamp;
+                            durationStr = lastSeenData.duration || "";
+                        } else {
+                            lastSeenTs = lastSeenData;
+                        }
+                    }
+
                     if (lastSeenTs) {
                         if (lastSeenTs < 10000000000) lastSeenTs = lastSeenTs * 1000;
                         if (lastSeenTs > Date.now()) lastSeenTs = Date.now();
                         const diff = Date.now() - lastSeenTs;
+                        
                         if (diff >= 0 && diff <= MAX_OFFLINE_DISPLAY_MS) {
-                            subText = `<span class="status-time">${getFormattedOfflineTime(diff)}</span>`;
+                            let timeAgoStr = getFormattedOfflineTime(diff);
+                            subText = `<span class="status-time">${timeAgoStr}</span>`;
+                            if (durationStr) {
+                                subText += `<span class="status-time" style="color: var(--accent-green);">Actief: ${durationStr}</span>`;
+                            }
                         } else {
                             subText = `<span class="status-time">Offline</span>`;
                         }
@@ -1666,7 +1701,7 @@
 
             let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain >= 60) ? 
                 `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur op deze donderdagavond!
+                    ⚠️️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur op deze donderdagavond!
                  </div>` : '';
 
             let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
@@ -2166,7 +2201,7 @@
         await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, notifBody);
 
         input.value = '';
-        input.style.height = 'auto'; // Reset de hoogte van het tekstveld na verzenden
+        input.style.height = 'auto'; 
         input.placeholder = "Typ een bericht...";
         selectedFileBase64 = null;
         selectedFileName = null;
@@ -2175,7 +2210,6 @@
     }
 
     function handleKeyDown(e) {
-        // Versturen met Enter (tenzij Shift+Enter wordt gebruikt voor een nieuwe regel)
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             sendMessage();
