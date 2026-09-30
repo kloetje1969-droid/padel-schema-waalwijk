@@ -53,32 +53,6 @@
             overflow-x: hidden;
         }
 
-        /* VLIEGENDE PADELBAL ANIMATIE */
-        @keyframes vliegendeBal {
-            0% {
-                transform: translate(-50px, 100vh) scale(0.5) rotate(0deg);
-                opacity: 0;
-            }
-            20% {
-                opacity: 1;
-                transform: translate(20vw, 50vh) scale(1) rotate(180deg);
-            }
-            100% {
-                transform: translate(110vw, -20vh) scale(1.2) rotate(720deg);
-                opacity: 0;
-            }
-        }
-
-        .animatie-bal {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            font-size: 2.5rem;
-            pointer-events: none;
-            z-index: 9999;
-            animation: vliegendeBal 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
-
         /* PINCODE OVERLAY */
         #pinOverlay {
             position: fixed;
@@ -2211,18 +2185,6 @@
         windowDiv.scrollTop = windowDiv.scrollHeight;
     }
 
-    /* FUNCTIE VOOR DE VLIEGENDE PADELBAL */
-    function lanceerPadelBal() {
-        const bal = document.createElement('div');
-        bal.className = 'animatie-bal';
-        bal.innerHTML = '🎾';
-        document.body.appendChild(bal);
-        
-        setTimeout(() => {
-            bal.remove();
-        }, 1200);
-    }
-
     async function sendMessage() {
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
@@ -2245,9 +2207,6 @@
         }
 
         await db.ref('padelData/messages').push(messageData);
-
-        // Activeer de vliegende bal animatie!
-        lanceerPadelBal();
 
         let notifBody = text;
         if (selectedFileBase64) {
