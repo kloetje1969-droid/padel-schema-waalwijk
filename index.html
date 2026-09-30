@@ -462,6 +462,12 @@
             flex-shrink: 0;
         }
 
+        /* Aangepaste stijl voor de gele zon in de weersvoorspelling */
+        .weather-sun {
+            color: #facc15;
+            text-shadow: 0 0 6px rgba(250, 204, 21, 0.4);
+        }
+
         .players-container {
             display: flex;
             gap: 3px;
@@ -1311,7 +1317,7 @@
     }
 
     function getWeatherEmoji(code) {
-        if (code === 0) return "☀";
+        if (code === 0) return '<span class="weather-sun">☀</span>';
         if (code >= 1 && code <= 3) return "⛅";
         if (code >= 51 && code <= 67) return "🌧️";
         if (code >= 71 && code <= 77) return "❄";
