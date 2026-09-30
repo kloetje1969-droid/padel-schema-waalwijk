@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v4.9)</title>
+    <title>Padelschema - Rooster & Chat (v5.0)</title>
     
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -1047,7 +1047,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "4.9";
+    const APP_VERSION = "5.0";
     
     async function checkAppVersion() {
         try {
@@ -1592,7 +1592,6 @@
                                 subText += `<span class="status-time">Laatst: ${exactTimeStr}</span>`;
                             }
                             
-                            // Gebruik direct de duration uit Firebase, of bereken een fallback als deze ontbreekt
                             if (durationStr) {
                                 subText += `<span class="status-time" style="color: var(--accent-green);">Actief: ${durationStr}</span>`;
                             }
@@ -1738,7 +1737,7 @@
 
             let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain >= 60) ? 
                 `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠️️ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur op deze donderdagavond!
+                    ⚠ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur op deze donderdagavond!
                  </div>` : '';
 
             let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
