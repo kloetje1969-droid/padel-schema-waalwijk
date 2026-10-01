@@ -1,12 +1,9 @@
 const admin = require('firebase-admin');
 
 if (!admin.apps.length) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
-        }),
+        credential: admin.credential.cert(serviceAccount),
         databaseURL: process.env.FIREBASE_DATABASE_URL
     });
 }
@@ -47,7 +44,6 @@ module.exports = async (req, res) => {
         const currentDay = new Intl.DateTimeFormat('en-US', optionsDay).format(now); 
         const currentHour = parseInt(new Intl.DateTimeFormat('en-US', optionsHour).format(now), 10);
 
-        // Moet dinsdag ('Tue') of donderdag ('Thu') zijn, én exact 17:00 uur
         if ((currentDay !== 'Tue' && currentDay !== 'Thu') || currentHour !== 17) {
             return res.status(200).json({ 
                 status: `Geen actie match-reminder: Vandaag is ${currentDay} en het is ${currentHour}:00 uur (vereist: di/do om 17:00).` 
