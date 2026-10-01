@@ -54,22 +54,21 @@
             font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
         }
 
-        /* Audio knop styling naast de spelerselector */
+        /* Grote, duidelijke audioknop naast de spelerselector */
         .audio-btn-inline {
-            background: var(--accent-green);
+            background: #10b981;
             color: #0b0f19;
             border: none;
-            padding: 6px 12px;
+            padding: 8px 14px;
             border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.85rem;
+            font-weight: 800;
+            font-size: 0.9rem;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 5px;
-            box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
+            gap: 6px;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
             transition: transform 0.1s;
-            height: 100%;
             white-space: nowrap;
         }
 
@@ -254,15 +253,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
             background: var(--bg-color);
-            padding: 8px 14px;
+            padding: 10px 16px;
             border-radius: 10px;
             border: 1px solid var(--card-border);
             font-size: 0.95rem;
             box-shadow: 0 0 10px rgba(0,0,0,0.3);
             width: 100%;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
         }
 
         .user-select-container label {
@@ -274,7 +273,7 @@
             background: var(--card-bg);
             color: var(--text-main);
             border: 1px solid var(--card-border);
-            padding: 6px 12px;
+            padding: 8px 12px;
             border-radius: 8px;
             font-weight: 700;
             outline: none;
@@ -1068,14 +1067,14 @@
         <h1><span class="tennis-ball">🥎</span> Padelschema <span class="tennis-ball">🥎</span></h1>
         
         <div class="user-select-row">
-            <!-- Speler selectie én audio knop netjes naast elkaar -->
+            <!-- Speler selectie én audio knop direct naast elkaar op exact dezelfde hoogte -->
             <div class="user-select-container">
                 <label for="userSelect">Jij:</label>
                 <select id="userSelect" onchange="changeUser()">
                     <!-- Wordt dynamisch gevuld -->
                 </select>
 
-                <!-- Audio Knop direct ernaast -->
+                <!-- Duidelijke audio knop direct ernaast -->
                 <button class="audio-btn-inline" id="playAudioBtn" onclick="toggleAudioPlayback()">
                     <span id="audioIcon">▶️</span> <span id="audioBtnText">Muziek</span>
                 </button>
