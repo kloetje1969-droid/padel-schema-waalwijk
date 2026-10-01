@@ -54,6 +54,29 @@
             font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
         }
 
+        /* Audio knop styling naast de spelerselector */
+        .audio-btn-inline {
+            background: var(--accent-green);
+            color: #0b0f19;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
+            transition: transform 0.1s;
+            height: 100%;
+            white-space: nowrap;
+        }
+
+        .audio-btn-inline:active {
+            transform: scale(0.95);
+        }
+
         /* Zacht groene styling voor de boekingsvelden */
         .booking-input-soft {
             background-color: rgba(52, 211, 153, 0.08) !important;
@@ -230,6 +253,7 @@
         .user-select-container {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 10px;
             background: var(--bg-color);
             padding: 8px 14px;
@@ -237,6 +261,8 @@
             border: 1px solid var(--card-border);
             font-size: 0.95rem;
             box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            width: 100%;
+            flex-wrap: wrap;
         }
 
         .user-select-container label {
@@ -453,7 +479,6 @@
             margin-top: 6px;
         }
 
-        /* Stijl voor de inhoud van inklapbare kaarten */
         .collapsible-body {
             display: flex;
             flex-direction: column;
@@ -461,7 +486,6 @@
             margin-top: 10px;
         }
 
-        /* Verwijder de standaard marker van details/summary */
         details summary::-webkit-details-marker {
             display: none;
         }
@@ -1044,11 +1068,18 @@
         <h1><span class="tennis-ball">🥎</span> Padelschema <span class="tennis-ball">🥎</span></h1>
         
         <div class="user-select-row">
+            <!-- Speler selectie én audio knop netjes naast elkaar -->
             <div class="user-select-container">
                 <label for="userSelect">Jij:</label>
                 <select id="userSelect" onchange="changeUser()">
                     <!-- Wordt dynamisch gevuld -->
                 </select>
+
+                <!-- Audio Knop direct ernaast -->
+                <button class="audio-btn-inline" id="playAudioBtn" onclick="toggleAudioPlayback()">
+                    <span id="audioIcon">▶️</span> <span id="audioBtnText">Muziek</span>
+                </button>
+                <audio id="padelAudioElement" src="padellen.mp3" preload="none" onended="onAudioEnded()"></audio>
             </div>
             
             <div class="header-actions-row">
@@ -1214,6 +1245,34 @@
 <script>
     const APP_VERSION = "5.3";
     
+    // Functie voor afspelen padellen.mp3
+    function toggleAudioPlayback() {
+        const audio = document.getElementById('padelAudioElement');
+        const icon = document.getElementById('audioIcon');
+        const text = document.getElementById('audioBtnText');
+
+        if (audio.paused) {
+            audio.play().then(() => {
+                icon.innerText = "⏸️";
+                text.innerText = "Pauze";
+            }).catch(e => {
+                console.error("Audio kon niet worden afgespeeld:", e);
+                alert("Kan padellen.mp3 niet afspelen. Controleer of het bestand in dezelfde map staat.");
+            });
+        } else {
+            audio.pause();
+            icon.innerText = "▶️";
+            text.innerText = "Muziek";
+        }
+    }
+
+    function onAudioEnded() {
+        const icon = document.getElementById('audioIcon');
+        const text = document.getElementById('audioBtnText');
+        icon.innerText = "▶️";
+        text.innerText = "Muziek";
+    }
+
     async function checkAppVersion() {
         try {
             const res = await fetch('index.html?v=' + Date.now(), { cache: 'no-store' });
@@ -1296,7 +1355,6 @@
 
     const PRESENCE_HEARTBEAT_MS = 10000;
     const PRESENCE_ONLINE_TIMEOUT_MS = 30000;
-    const MAX_OFFLINE_DISPLAY_MS = 7 * 24 * 60 * 60 * 1000;
 
     let presenceRef = null;
     let presenceConnectedRef = null;
