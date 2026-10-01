@@ -1,24 +1,18 @@
-const admin = require('firebase-admin');
-
-if (!admin.apps.length) {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        databaseURL: process.env.FIREBASE_DATABASE_URL
-    });
-}
-
-const db = admin.database();
-
-async function getRainChance() {
-    // Voeg hier eventueel je echte weer-API logica toe
-    return 65; 
-}
-
 module.exports = async (req, res) => {
     try {
         const now = new Date();
 
+        // 1. Controleer eerst of het vandaag wel dinsdag ('Tue') of donderdag ('Thu') is in Nederland
+        const optionsDay = { timeZone: 'Europe/Amsterdam', weekday: 'short' };
+        const currentDayName = new Intl.DateTimeFormat('en-US', optionsDay).format(now);
+        
+        if (currentDayName !== 'Tue' && currentDayName !== 'Thu') {
+            return res.status(200).json({ 
+                status: `Geen actie check-weather: Vandaag (${currentDayName}) is geen speeldag.` 
+            });
+        }
+
+        // 2. Controleer daarna of het exact 18:00 uur is (houdt automatisch rekening met zomer/wintertijd)
         const optionsHour = { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false };
         const currentHour = parseInt(new Intl.DateTimeFormat('en-US', optionsHour).format(now), 10);
 
@@ -28,6 +22,7 @@ module.exports = async (req, res) => {
             });
         }
 
+        // 3. Als het wél dinsdag of donderdag is én exact 18:00 uur, haal dan de regenkans op:
         const rainChance = await getRainChance();
 
         if (rainChance < 60) {
