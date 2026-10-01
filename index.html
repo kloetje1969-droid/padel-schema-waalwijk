@@ -9,13 +9,17 @@
     <meta http-equiv="Expires" content="0">
     <title>Padelschema - Rooster & Chat (v5.3)</title>
     
-    <!-- PWA / Apple & Android Meta Tags -->
+    <!-- PWA / Apple & Android Meta Tags & Padelbal Icoon -->
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Padelschema">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/33/33736.png">
+    
+    <!-- Directe Padelbal Icoon Links -->
+    <link rel="icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3d3.png" type="image/png">
+    <link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3d3.png">
+    
     <meta name="theme-color" content="#0b0f19">
 
     <!-- Firebase App (compat) -->
@@ -1913,7 +1917,7 @@
                                 </div>
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig</button>
+                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️️ Wijzig</button>
                             </div>
                         </div>
                         ${donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
