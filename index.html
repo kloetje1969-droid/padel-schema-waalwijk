@@ -1113,10 +1113,23 @@
         </div>
         <div id="baanBoekingenBody">
             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                <select id="boekingDropdown" class="booking-input-soft" style="flex-grow: 1; min-width: 120px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none;">
+                <select id="boekingDropdown" class="booking-input-soft" style="flex-grow: 1; min-width: 110px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none;">
                     <option value="">-- Wie boekt? --</option>
                 </select>
-                <input type="datetime-local" id="boekingDateTime" class="booking-input-soft" style="padding: 7px; border-radius: 6px; font-size: 0.8rem; outline: none; color-scheme: dark;">
+                <select id="baanDropdown" class="booking-input-soft" style="min-width: 90px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none;">
+                    <option value="">-- Baan --</option>
+                    <option value="Baan 1">Baan 1</option>
+                    <option value="Baan 2">Baan 2</option>
+                    <option value="Baan 3">Baan 3</option>
+                    <option value="Baan 4">Baan 4</option>
+                    <option value="Baan 5">Baan 5</option>
+                    <option value="Baan 6">Baan 6</option>
+                    <option value="Baan 7">Baan 7</option>
+                    <option value="Baan 8">Baan 8</option>
+                    <option value="Baan 9">Baan 9</option>
+                    <option value="Baan 10">Baan 10</option>
+                </select>
+                <input type="datetime-local" id="boekingDateTime" class="booking-input-soft" style="padding: 7px; border-radius: 6px; font-size: 0.8rem; outline: none; color-scheme: dark; flex-grow: 1;">
                 <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
             </div>
             <div id="baanBoekingStanden" style="font-size: 0.75rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;"></div>
@@ -1382,7 +1395,6 @@
         }
     }
 
-    // --- Geoptimaliseerde Pushmeldingen voor iPhone (PWA) & Android ---
     async function subscribePush() {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
@@ -1532,10 +1544,11 @@
             lijstContainer.innerHTML = `<div style="font-size: 0.72rem; color: var(--accent-blue); font-weight: 600; margin-bottom: 2px;">Geboekte momenten:</div>` +
                 baanBoekingenList.map(b => {
                     const formattedDt = formatExactDateTime(new Date(b.dateTime).getTime());
+                    const baanInfo = b.baan ? ` op <strong>${b.baan}</strong>` : '';
                     const canDelete = (currentUserName === "Robert" || b.player === currentUserName);
                     const deleteBtn = canDelete ? `<button onclick="deleteBaanBoeking('${b.id}')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
                     return `<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--card-border);">
-                        <span><span class="tennis-ball">🥎</span> <strong>${b.player}</strong>: ${formattedDt}</span>
+                        <span><span class="tennis-ball">🥎</span> <strong>${b.player}</strong>${baanInfo}: ${formattedDt}</span>
                         ${deleteBtn}
                     </div>`;
                 }).join('');
@@ -1544,12 +1557,19 @@
 
     async function registreerBoekingDropdown() {
         const select = document.getElementById('boekingDropdown');
+        const baanSelect = document.getElementById('baanDropdown');
         const dateInput = document.getElementById('boekingDateTime');
         const gekozenSpeler = select.value;
+        const gekozenBaan = baanSelect.value;
         const gekozenDatum = dateInput.value;
 
         if (!gekozenSpeler) {
             alert("Selecteer eerst een speler uit het menu!");
+            return;
+        }
+
+        if (!gekozenBaan) {
+            alert("Selecteer welke baan er is geboekt (Baan 1 t/m 10)!");
             return;
         }
 
@@ -1562,16 +1582,18 @@
             const newRef = db.ref('padelData/baanBoekingenList').push();
             await newRef.set({
                 player: gekozenSpeler,
+                baan: gekozenBaan,
                 dateTime: gekozenDatum,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
 
             const formattedDt = formatExactDateTime(new Date(gekozenDatum).getTime());
-            const berichtTekst = `🥎 ${gekozenSpeler} heeft een baan geboekt voor ${formattedDt}!`;
+            const berichtTekst = `🥎 ${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${formattedDt}!`;
             await addSystemMessageIfUnique(berichtTekst);
-            await triggerPushNotification("🥎 Nieuwe Baan Boeking!", `${gekozenSpeler} heeft een baan geboekt voor ${formattedDt}!`);
+            await triggerPushNotification("🥎 Nieuwe Baan Boeking!", `${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${formattedDt}!`);
 
             select.value = "";
+            baanSelect.value = "";
             dateInput.value = "";
         } catch (error) {
             console.error("Fout bij registreren boeking:", error);
@@ -1957,7 +1979,6 @@
             `;
 
             if (i === 0) {
-                // Lopende week: Altijd volledig open (geen details/summary)
                 html += `
                     <div class="week-card">
                         <div class="week-header">Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}) - Huidige week</div>
@@ -1965,7 +1986,6 @@
                     </div>
                 `;
             } else {
-                // Toekomstige weken: Inklapbaar met pull-down functie
                 html += `
                     <div class="week-card">
                         <details ontoggle="updateCollapseArrow(this)">
