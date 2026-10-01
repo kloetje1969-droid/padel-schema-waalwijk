@@ -468,11 +468,12 @@
             overflow: hidden;
             margin-bottom: 12px;
             width: 100%;
+            padding-bottom: 2px;
         }
 
         .week-header {
             background: rgba(255, 255, 255, 0.02);
-            padding: 10px 14px;
+            padding: 12px 14px;
             font-weight: 600;
             font-size: 0.9rem;
             color: #e5e7eb;
@@ -491,7 +492,7 @@
         }
 
         .match-row {
-            padding: 12px 14px;
+            padding: 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -928,12 +929,12 @@
             }
 
             .week-header {
-                padding: 9px 10px;
-                font-size: 0.82rem;
+                padding: 10px 12px;
+                font-size: 0.85rem;
             }
 
             .match-row {
-                padding: 9px 10px;
+                padding: 12px;
                 gap: 7px;
                 align-items: center;
             }
@@ -973,7 +974,7 @@
 
         @media (max-width: 390px) {
             .match-row {
-                padding: 8px;
+                padding: 10px;
                 gap: 5px;
             }
 
@@ -1882,7 +1883,6 @@
         let referenceMonday = new Date(2026, 8, 21); 
 
         let html = '';
-        let now = new Date();
 
         for (let i = 0; i < 6; i++) {
             let weekStart = new Date(currentMonday);
@@ -1918,47 +1918,68 @@
             let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
             let donderdagAbsentees = donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
 
-            html += `
-                <div class="week-card">
-                    <div class="week-header">Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</div>
-                    
-                    <div class="match-row-wrapper">
-                        <div class="match-row">
-                            <div class="match-info">
-                                <div class="match-title dinsdag-title">
-                                    <span class="day-name">Dinsdag</span> <span class="match-date">${dinsdagFormatted}</span>
-                                    ${dinsdagWeather}
-                                </div>
-                                <div class="players-container">
-                                    ${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag')}
-                                </div>
+            let matchesContent = `
+                <div class="match-row-wrapper">
+                    <div class="match-row">
+                        <div class="match-info">
+                            <div class="match-title dinsdag-title">
+                                <span class="day-name">Dinsdag</span> <span class="match-date">${dinsdagFormatted}</span>
+                                ${dinsdagWeather}
                             </div>
-                            <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig</button>
+                            <div class="players-container">
+                                ${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag')}
                             </div>
                         </div>
-                        ${dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
+                        <div class="match-action-container">
+                            <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig</button>
+                        </div>
                     </div>
+                    ${dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
+                </div>
 
-                    <div class="match-row-wrapper">
-                        <div class="match-row">
-                            <div class="match-info">
-                                <div class="match-title donderdag-title">
-                                    <span class="day-name">Donderdag</span> <span class="match-date">${donderdagFormatted}</span>
-                                    ${donderdagWeather}
-                                </div>
-                                <div class="players-container">
-                                    ${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag')}
-                                </div>
+                <div class="match-row-wrapper">
+                    <div class="match-row">
+                        <div class="match-info">
+                            <div class="match-title donderdag-title">
+                                <span class="day-name">Donderdag</span> <span class="match-date">${donderdagFormatted}</span>
+                                ${donderdagWeather}
                             </div>
-                            <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️️ Wijzig</button>
+                            <div class="players-container">
+                                ${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag')}
                             </div>
                         </div>
-                        ${donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
+                        <div class="match-action-container">
+                            <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig</button>
+                        </div>
                     </div>
+                    ${donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
                 </div>
             `;
+
+            if (i === 0) {
+                // Lopende week: Altijd volledig open (geen details/summary)
+                html += `
+                    <div class="week-card">
+                        <div class="week-header">Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}) - Huidige week</div>
+                        ${matchesContent}
+                    </div>
+                `;
+            } else {
+                // Toekomstige weken: Inklapbaar met pull-down functie
+                html += `
+                    <div class="week-card">
+                        <details ontoggle="updateCollapseArrow(this)">
+                            <summary class="week-header collapsible-header" style="list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                                <span>Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</span>
+                                <span class="collapse-arrow">▼ Open</span>
+                            </summary>
+                            <div class="collapsible-body" style="margin-top: 0;">
+                                ${matchesContent}
+                            </div>
+                        </details>
+                    </div>
+                `;
+            }
         }
         container.innerHTML = html;
     }
