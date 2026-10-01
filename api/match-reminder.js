@@ -41,18 +41,16 @@ module.exports = async (req, res) => {
     try {
         const now = new Date();
 
-        // 1. Controleer de dag én het uur streng in de juiste tijdzone (Europe/Amsterdam)
         const optionsDay = { timeZone: 'Europe/Amsterdam', weekday: 'short' };
         const optionsHour = { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false };
 
-        const currentDay = new Intl.DateTimeFormat('en-US', optionsDay).format(now); // 'Tue' of 'Thu'
+        const currentDay = new Intl.DateTimeFormat('en-US', optionsDay).format(now); 
         const currentHour = parseInt(new Intl.DateTimeFormat('en-US', optionsHour).format(now), 10);
 
-        // Het MOET dinsdag ('Tue') of donderdag ('Thu') zijn, én het MOET 17:00 uur zijn
-        // (Tenzij je het handmatig triggert, dan kun je eventueel een force check toevoegen)
+        // Moet dinsdag ('Tue') of donderdag ('Thu') zijn, én exact 17:00 uur
         if ((currentDay !== 'Tue' && currentDay !== 'Thu') || currentHour !== 17) {
             return res.status(200).json({ 
-                status: `Geen actie: Vandaag is ${currentDay} en het is ${currentHour}:00 uur (vereist: di of do om 17:00).` 
+                status: `Geen actie match-reminder: Vandaag is ${currentDay} en het is ${currentHour}:00 uur (vereist: di/do om 17:00).` 
             });
         }
 
@@ -62,7 +60,6 @@ module.exports = async (req, res) => {
         const dateKey = `${year}-${month}-${dayNum}`;
         const dayKey = currentDay === 'Tue' ? 'dinsdag' : 'donderdag';
 
-        // 2. Controleer of de herinnering voor VANDAAG al is verzonden
         const reminderRef = db.ref(`padelData/sentMatchReminders/${dateKey}`);
         const snapshot = await reminderRef.once('value');
         if (snapshot.exists()) {
@@ -122,7 +119,6 @@ module.exports = async (req, res) => {
 
         const response = await admin.messaging().sendEachForMulticast(messagePayload);
 
-        // Sla op dat de herinnering voor deze datum is verzonden
         await reminderRef.set(true);
 
         return res.status(200).json({
