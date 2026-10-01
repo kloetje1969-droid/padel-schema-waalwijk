@@ -9,6 +9,15 @@
     <meta http-equiv="Expires" content="0">
     <title>Padelschema - Rooster & Chat (v5.3)</title>
     
+    <!-- PWA / Apple & Android Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Padelschema">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/33/33736.png">
+    <meta name="theme-color" content="#0b0f19">
+
     <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <!-- Firebase Realtime Database (compat) -->
@@ -400,7 +409,6 @@
             padding-bottom: 6px;
         }
 
-        /* Inklapbare Baan Boeking Header - Altijd recht, geen draaiende tekst op de kop */
         .collapsible-header {
             cursor: pointer;
             user-select: none;
@@ -417,7 +425,7 @@
         }
 
         #baanBoekingenBody {
-            display: none; /* Standaard ingeklapt */
+            display: none;
             flex-direction: column;
             gap: 8px;
             margin-top: 6px;
@@ -1062,7 +1070,7 @@
         </div>
     </div>
 
-    <!-- BAAN BOEKINGEN KAART (INKLAPBAAR PULLED-DOWN BLOK) -->
+    <!-- BAAN BOEKINGEN KAART -->
     <div class="card">
         <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
             <div class="section-title" style="font-size: 0.95rem;">
@@ -1078,12 +1086,8 @@
                 <input type="datetime-local" id="boekingDateTime" class="booking-input-soft" style="padding: 7px; border-radius: 6px; font-size: 0.8rem; outline: none; color-scheme: dark;">
                 <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
             </div>
-            <div id="baanBoekingStanden" style="font-size: 0.75rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
-                <!-- Wordt dynamisch gevuld met live standen -->
-            </div>
-            <div id="baanBoekingLijst" style="font-size: 0.75rem; color: var(--text-main); margin-top: 4px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--card-border); padding-top: 6px;">
-                <!-- Wordt dynamisch gevuld met geboekte data -->
-            </div>
+            <div id="baanBoekingStanden" style="font-size: 0.75rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;"></div>
+            <div id="baanBoekingLijst" style="font-size: 0.75rem; color: var(--text-main); margin-top: 4px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--card-border); padding-top: 6px;"></div>
         </div>
     </div>
 
@@ -1156,8 +1160,7 @@
                     window.location.reload(true);
                 }
             }
-        } catch (e) {
-        }
+        } catch (e) {}
     }
     setInterval(checkAppVersion, 30000);
 
@@ -1202,7 +1205,6 @@
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
     let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
-    
     const myOriginalUserName = currentUserName;
 
     let selectedFileBase64 = null;
@@ -1226,7 +1228,6 @@
     let messages = [];
     let weatherCache = {};
     let lastSeenMessageCount = parseInt(localStorage.getItem('padel_last_seen_count') || '0');
-
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
 
     const PRESENCE_HEARTBEAT_MS = 10000;
@@ -1272,7 +1273,6 @@
         }
     });
 
-    // --- TOGGLE FUNCTIE VOOR HET BAAN BOEKEN BLOK ---
     function toggleBaanBoekingMenu() {
         const body = document.getElementById('baanBoekingenBody');
         const arrow = document.getElementById('collapseArrow');
@@ -1285,7 +1285,6 @@
         }
     }
 
-    // --- PULL-TO-REFRESH LOGICA ---
     let touchStartY = 0;
     let pulling = false;
     const ptrElement = document.getElementById('ptr-element');
@@ -1343,15 +1342,27 @@
         }
     }
 
+    // --- Geoptimaliseerde Pushmeldingen voor iPhone (PWA) & Android ---
     async function subscribePush() {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        if (isIOS && !isStandalone) {
+            alert("📲 Voor pushmeldingen op je iPhone moet je deze app eerst toevoegen aan je beginscherm ('Zet op beginscherm' via het deelmenu in Safari) en van daaruit openen.");
+            return;
+        }
+
         if (!messaging) {
             alert("Pushmeldingen worden niet ondersteund op dit apparaat/deze browser.");
             return;
         }
+
         try {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
-                await navigator.serviceWorker.register('firebase-messaging-sw.js');
+                if ('serviceWorker' in navigator) {
+                    await navigator.serviceWorker.register('firebase-messaging-sw.js');
+                }
                 const registration = await navigator.serviceWorker.ready;
 
                 const token = await messaging.getToken({
@@ -1361,13 +1372,12 @@
                 
                 if (token) {
                     localStorage.setItem('padel_fcm_token', token);
-                    
                     const targetUser = window.currentUserName || currentUserName;
                     await db.ref(`padelData/tokens/${targetUser}`).update({
                         [token]: true
                     });
 
-                    alert("Pushmeldingen succesvol ingeschakeld voor dit apparaat!");
+                    alert("✅ Pushmeldingen succesvol ingeschakeld voor dit apparaat!");
                 }
             } else {
                 alert("Geen toestemming gegeven voor meldingen.");
@@ -1435,21 +1445,16 @@
 
         db.ref('padelData/messages').on('value', (snapshot) => {
             messages = snapshot.val() ? Object.values(snapshot.val()) : [];
-            
             if (lastSeenMessageCount > messages.length) {
                 lastSeenMessageCount = messages.length;
                 localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
             }
-
             updateAlertUI();
             renderChat();
         });
 
         setupOnlinePresence();
-
-        setInterval(() => {
-            renderStatuses();
-        }, 5000);
+        setInterval(renderStatuses, 5000);
     }
 
     function renderBaanBoekingen() {
@@ -1524,14 +1529,13 @@
             const formattedDt = formatExactDateTime(new Date(gekozenDatum).getTime());
             const berichtTekst = `🥎 ${gekozenSpeler} heeft een baan geboekt voor ${formattedDt}!`;
             await addSystemMessageIfUnique(berichtTekst);
-
             await triggerPushNotification("🥎 Nieuwe Baan Boeking!", `${gekozenSpeler} heeft een baan geboekt voor ${formattedDt}!`);
 
             select.value = "";
             dateInput.value = "";
         } catch (error) {
-            console.error("Fout bij het registreren van de boeking:", error);
-            alert("Er ging iets mis bij het opslaan of versturen van de melding.");
+            console.error("Fout bij registreren boeking:", error);
+            alert("Er ging iets mis bij het opslaan.");
         }
     }
 
@@ -1613,11 +1617,7 @@
 
         const clearBtn = document.getElementById('clearAllChatBtn');
         if (clearBtn) {
-            if (currentUserName === "Robert") {
-                clearBtn.style.display = 'inline-flex';
-            } else {
-                clearBtn.style.display = 'none';
-            }
+            clearBtn.style.display = (currentUserName === "Robert") ? 'inline-flex' : 'none';
         }
     }
 
@@ -1632,7 +1632,6 @@
 
         if (gekozenNaam === "Robert" && currentUserName !== "Robert") {
             let ingevoerdePincode = prompt("Voer de pincode in om als Robert in te loggen:");
-
             if (ingevoerdePincode !== "1412") {
                 alert("Onjuiste pincode!");
                 select.value = currentUserName;
@@ -1641,7 +1640,6 @@
         }
 
         saveCurrentSessionLastSeen();
-
         currentUserName = gekozenNaam;
         localStorage.setItem('padel_current_user', currentUserName);
         sessionStartTime = Date.now();
@@ -1649,30 +1647,25 @@
         initUserSelect();
         renderAll();
         renderChat();
-        
         setupOnlinePresence();
     }
 
     function saveCurrentSessionLastSeen() {
         const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
-        const disconnectTime = Date.now();
-        db.ref(`padelData/lastSeen/${myRealName}`).set(disconnectTime);
+        db.ref(`padelData/lastSeen/${myRealName}`).set(Date.now());
     }
 
     function setupOnlinePresence() {
         if (presenceConnectedRef && presenceConnectedHandler) {
             presenceConnectedRef.off('value', presenceConnectedHandler);
         }
-
         if (presenceHeartbeat) {
             clearInterval(presenceHeartbeat);
             presenceHeartbeat = null;
         }
 
         const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
-        if (!sessionStartTime) {
-            sessionStartTime = Date.now();
-        }
+        if (!sessionStartTime) sessionStartTime = Date.now();
 
         presenceRef = db.ref(`padelData/presence/${myRealName}_${userSessionId}`);
         const userLastSeenRef = db.ref(`padelData/lastSeen/${myRealName}`);
@@ -1693,23 +1686,15 @@
 
             const updatePresenceData = () => {
                 if (!presenceRef) return;
-                presenceRef.set({
-                    name: myRealName,
-                    timestamp: Date.now()
-                }).catch(err => {
-                    console.warn("Kon presence niet bijwerken:", err);
-                });
+                presenceRef.set({ name: myRealName, timestamp: Date.now() }).catch(() => {});
             };
 
             presenceRef.onDisconnect().remove().then(() => {
                 userLastSeenRef.set(Date.now());
                 updatePresenceData();
-
                 if (presenceHeartbeat) clearInterval(presenceHeartbeat);
                 presenceHeartbeat = setInterval(updatePresenceData, PRESENCE_HEARTBEAT_MS);
-            }).catch(err => {
-                console.warn("Kon onDisconnect niet instellen:", err);
-            });
+            }).catch(() => {});
         };
 
         presenceConnectedRef.on('value', presenceConnectedHandler);
@@ -1729,25 +1714,14 @@
         indicator.classList.toggle('is-online', firebaseConnected);
         indicator.classList.toggle('is-offline', !firebaseConnected);
 
-        if (dot) {
-            dot.className = 'status-dot ' + (firebaseConnected ? 'online' : 'offline');
-        }
-
-        if (text) {
-            text.textContent = firebaseConnected
-                ? 'Live verbonden met database'
-                : 'Verbinding verbroken – opnieuw verbinden…';
-        }
+        if (dot) dot.className = 'status-dot ' + (firebaseConnected ? 'online' : 'offline');
+        if (text) text.textContent = firebaseConnected ? 'Live verbonden met database' : 'Verbinding verbroken – opnieuw verbinden…';
     }
 
     function formatExactDateTime(ts) {
         if (!ts) return "";
         let date = new Date(ts);
-        
-        if (ts < 10000000000) {
-            date = new Date(ts * 1000);
-        }
-
+        if (ts < 10000000000) date = new Date(ts * 1000);
         if (isNaN(date.getTime())) return "";
 
         const today = new Date();
@@ -1756,13 +1730,7 @@
                         date.getFullYear() === today.getFullYear();
 
         const timeStr = date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-
-        if (isToday) {
-            return `Vandaag ${timeStr}`;
-        } else {
-            const dateStr = date.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
-            return `${dateStr} om ${timeStr}`;
-        }
+        return isToday ? `Vandaag ${timeStr}` : `${date.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} om ${timeStr}`;
     }
 
     function renderStatuses() {
@@ -1777,8 +1745,7 @@
                         let ts = s.timestamp;
                         if (ts < 10000000000) ts = ts * 1000;
                         if (ts > Date.now()) ts = Date.now();
-                        const age = Date.now() - ts;
-                        if (age <= PRESENCE_ONLINE_TIMEOUT_MS) {
+                        if (Date.now() - ts <= PRESENCE_ONLINE_TIMEOUT_MS) {
                             activeUsers[s.name] = ts;
                         }
                     }
@@ -1788,49 +1755,28 @@
             let playerActivityList = basePlayers.map(player => {
                 const isMe = (player === currentUserName);
                 const isOnline = isMe ? firebaseConnected : !!activeUsers[player];
-
                 let lastSeenTs = 0;
                 if (isOnline) {
                     lastSeenTs = Date.now();
                 } else {
                     let lastSeenData = allLastSeen[player];
                     if (lastSeenData) {
-                        if (typeof lastSeenData === 'object' && lastSeenData !== null) {
-                            lastSeenTs = lastSeenData.timestamp || 0;
-                        } else {
-                            lastSeenTs = lastSeenData;
-                        }
+                        lastSeenTs = (typeof lastSeenData === 'object' && lastSeenData !== null) ? (lastSeenData.timestamp || 0) : lastSeenData;
                         if (lastSeenTs < 10000000000) lastSeenTs = lastSeenTs * 1000;
                     }
                 }
-
-                return {
-                    player,
-                    isMe,
-                    isOnline,
-                    lastSeenTs
-                };
+                return { player, isMe, isOnline, lastSeenTs };
             });
 
             playerActivityList.sort((a, b) => b.lastSeenTs - a.lastSeenTs);
 
             container.innerHTML = playerActivityList.map(item => {
-                const player = item.player;
-                const isMe = item.isMe;
-                const isOnline = item.isOnline;
-
+                const { player, isMe, isOnline } = item;
                 let subText = "";
                 if (!isOnline) {
                     if (item.lastSeenTs > 0) {
-                        const diff = Date.now() - item.lastSeenTs;
-                        if (diff >= 0 && diff <= MAX_OFFLINE_DISPLAY_MS) {
-                            let exactTimeStr = formatExactDateTime(item.lastSeenTs);
-                            if (exactTimeStr) {
-                                subText += `<span class="status-time">Laatst: ${exactTimeStr}</span>`;
-                            }
-                        } else {
-                            subText = `<span class="status-time">Offline</span>`;
-                        }
+                        let exactTimeStr = formatExactDateTime(item.lastSeenTs);
+                        if (exactTimeStr) subText = `<span class="status-time">Laatst: ${exactTimeStr}</span>`;
                     } else {
                         subText = `<span class="status-time">Offline</span>`;
                     }
@@ -1882,11 +1828,7 @@
         thursdayOfThisWeek.setHours(23, 59, 59, 999);
 
         let target = new Date(currentMonday);
-
-        if (now > thursdayOfThisWeek) {
-            target.setDate(target.getDate() + 7);
-        }
-
+        if (now > thursdayOfThisWeek) target.setDate(target.getDate() + 7);
         return target;
     }
 
@@ -1897,7 +1839,6 @@
 
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
-        
         let currentMonday = getAdjustedBaseDate();
         let referenceMonday = new Date(2026, 8, 21); 
 
@@ -1918,12 +1859,10 @@
 
             let dinsdagDate = new Date(weekStart);
             dinsdagDate.setDate(weekStart.getDate() + 1);
-
             let donderdagDate = new Date(weekStart);
             donderdagDate.setDate(weekStart.getDate() + 3);
 
             let tpl = defaultTemplate[templateIndex];
-
             let overrideData = liveOverrides[uniqueWeekKey] || {};
             let dinsdagPlayers = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
             let donderdagPlayers = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
@@ -1936,42 +1875,6 @@
 
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
-
-            let isDinsdagToday = now.getFullYear() === dinsdagDate.getFullYear() &&
-                                 now.getMonth() === dinsdagDate.getMonth() &&
-                                 now.getDate() === dinsdagDate.getDate();
-
-            let isDonderdagToday = now.getFullYear() === donderdagDate.getFullYear() &&
-                                   now.getMonth() === donderdagDate.getMonth() &&
-                                   now.getDate() === donderdagDate.getDate();
-
-            let isAfter18 = now.getHours() >= 18;
-
-            if (isDinsdagToday && isAfter18 && dinsdagWeatherObj && dinsdagWeatherObj.rain >= 60) {
-                let rainKey = `rain_notified_${uniqueWeekKey}_dinsdag`;
-                if (!localStorage.getItem(rainKey)) {
-                    localStorage.setItem(rainKey, 'true');
-                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${dinsdagWeatherObj.rain}% kans op regen om 18:00 uur (week ${currentWeekNum})!`);
-                }
-            }
-
-            if (isDonderdagToday && isAfter18 && donderdagWeatherObj && donderdagWeatherObj.rain >= 60) {
-                let rainKey = `rain_notified_${uniqueWeekKey}_donderdag`;
-                if (!localStorage.getItem(rainKey)) {
-                    localStorage.setItem(rainKey, 'true');
-                    triggerPushNotification("⚠️ Padel Weerwaarschuwing", `Let op! ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur (week ${currentWeekNum})!`);
-                }
-            }
-
-            let dinsdagRainWarning = (dinsdagWeatherObj && dinsdagWeatherObj.rain >= 60) ? 
-                `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠ <strong>Let op:</strong> ${dinsdagWeatherObj.rain}% kans op regen om 18:00 uur
-                 </div>` : '';
-
-            let donderdagRainWarning = (donderdagWeatherObj && donderdagWeatherObj.rain >= 60) ? 
-                `<div style="background: rgba(239, 68, 68, 0.15); border-left: 3px solid var(--accent-orange); color: #f87171; padding: 6px 10px; font-size: 0.75rem; border-radius: 4px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                    ⚠ <strong>Let op:</strong> ${donderdagWeatherObj.rain}% kans op regen om 18:00 uur
-                 </div>` : '';
 
             let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
             let donderdagAbsentees = donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
@@ -1987,7 +1890,6 @@
                                     <span class="day-name">Dinsdag</span> <span class="match-date">${dinsdagFormatted}</span>
                                     ${dinsdagWeather}
                                 </div>
-                                ${dinsdagRainWarning}
                                 <div class="players-container">
                                     ${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag')}
                                 </div>
@@ -1996,7 +1898,7 @@
                                 <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig</button>
                             </div>
                         </div>
-                        ${dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️️ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
+                        ${dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
                     </div>
 
                     <div class="match-row-wrapper">
@@ -2006,7 +1908,6 @@
                                     <span class="day-name">Donderdag</span> <span class="match-date">${donderdagFormatted}</span>
                                     ${donderdagWeather}
                                 </div>
-                                ${donderdagRainWarning}
                                 <div class="players-container">
                                     ${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag')}
                                 </div>
@@ -2041,14 +1942,12 @@
 
         const team1 = players.slice(0, 2).map(createChip).join('');
         const team2 = players.slice(2, 4).map(createChip).join('');
-
         return `${team1} <span class="vs-text">vs</span> ${team2}`;
     }
 
     function renderStats() {
         const tbody = document.getElementById('statsTableBody');
         let counts = {};
-        
         basePlayers.forEach(p => counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: false });
 
         let currentMonday = getAdjustedBaseDate();
@@ -2070,22 +1969,16 @@
             let donderdagPlayers = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
 
             dinsdagPlayers.forEach(p => {
-                if (!counts[p]) {
-                    counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
-                }
-                const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag');
-                if (!isAbsent) {
+                if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
+                if (!checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag')) {
                     counts[p].dinsdag++;
                     counts[p].totaal++;
                 }
             });
 
             donderdagPlayers.forEach(p => {
-                if (!counts[p]) {
-                    counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
-                }
-                const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, 'donderdag');
-                if (!isAbsent) {
+                if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
+                if (!checkPlayerAbsent(p, uniqueWeekKey, 'donderdag')) {
                     counts[p].donderdag++;
                     counts[p].totaal++;
                 }
@@ -2116,7 +2009,6 @@
     function renderAbsenceTable() {
         const headerRow = document.getElementById('absenceHeaderRow');
         const tbody = document.getElementById('absenceTableBody');
-        
         let currentMonday = getAdjustedBaseDate();
 
         let activeSubs = new Set();
@@ -2137,16 +2029,13 @@
                 let overrideData = liveOverrides[uniqueWeekKey] || {};
                 let players = overrideData[day] !== undefined ? overrideData[day] : tpl[day];
                 players.forEach(p => {
-                    if (!basePlayers.includes(p)) {
-                        activeSubs.add(p);
-                    }
+                    if (!basePlayers.includes(p)) activeSubs.add(p);
                 });
             });
         }
         let allTablePlayers = [...basePlayers, ...Array.from(activeSubs)];
 
         let headersHtml = `<th style="text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2;">Speler</th>`;
-        
         for (let i = 0; i < 6; i++) {
             let weekStart = new Date(currentMonday);
             weekStart.setDate(currentMonday.getDate() + (i * 7));
@@ -2158,7 +2047,6 @@
         tbody.innerHTML = allTablePlayers.map(p => {
             const isMe = (p === currentUserName);
             const isSub = !basePlayers.includes(p);
-            
             let nameDisplay = p;
             if (isMe) nameDisplay += ' (jij)';
             if (isSub) nameDisplay += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
@@ -2210,17 +2098,10 @@
             let sel = document.getElementById(`p${i}Select`);
             let inp = document.getElementById(`p${i}Custom`);
             
-            let availableOpts = [];
-            if (currentUserName === "Robert") {
-                availableOpts = [...basePlayers, "Extern / Invaller"];
-            } else {
-                availableOpts = [currentUserName, "Extern / Invaller"];
-            }
-
+            let availableOpts = (currentUserName === "Robert") ? [...basePlayers, "Extern / Invaller"] : [currentUserName, "Extern / Invaller"];
             sel.innerHTML = availableOpts.map(opt => `<option value="${opt}">${opt}</option>`).join('');
 
             let pVal = currentPlayers[i] || basePlayers[i];
-            
             if (currentUserName !== "Robert" && !availableOpts.includes(pVal)) {
                 sel.innerHTML = `<option value="${pVal}">${pVal}</option>` + sel.innerHTML;
             }
@@ -2229,17 +2110,12 @@
                 sel.value = pVal;
                 inp.style.display = "none";
                 inp.value = "";
-            } else if (pVal === "Extern / Invaller" || !basePlayers.includes(pVal)) {
-                if (availableOpts.includes("Extern / Invaller")) {
-                    sel.value = "Extern / Invaller";
-                    inp.style.display = "block";
-                    inp.value = pVal;
-                }
             } else {
-                sel.value = pVal;
+                sel.value = "Extern / Invaller";
+                inp.style.display = "block";
+                inp.value = pVal;
             }
         }
-
         document.getElementById('replaceModal').style.display = 'flex';
     }
 
@@ -2247,12 +2123,8 @@
         for (let i = 0; i < 4; i++) {
             let sel = document.getElementById(`p${i}Select`);
             let inp = document.getElementById(`p${i}Custom`);
-            if (sel.value === "Extern / Invaller") {
-                inp.style.display = "block";
-            } else {
-                inp.style.display = "none";
-                inp.value = "";
-            }
+            inp.style.display = (sel.value === "Extern / Invaller") ? "block" : "none";
+            if (sel.value !== "Extern / Invaller") inp.value = "";
         }
     }
 
@@ -2263,10 +2135,7 @@
     async function addSystemMessageIfUnique(msgText) {
         const now = Date.now();
         const timeStr = new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        const recentMessages = messages.slice(-3);
-        const isDuplicate = recentMessages.some(m => m.text === msgText && (now - (m.timestamp || 0) < 3000));
-
+        const isDuplicate = messages.slice(-3).some(m => m.text === msgText && (now - (m.timestamp || 0) < 3000));
         if (isDuplicate) return;
 
         await db.ref('padelData/messages').push({
@@ -2288,25 +2157,21 @@
             if (currentUserName !== "Robert") {
                 let tpl = defaultTemplate[activeTemplateIndex];
                 let overrideData = liveOverrides[activeModalUniqueKey] || {};
-                let originalPlayers = overrideData[activeModalDay] !== undefined ? overrideData[activeModalDay] : tpl[activeModalDay];
-                let originalVal = originalPlayers[i];
+                let originalVal = (overrideData[activeModalDay] !== undefined ? overrideData[activeModalDay] : tpl[activeModalDay])[i];
 
                 if (chosenVal !== currentUserName && chosenVal !== originalVal && !inp.value.trim()) {
                     alert("Je mag alleen je eigen naam invullen op een vrije of afgewezen plek!");
                     return;
                 }
             }
-
             newPlayers.push(chosenVal);
         }
 
         db.ref(`padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`).set(newPlayers);
-        
         let msgText = `🔄 Schema gewijzigd voor week ${activeModalWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
         
         await addSystemMessageIfUnique(msgText);
         await triggerPushNotification("Padel Schema Gewijzigd", msgText);
-
         closeModal();
     }
 
@@ -2316,13 +2181,10 @@
         
         const path = `padelData/absence/${playerName}/${uniqueWeekKey}_${day}`;
         db.ref(path).once('value', async snapshot => {
-            const currentVal = snapshot.val() || false;
-            const newVal = !currentVal;
+            const newVal = !(snapshot.val() || false);
             await db.ref(path).set(newVal);
 
-            const statusText = newVal ? "afgemeld" : "aangemeld";
-            let msgText = `📅 ${playerName} is ${statusText} voor week ${weekNum} (${day}) (door ${currentUserName})`;
-            
+            let msgText = `📅 ${playerName} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${day}) (door ${currentUserName})`;
             await addSystemMessageIfUnique(msgText);
             await triggerPushNotification("Padel Afwezigheid", msgText);
         });
@@ -2330,22 +2192,14 @@
 
     function formatMessageTime(timestamp, fallbackTijd) {
         if (!timestamp && !fallbackTijd) return "";
-        
-        const msgDate = timestamp ? new Date(timestamp) : new Date();
-        const today = new Date();
-        
+        let msgDate = timestamp ? new Date(timestamp) : new Date();
+        let today = new Date();
         const isToday = msgDate.getDate() === today.getDate() &&
                         msgDate.getMonth() === today.getMonth() &&
                         msgDate.getFullYear() === today.getFullYear();
 
         const timeStr = fallbackTijd || msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        if (isToday) {
-            return timeStr;
-        } else {
-            const dateStr = msgDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
-            return `${dateStr} ${timeStr}`;
-        }
+        return isToday ? timeStr : `${msgDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })} ${timeStr}`;
     }
 
     function handleFileSelect(event) {
@@ -2366,11 +2220,11 @@
             
             const chatInput = document.getElementById('chatInput');
             if (selectedFileType.includes('pdf')) {
-                chatInput.placeholder = "📄 PDF gekozen: " + file.name + " (typ optioneel tekst)...";
+                chatInput.placeholder = "📄 PDF gekozen: " + file.name + "...";
             } else if (selectedFileType.includes('image')) {
-                chatInput.placeholder = "📷 Foto gekozen: " + file.name + " (typ optioneel tekst)...";
+                chatInput.placeholder = "📷 Foto gekozen: " + file.name + "...";
             } else {
-                chatInput.placeholder = "📎 Bestand gekozen: " + file.name + " (typ optioneel tekst)...";
+                chatInput.placeholder = "📎 Bestand gekozen: " + file.name + "...";
             }
         };
         reader.readAsDataURL(file);
@@ -2381,7 +2235,6 @@
         windowDiv.innerHTML = messages.map((m, index) => {
             const isSelf = (m.author === currentUserName);
             const isSystem = (m.type === "system" || m.author === "Systeem");
-            
             const formattedTime = formatMessageTime(m.timestamp, m.tijd);
             const tijdWeergave = formattedTime ? `<span style="font-size: 0.65rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${formattedTime}</span>` : '';
 
@@ -2415,8 +2268,6 @@
                         </a>
                     `;
                 }
-            } else if (m.imageUrl) {
-                attachmentHtml = `<img src="${m.imageUrl}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 4px; cursor: pointer; object-fit: cover;" onclick="openImageModal('${m.imageUrl}')">`;
             }
 
             let textHtml = (m.text && m.text !== "(Bestand)" && m.text !== "(Foto)") ? `<span>${m.text}</span>` : '';
@@ -2441,13 +2292,11 @@
         if (!text && !selectedFileBase64) return;
 
         const now = new Date();
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
         let messageData = {
             author: currentUserName,
             text: text || "",
             timestamp: firebase.database.ServerValue.TIMESTAMP,
-            tijd: timeStr
+            tijd: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
         if (selectedFileBase64) {
@@ -2457,17 +2306,7 @@
         }
 
         await db.ref('padelData/messages').push(messageData);
-
-        let notifBody = text;
-        if (selectedFileBase64) {
-            if (selectedFileType && selectedFileType.includes('pdf')) {
-                notifBody = text ? `${text} (📄 PDF: ${selectedFileName})` : `📄 [PDF bijlage: ${selectedFileName}]`;
-            } else {
-                notifBody = text ? `${text} (📷 Foto)` : "📷 [Foto bijlage]";
-            }
-        }
-
-        await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, notifBody);
+        await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, text || (selectedFileType?.includes('pdf') ? '📄 PDF bijlage' : '📷 Foto bijlage'));
 
         input.value = '';
         input.style.height = 'auto'; 
@@ -2490,9 +2329,7 @@
             let val = snapshot.val();
             if (val) {
                 let keys = Object.keys(val);
-                if (keys[index]) {
-                    db.ref(`padelData/messages/${keys[index]}`).remove();
-                }
+                if (keys[index]) db.ref(`padelData/messages/${keys[index]}`).remove();
             }
         });
     }
@@ -2507,7 +2344,6 @@
         lastSeenMessageCount = messages.length;
         localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
         updateAlertUI();
-
         document.getElementById('chatCardSection').scrollIntoView({ behavior: 'smooth' });
     }
 
