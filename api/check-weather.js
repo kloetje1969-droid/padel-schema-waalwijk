@@ -1,22 +1,17 @@
 const admin = require('firebase-admin');
 
 if (!admin.apps.length) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
-        }),
+        credential: admin.credential.cert(serviceAccount),
         databaseURL: process.env.FIREBASE_DATABASE_URL
     });
 }
 
 const db = admin.database();
 
-// Voorbeeld: Functie om de regenkans op te halen (vervang dit met je echte weer-API logica, bijv. Buienradar of OpenWeatherMap)
 async function getRainChance() {
-    // Hier schrijf je de fetch naar je weer-provider voor vandaag/vanavond
-    // Return het percentage als een getাল (bijv. 65)
+    // Voeg hier eventueel je echte weer-API logica toe
     return 65; 
 }
 
@@ -27,24 +22,20 @@ module.exports = async (req, res) => {
         const optionsHour = { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false };
         const currentHour = parseInt(new Intl.DateTimeFormat('en-US', optionsHour).format(now), 10);
 
-        // Controleer of het exact 18:00 uur is in Nederland
         if (currentHour !== 18) {
             return res.status(200).json({ 
                 status: `Geen actie check-weather: Het is nu ${currentHour}:00 uur (vereist: 18:00).` 
             });
         }
 
-        // Haal de regenkans op
         const rainChance = await getRainChance();
 
-        // Als de regenkans lager is dan 60%, onderneem geen actie
         if (rainChance < 60) {
             return res.status(200).json({ 
                 status: `Geen actie: Regenkans is ${rainChance}% (onder de drempel van 60%).` 
             });
         }
 
-        // Regenkans is 60% of hoger! Haal alle tokens op om iedereen te waarschuwen
         const tokensSnap = await db.ref('padelData/tokens').once('value');
         const tokensData = tokensSnap.val() || {};
 
