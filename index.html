@@ -1056,10 +1056,10 @@
 
     <!-- STATISTIEKEN KAART (Inklapbaar) -->
     <div class="card">
-        <details>
+        <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
                 <div class="section-title" style="font-size: 0.95rem;">📊 Statistieken (Huidige Reeks)</div>
-                <span class="collapse-arrow">▼ Menu</span>
+                <span class="collapse-arrow">▼ Open</span>
             </summary>
             <div class="collapsible-body">
                 <div class="table-scroll-wrapper">
@@ -1081,10 +1081,10 @@
 
     <!-- AFWEZIGHEID / VAKANTIE KAART (Inklapbaar) -->
     <div class="card">
-        <details>
+        <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
                 <div class="section-title" style="font-size: 0.95rem;">📅 Afwezigheid / Vakantie</div>
-                <span class="collapse-arrow">▼ Menu</span>
+                <span class="collapse-arrow">▼ Open</span>
             </summary>
             <div class="collapsible-body">
                 <p style="font-size: 0.75rem; color: var(--text-muted);">Vaste spelers kunnen alleen hun eigen afwezigheid aanpassen. Invallers kunnen door iedereen worden aangemeld/afgemeld.</p>
@@ -1108,7 +1108,7 @@
             <div class="section-title" style="font-size: 0.95rem;">
                 <span class="tennis-ball">🥎</span> Baan Boeken & Stand
             </div>
-            <span id="collapseArrow" class="collapse-arrow">▼ Menu</span>
+            <span id="collapseArrow" class="collapse-arrow">▼ Open</span>
         </div>
         <div id="baanBoekingenBody">
             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
@@ -1310,10 +1310,17 @@
         const arrow = document.getElementById('collapseArrow');
         if (body.style.display === 'flex') {
             body.style.display = 'none';
-            arrow.innerText = '▼ Menu';
+            arrow.innerText = '▼ Open';
         } else {
             body.style.display = 'flex';
             arrow.innerText = '▲ Sluiten';
+        }
+    }
+
+    function updateCollapseArrow(detailsElem) {
+        const arrow = detailsElem.querySelector('.collapse-arrow');
+        if (arrow) {
+            arrow.innerText = detailsElem.open ? '▲ Sluiten' : '▼ Open';
         }
     }
 
