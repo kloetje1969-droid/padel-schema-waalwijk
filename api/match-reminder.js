@@ -2,7 +2,7 @@ import { initializeApp, getApps } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
 import { getMessaging } from 'firebase-admin/messaging';
 
-// Firebase Admin initialisatie (zorg dat je FIREBASE_SERVICE_ACCOUNT hebt ingesteld in Vercel environment variables)
+// Firebase Admin initialisatie
 if (!getApps().length) {
   initializeApp({
     databaseURL: "https://padel-app-b8362-default-rtdb.europe-west1.firebasedatabase.app"
@@ -12,7 +12,7 @@ if (!getApps().length) {
 const db = getDatabase();
 const messaging = getMessaging();
 
-// Het vaste 6-wekenschema (zelfde als in je frontend)
+// Het vaste 6-wekenschema
 const defaultTemplate = [
         { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Mark"] },
         { dinsdag: ["Ronald", "Dennis", "Robert", "Sander"], donderdag: ["Marcel", "Mark", "Ronald", "Sander"] },
@@ -40,14 +40,28 @@ function getISOWeekNumber(d) {
 export default async function handler(req, res) {
     try {
         const now = new Date();
-        const dayOfWeek = now.getDay(); // 2 = dinsdag, 4 = donderdag
 
-        // Controleer of het vandaag dinsdag (2) of donderdag (4) is
-        if (dayOfWeek !== 2 && dayOfWeek !== 4) {
-            return res.status(200).json({ message: "Geen speeldag vandaag (geen herinnering verzonden)." });
+        // 1. Controleer of het vandaag dinsdag ('Tue') of donderdag ('Thu') is in Nederland
+        const optionsDay = { timeZone: 'Europe/Amsterdam', weekday: 'short' };
+        const currentDayName = new Intl.DateTimeFormat('en-US', optionsDay).format(now);
+        
+        if (currentDayName !== 'Tue' && currentDayName !== 'Thu') {
+            return res.status(200).json({ 
+                status: `Geen actie match-reminder: Vandaag (${currentDayName}) is geen speeldag.` 
+            });
         }
 
-        const dayName = dayOfWeek === 2 ? 'dinsdag' : 'donderdag';
+        // 2. Controleer of het exact 17:00 uur is in Nederland (houdt rekening met zomer/wintertijd)
+        const optionsHour = { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false };
+        const currentHour = parseInt(new Intl.DateTimeFormat('en-US', optionsHour).format(now), 10);
+
+        if (currentHour !== 17) {
+            return res.status(200).json({ 
+                status: `Geen actie match-reminder: Het is nu ${currentHour}:00 uur (vereist: 17:00).` 
+            });
+        }
+
+        const dayName = currentDayName === 'Tue' ? 'dinsdag' : 'donderdag';
         
         // Bepaal de huidige week en template index
         let currentMonday = getMonday(now);
@@ -60,7 +74,7 @@ export default async function handler(req, res) {
         let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
         let templateIndex = ((diffWeeks % 6) + 6) % 6;
 
-        // Haal eventuele live overrides (wijzigingen) op uit Firebase
+        // Haal eventuele live overrides op uit Firebase
         const snapshot = await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}`).once('value');
         const overrideData = snapshot.val() || {};
 
