@@ -54,28 +54,6 @@
             font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
         }
 
-        /* Grote, duidelijke audioknop naast de spelerselector */
-        .audio-btn-inline {
-            background: #10b981;
-            color: #0b0f19;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-weight: 800;
-            font-size: 0.9rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-            transition: transform 0.1s;
-            white-space: nowrap;
-        }
-
-        .audio-btn-inline:active {
-            transform: scale(0.95);
-        }
-
         /* Zacht groene styling voor de boekingsvelden */
         .booking-input-soft {
             background-color: rgba(52, 211, 153, 0.08) !important;
@@ -279,6 +257,7 @@
             outline: none;
             cursor: pointer;
             font-size: 0.95rem;
+            width: 100%;
         }
 
         .status-container {
@@ -1067,18 +1046,12 @@
         <h1><span class="tennis-ball">🥎</span> Padelschema <span class="tennis-ball">🥎</span></h1>
         
         <div class="user-select-row">
-            <!-- Speler selectie én audio knop direct naast elkaar op exact dezelfde hoogte -->
+            <!-- Speler selectie -->
             <div class="user-select-container">
                 <label for="userSelect">Jij:</label>
                 <select id="userSelect" onchange="changeUser()">
                     <!-- Wordt dynamisch gevuld -->
                 </select>
-
-                <!-- Duidelijke audio knop direct ernaast -->
-                <button class="audio-btn-inline" id="playAudioBtn" onclick="toggleAudioPlayback()">
-                    <span id="audioIcon">▶️</span> <span id="audioBtnText">Muziek</span>
-                </button>
-                <audio id="padelAudioElement" src="padellen.mp3" preload="none" onended="onAudioEnded()"></audio>
             </div>
             
             <div class="header-actions-row">
@@ -1243,34 +1216,6 @@
 
 <script>
     const APP_VERSION = "5.3";
-    
-    // Functie voor afspelen padellen.mp3
-    function toggleAudioPlayback() {
-        const audio = document.getElementById('padelAudioElement');
-        const icon = document.getElementById('audioIcon');
-        const text = document.getElementById('audioBtnText');
-
-        if (audio.paused) {
-            audio.play().then(() => {
-                icon.innerText = "⏸️";
-                text.innerText = "Pauze";
-            }).catch(e => {
-                console.error("Audio kon niet worden afgespeeld:", e);
-                alert("Kan padellen.mp3 niet afspelen. Controleer of het bestand in dezelfde map staat.");
-            });
-        } else {
-            audio.pause();
-            icon.innerText = "▶️";
-            text.innerText = "Muziek";
-        }
-    }
-
-    function onAudioEnded() {
-        const icon = document.getElementById('audioIcon');
-        const text = document.getElementById('audioBtnText');
-        icon.innerText = "▶️";
-        text.innerText = "Muziek";
-    }
 
     async function checkAppVersion() {
         try {
