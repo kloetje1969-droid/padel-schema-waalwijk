@@ -15,12 +15,12 @@ const db = admin.database();
 
 const defaultTemplate = [
  defaultTemplate = [
-        { dinsdag: ["Marcel", "Mark", "Ronald", "Sander"], donderdag: ["Dennis", "Robert", "Marcel", "Mark"] },
-        { dinsdag: ["Ronald", "Dennis", "Robert", "Sander"], donderdag: ["Marcel", "Mark", "Ronald", "Sander"] },
-        { dinsdag: ["Marcel", "Dennis", "Mark", "Robert"], donderdag: ["Ronald", "Sander", "Dennis", "Marcel"] },
-        { dinsdag: ["Ronald", "Mark", "Marcel", "Sander"], donderdag: ["Dennis", "Ronald", "Robert", "Mark"] },
-        { dinsdag: ["Marcel", "Sander", "Dennis", "Robert"], donderdag: ["Ronald", "Mark", "Marcel", "Sander"] },
-        { dinsdag: ["Ronald", "Dennis", "Robert", "Mark"], donderdag: ["Marcel", "Sander", "Ronald", "Robert"] }
+        { dinsdag: ["Robert", "Dennis", "Mark", "Sander"], donderdag: ["Sander", "Robert", "Marcel", "Ronald"] },
+        { dinsdag: ["Marcel", "Dennis", "Mark", "Ronald"], donderdag: ["Marcel", "Dennis", "Ronald", "Robert"] },
+        { dinsdag: ["Marcel", "Sander", "Mark", "Robert"], donderdag: ["Dennis", "Sander", "Ronald", "Mark"] },
+        { dinsdag: ["Ronald", "Dennis", "Marcel", "Robert"], donderdag: ["Sander", "Ronald", "Robert", "Dennis"] },
+        { dinsdag: ["Marcel", "Mark", "Dennis", "Sander"], donderdag: ["Robert", "Mark", "Ronald", "Sander"] },
+        { dinsdag: ["Ronald", "Dennis", "Robert", "Marcel"], donderdag: ["Mark", "Sander", "Ronald", "Marcel"] }
 ];
 
 function getMonday(d) {
