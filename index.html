@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -44,7 +45,7 @@
             --accent-green-bg: rgba(52, 211, 153, 0.12);
             --danger: #f87171;
             --danger-bg: rgba(248, 113, 113, 0.15);
-            --main-glow: 0 16px 60px rgba(52, 211, 153, 0.22), 0 0 40px rgba(52, 211, 153, 0.12);
+            --main-glow: 0 16px 60px rgba(56, 189, 248, 0.22), 0 0 40px rgba(56, 189, 248, 0.12);
         }
 
         /* Expliciete styling voor gegarandeerde weergave van de tennisbal */
@@ -94,7 +95,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--accent-green);
+            color: var(--accent-blue);
             font-size: 0.8rem;
             font-weight: 600;
             transition: transform 0.2s ease;
@@ -150,7 +151,7 @@
         }
 
         .pin-box h2 {
-            color: var(--accent-green);
+            color: var(--accent-blue);
             font-size: 1.3rem;
             margin-bottom: 4px;
         }
@@ -206,7 +207,7 @@
         h1 {
             font-size: 1.7rem;
             font-weight: 800;
-            color: var(--accent-green);
+            color: var(--accent-blue);
             letter-spacing: -0.025em;
             display: flex;
             align-items: center;
@@ -214,7 +215,7 @@
             gap: 12px;
             width: 100%;
             text-align: center;
-            text-shadow: 0 0 16px rgba(52, 211, 153, 0.6);
+            text-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
         }
 
         .user-select-row {
@@ -244,7 +245,7 @@
 
         .user-select-container label {
             font-weight: 700;
-            color: var(--accent-green);
+            color: var(--accent-blue);
         }
 
         .user-select-container select {
@@ -270,21 +271,21 @@
             padding-top: 10px;
         }
 
-        @keyframes blinkGreen {
+        @keyframes blinkBlue {
             0% { opacity: 0.3; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #34d399; }
+            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #38bdf8; }
             100% { opacity: 0.3; transform: scale(0.8); }
         }
 
         @keyframes pulseConnection {
             0% { opacity: 0.5; text-shadow: none; }
-            50% { opacity: 1; text-shadow: 0 0 10px rgba(110, 231, 183, 0.6); }
+            50% { opacity: 1; text-shadow: 0 0 10px rgba(56, 189, 248, 0.6); }
             100% { opacity: 0.5; text-shadow: none; }
         }
 
         .db-connection-status {
             font-size: 0.72rem; 
-            color: #6ee7b7; 
+            color: #38bdf8; 
             display: flex; 
             align-items: center; 
             gap: 4px;
@@ -336,9 +337,9 @@
         }
 
         .status-badge.me {
-            border-color: #6ee7b7;
-            background: rgba(16, 185, 129, 0.2);
-            box-shadow: 0 0 6px rgba(110, 231, 183, 0.3);
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 6px rgba(56, 189, 248, 0.3);
             font-weight: bold;
         }
 
@@ -365,8 +366,8 @@
         }
 
         .status-dot.online {
-            background: #34d399;
-            animation: blinkGreen 1.5s infinite ease-in-out;
+            background: #38bdf8;
+            animation: blinkBlue 1.5s infinite ease-in-out;
         }
 
         .status-dot.offline {
@@ -443,11 +444,11 @@
         .collapse-arrow {
             font-size: 0.75rem;
             font-weight: 600;
-            color: var(--accent-green);
-            background: rgba(52, 211, 153, 0.1);
+            color: var(--accent-blue);
+            background: rgba(56, 189, 248, 0.1);
             padding: 3px 8px;
             border-radius: 6px;
-            border: 1px solid rgba(52, 211, 153, 0.2);
+            border: 1px solid rgba(56, 189, 248, 0.2);
         }
 
         #baanBoekingenBody {
@@ -474,11 +475,11 @@
         .section-title {
             font-size: 1rem;
             font-weight: 600;
-            color: var(--accent-green);
+            color: var(--accent-blue);
             display: flex;
             align-items: center;
             gap: 6px;
-            text-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
         }
 
         .week-card {
@@ -596,10 +597,10 @@
         }
 
         .player-chip.me {
-            background: #047857;
-            border: 1px solid #10b981;
-            color: #6ee7b7;
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            background: #0369a1;
+            border: 1px solid #0284c7;
+            color: #bae6fd;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
             font-weight: 700;
         }
 
@@ -693,18 +694,18 @@
         }
         
         .stats-table tr.highlight-row, .absence-table tr.highlight-row { 
-            background-color: rgba(16, 185, 129, 0.2); 
+            background-color: rgba(56, 189, 248, 0.15); 
             font-weight: bold; 
         }
         
         .stats-table tr.highlight-row td { 
-            color: #6ee7b7; 
+            color: #7dd3fc; 
         }
 
         .absence-btn { 
-            background: rgba(52, 211, 153, 0.2); 
-            color: #34d399; 
-            border: 1px solid #34d399; 
+            background: rgba(56, 189, 248, 0.15); 
+            color: #38bdf8; 
+            border: 1px solid #38bdf8; 
             padding: 4px 8px; 
             border-radius: 5px; 
             font-size: 0.7rem; 
@@ -749,8 +750,8 @@
         
         .message.self { 
             align-self: flex-end; 
-            background: #047857; 
-            box-shadow: 0 0 10px rgba(4, 120, 87, 0.5);
+            background: #0369a1; 
+            box-shadow: 0 0 10px rgba(3, 105, 161, 0.5);
         }
         
         .message.system-update {
@@ -776,7 +777,7 @@
         }
         
         .message.self .author { 
-            color: #6ee7b7; 
+            color: #bae6fd; 
         }
         
         .delete-msg-btn { 
@@ -812,7 +813,7 @@
         }
         
         .btn-primary { 
-            background: #10b981; 
+            background: #0ea5e9; 
             color: #0b0f19; 
             border: none; 
             padding: 8px 12px; 
@@ -820,7 +821,7 @@
             cursor: pointer; 
             font-weight: 800; 
             font-size: 0.85rem; 
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
             height: 38px;
             flex-shrink: 0;
         }
@@ -844,11 +845,11 @@
             border-radius: 14px; 
             width: 100%; 
             max-width: 380px; 
-            box-shadow: 0 0 25px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.3);
         }
         
         .modal-content h3 { 
-            color: #6ee7b7; 
+            color: #7dd3fc; 
             font-size: 1.05rem; 
             margin-bottom: 12px; 
         }
@@ -2151,7 +2152,7 @@
             if (isMe) nameDisplay += ' (jij)';
             if (isSub) nameDisplay += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
 
-            let rowHtml = `<td style="text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 2; color: ${isMe ? '#6ee7b7' : (isSub ? '#fed7aa' : 'inherit')}">${nameDisplay}</td>`;
+            let rowHtml = `<td style="text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 2; color: ${isMe ? '#7dd3fc' : (isSub ? '#fed7aa' : 'inherit')}">${nameDisplay}</td>`;
 
             for (let i = 0; i < 6; i++) {
                 let weekStart = new Date(currentMonday);
