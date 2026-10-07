@@ -1,134 +1,148 @@
-import { initializeApp, getApps } from 'firebase-admin/app';
-import { getDatabase } from 'firebase-admin/database';
-import { getMessaging } from 'firebase-admin/messaging';
+import admin from 'firebase-admin';
 
-// Firebase Admin initialisatie
-if (!getApps().length) {
-  initializeApp({
-    databaseURL: "https://padel-app-b8362-default-rtdb.europe-west1.firebasedatabase.app"
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+    }),
+    databaseURL: process.env.FIREBASE_DATABASE_URL
   });
 }
+const db = admin.database();
 
-const db = getDatabase();
-const messaging = getMessaging();
-
-// Het vaste 6-wekenschema
 const defaultTemplate = [
-        { dinsdag: ["Robert", "Dennis", "Mark", "Sander"], donderdag: ["Sander", "Robert", "Marcel", "Ronald"] },
-        { dinsdag: ["Marcel", "Dennis", "Mark", "Ronald"], donderdag: ["Marcel", "Dennis", "Ronald", "Robert"] },
-        { dinsdag: ["Marcel", "Sander", "Mark", "Robert"], donderdag: ["Dennis", "Sander", "Ronald", "Mark"] },
-        { dinsdag: ["Ronald", "Dennis", "Marcel", "Robert"], donderdag: ["Sander", "Ronald", "Robert", "Dennis"] },
-        { dinsdag: ["Marcel", "Mark", "Dennis", "Sander"], donderdag: ["Robert", "Mark", "Ronald", "Sander"] },
-        { dinsdag: ["Ronald", "Dennis", "Robert", "Marcel"], donderdag: ["Mark", "Sander", "Ronald", "Marcel"] }
+  { dinsdag: ["Robert", "Dennis", "Mark", "Sander"], donderdag: ["Sander", "Robert", "Marcel", "Ronald"] },
+  { dinsdag: ["Marcel", "Dennis", "Mark", "Ronald"], donderdag: ["Marcel", "Dennis", "Ronald", "Robert"] },
+  { dinsdag: ["Marcel", "Sander", "Mark", "Robert"], donderdag: ["Dennis", "Sander", "Ronald", "Mark"] },
+  { dinsdag: ["Ronald", "Dennis", "Marcel", "Robert"], donderdag: ["Sander", "Ronald", "Robert", "Dennis"] },
+  { dinsdag: ["Marcel", "Mark", "Dennis", "Sander"], donderdag: ["Robert", "Mark", "Ronald", "Sander"] },
+  { dinsdag: ["Ronald", "Dennis", "Robert", "Marcel"], donderdag: ["Mark", "Sander", "Ronald", "Marcel"] }
+];
 
 function getMonday(d) {
-    d = new Date(d);
-    let day = d.getDay();
-    let diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
+  d = new Date(d);
+  let day = d.getDay();
+  let diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
 }
 
 function getISOWeekNumber(d) {
-    let date = new Date(d.getTime());
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-    let week1 = new Date(date.getFullYear(), 0, 4);
-    return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+  let date = new Date(d.getTime());
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  let week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
 }
 
-export default async function handler(req, res) {
-    try {
-        const now = new Date();
+export default async (req, res) => {
+  try {
+    const { title, body } = req.body || {};
 
-        // 1. Controleer of het vandaag dinsdag ('Tue') of donderdag ('Thu') is in Nederland
-        const optionsDay = { timeZone: 'Europe/Amsterdam', weekday: 'short' };
-        const currentDayName = new Intl.DateTimeFormat('en-US', optionsDay).format(now);
-        
-        if (currentDayName !== 'Tue' && currentDayName !== 'Thu') {
-            return res.status(200).json({ 
-                status: `Geen actie match-reminder: Vandaag (${currentDayName}) is geen speeldag.` 
-            });
-        }
+    const now = new Date();
+    const currentDay = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Amsterdam', weekday: 'short' }).format(now);
+    const currentHour = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false }).format(now), 10);
 
-        // 2. Controleer of het exact 17:00 uur is in Nederland (houdt rekening met zomer/wintertijd)
-        const optionsHour = { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false };
-        const currentHour = parseInt(new Intl.DateTimeFormat('en-US', optionsHour).format(now), 10);
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const dayNum = String(now.getDate()).padStart(2, '0');
+    const dateKey = `${year}-${month}-${dayNum}`;
+    const dayKey = currentDay === 'Tue' ? 'dinsdag' : 'donderdag';
 
-        if (currentHour !== 17) {
-            return res.status(200).json({ 
-                status: `Geen actie match-reminder: Het is nu ${currentHour}:00 uur (vereist: 17:00).` 
-            });
-        }
+    // 1. Handmatige aanroep met eigen titel/body: stuur naar alle tokens
+    if (title && body) {
+      const tokensSnap = await db.ref('padelData/tokens').once('value');
+      const tokensData = tokensSnap.val() || {};
 
-        const dayName = currentDayName === 'Tue' ? 'dinsdag' : 'donderdag';
-        
-        // Bepaal de huidige week en template index
-        let currentMonday = getMonday(now);
-        let currentWeekNum = getISOWeekNumber(currentMonday);
-        let currentYear = currentMonday.getFullYear();
-        let uniqueWeekKey = `${currentYear}_w${currentWeekNum}`;
+      const allTokens = [];
+      Object.values(tokensData).forEach(userTokensObj => {
+        if (userTokensObj) allTokens.push(...Object.keys(userTokensObj));
+      });
 
-        let referenceMonday = new Date(2026, 8, 21); // 21 september 2026
-        let diffTime = currentMonday.getTime() - referenceMonday.getTime();
-        let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
-        let templateIndex = ((diffWeeks % 6) + 6) % 6;
+      if (allTokens.length === 0) {
+        return res.status(200).json({ status: 'Geen tokens gevonden.' });
+      }
 
-        // Haal eventuele live overrides op uit Firebase
-        const snapshot = await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}`).once('value');
-        const overrideData = snapshot.val() || {};
+      const response = await admin.messaging().sendEachForMulticast({
+        notification: { title, body },
+        tokens: allTokens
+      });
 
-        let tpl = defaultTemplate[templateIndex];
-        let scheduledPlayers = overrideData[dayName] !== undefined ? overrideData[dayName] : tpl[dayName];
-
-        // Filter eventuele spelers die zich hebben afgemeld voor deze avond
-        const absenceSnapshot = await db.ref('padelData/absence').once('value');
-        const absences = absenceSnapshot.val() || {};
-
-        let activePlayers = scheduledPlayers.filter(p => {
-            const isAbsent = absences[p] && absences[p][`${uniqueWeekKey}_${dayName}`];
-            return !isAbsent;
-        });
-
-        if (activePlayers.length === 0) {
-            return res.status(200).json({ message: "Alle spelers zijn afgemeld voor vanavond. Geen herinnering verzonden." });
-        }
-
-        // Haal alle opgeslagen FCM tokens op uit Firebase
-        const tokensSnapshot = await db.ref('padelData/tokens').once('value');
-        const allTokensData = tokensSnapshot.val() || {};
-
-        let targetTokens = [];
-        activePlayers.forEach(player => {
-            if (allTokensData[player]) {
-                const playerTokens = Object.keys(allTokensData[player]);
-                targetTokens.push(...playerTokens);
-            }
-        });
-
-        if (targetTokens.length === 0) {
-            return res.status(200).json({ message: "Geen actieve push-tokens gevonden voor de spelers van vanavond." });
-        }
-
-        // Verstuur de pushmelding uitsluitend naar deze tokens
-        const messagePayload = {
-            notification: {
-                title: `🎾 Padel Herinnering (${dayName.charAt(0).toUpperCase() + dayName.slice(1)})`,
-                body: `Hey! Jij staat vanavond (${activePlayers.join(', ')}) ingepland om te padellen om 18:00 uur!`
-            },
-            tokens: targetTokens
-        };
-
-        const response = await messaging.sendEachForMulticast(messagePayload);
-        
-        return res.status(200).json({
-            success: true,
-            sentTo: activePlayers,
-            successCount: response.successCount,
-            failureCount: response.failureCount
-        });
-
-    } catch (error) {
-        console.error("Fout bij versturen match reminder:", error);
-        return res.status(500).json({ error: error.message });
+      return res.status(200).json({ success: true, successCount: response.successCount });
     }
-}
+
+    // 2. Automatische reminder om 17:00 (dinsdag of donderdag)
+    if ((currentDay !== 'Tue' && currentDay !== 'Thu') || currentHour !== 17) {
+      return res.status(200).json({
+        status: `Geen actie: Vandaag is ${currentDay} en het is ${currentHour}:00 uur (vereist: di of do om 17:00).`
+      });
+    }
+
+    const reminderRef = db.ref(`padelData/sentMatchReminders/${dateKey}`);
+    const snapshot = await reminderRef.once('value');
+    if (snapshot.exists()) {
+      return res.status(200).json({ status: `Wedstrijdherinnering voor ${dateKey} is al verzonden.` });
+    }
+
+    const currentMonday = getMonday(now);
+    currentMonday.setHours(0, 0, 0, 0);
+
+    const currentWeekNum = getISOWeekNumber(currentMonday);
+    const currentYear = currentMonday.getFullYear();
+    const uniqueWeekKey = `${currentYear}_w${currentWeekNum}`;
+
+    const referenceMonday = new Date(2026, 8, 21);
+    const diffTime = currentMonday.getTime() - referenceMonday.getTime();
+    const diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+    const templateIndex = ((diffWeeks % 6) + 6) % 6;
+
+    const [overridesSnap, absenceSnap, tokensSnap] = await Promise.all([
+      db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}`).once('value'),
+      db.ref('padelData/absence').once('value'),
+      db.ref('padelData/tokens').once('value')
+    ]);
+
+    const overrides = overridesSnap.val() || {};
+    const absences = absenceSnap.val() || {};
+    const tokensData = tokensSnap.val() || {};
+
+    const tpl = defaultTemplate[templateIndex];
+    const matchPlayers = overrides[dayKey] !== undefined ? overrides[dayKey] : tpl[dayKey];
+
+    const activePlayersToNotify = matchPlayers.filter(player => {
+      const playerAbsences = absences[player] || {};
+      return !playerAbsences[`${uniqueWeekKey}_${dayKey}`];
+    });
+
+    const targetTokens = [];
+    activePlayersToNotify.forEach(player => {
+      if (tokensData[player]) {
+        targetTokens.push(...Object.keys(tokensData[player]));
+      }
+    });
+
+    if (targetTokens.length === 0) {
+      return res.status(200).json({ status: 'Geen actieve tokens gevonden om te notifiëren.' });
+    }
+
+    const response = await admin.messaging().sendEachForMulticast({
+      notification: {
+        title: '🎾 Padel Reminder',
+        body: 'Vanavond is het weer zover! Vergeet niet dat je vanavond de baan op moet.'
+      },
+      tokens: targetTokens
+    });
+
+    await reminderRef.set(true);
+
+    return res.status(200).json({
+      success: true,
+      notifiedPlayers: activePlayersToNotify,
+      successCount: response.successCount
+    });
+  } catch (error) {
+    console.error('Fout bij versturen match reminder:', error);
+    return res.status(500).json({ error: error.message });
+  }
+};
