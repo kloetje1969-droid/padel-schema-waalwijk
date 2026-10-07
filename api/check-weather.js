@@ -1,11 +1,12 @@
 import admin from 'firebase-admin';
+import fetch from 'node-fetch';
 
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
     }),
     databaseURL: process.env.FIREBASE_DATABASE_URL
   });
@@ -20,7 +21,7 @@ async function getRainChance() {
   return idx >= 0 ? data.hourly.precipitation_probability[idx] : 0;
 }
 
-export default async (req, res) => {
+export default async function handler(req, res) {
   try {
     const now = new Date();
 
@@ -63,4 +64,4 @@ export default async (req, res) => {
     console.error('Fout bij weerscheck:', error);
     return res.status(500).json({ error: error.message });
   }
-};
+}
