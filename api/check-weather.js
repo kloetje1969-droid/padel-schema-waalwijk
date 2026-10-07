@@ -1,67 +1,62 @@
-module.exports = async (req, res) => {
-    try {
-        const now = new Date();
+import admin from 'firebase-admin';
 
-        // 1. Controleer eerst of het vandaag wel dinsdag ('Tue') of donderdag ('Thu') is in Nederland
-        const optionsDay = { timeZone: 'Europe/Amsterdam', weekday: 'short' };
-        const currentDayName = new Intl.DateTimeFormat('en-US', optionsDay).format(now);
-        
-        if (currentDayName !== 'Tue' && currentDayName !== 'Thu') {
-            return res.status(200).json({ 
-                status: `Geen actie check-weather: Vandaag (${currentDayName}) is geen speeldag.` 
-            });
-        }
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
+    databaseURL: process.env.FIREBASE_DATABASE_URL
+  });
+}
+const db = admin.database();
 
-        // 2. Controleer daarna of het exact 18:00 uur is (houdt automatisch rekening met zomer/wintertijd)
-        const optionsHour = { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false };
-        const currentHour = parseInt(new Intl.DateTimeFormat('en-US', optionsHour).format(now), 10);
+async function getRainChance() {
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=precipitation_probability&timezone=Europe/Amsterdam&forecast_days=1';
+  const res = await fetch(url);
+  const data = await res.json();
+  const idx = data.hourly.time.findIndex(t => t.endsWith('T18:00'));
+  return idx >= 0 ? data.hourly.precipitation_probability[idx] : 0;
+}
 
-        if (currentHour !== 18) {
-            return res.status(200).json({ 
-                status: `Geen actie check-weather: Het is nu ${currentHour}:00 uur (vereist: 18:00).` 
-            });
-        }
+export default async (req, res) => {
+  try {
+    const now = new Date();
 
-        // 3. Als het wél dinsdag of donderdag is én exact 18:00 uur, haal dan de regenkans op:
-        const rainChance = await getRainChance();
-
-        if (rainChance < 60) {
-            return res.status(200).json({ 
-                status: `Geen actie: Regenkans is ${rainChance}% (onder de drempel van 60%).` 
-            });
-        }
-
-        const tokensSnap = await db.ref('padelData/tokens').once('value');
-        const tokensData = tokensSnap.val() || {};
-
-        let targetTokens = [];
-        Object.keys(tokensData).forEach(player => {
-            const playerTokens = Object.keys(tokensData[player]);
-            targetTokens.push(...playerTokens);
-        });
-
-        if (targetTokens.length === 0) {
-            return res.status(200).json({ status: "Regenkans >= 60%, maar geen actieve tokens gevonden om te notifiëren." });
-        }
-
-        const messagePayload = {
-            notification: {
-                title: "🌧️ Padel Weeralarm",
-                body: `Let op! De regenkans vanavond is ${rainChance}%. Houd het weer in de gaten!`
-            },
-            tokens: targetTokens
-        };
-
-        const response = await admin.messaging().sendEachForMulticast(messagePayload);
-
-        return res.status(200).json({
-            success: true,
-            rainChance: rainChance,
-            successCount: response.successCount
-        });
-
-    } catch (error)  {
-        console.error("Fout bij weerscheck:", error);
-        return res.status(500).json({ error: error.message });
+    const currentDayName = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Amsterdam', weekday: 'short' }).format(now);
+    if (currentDayName !== 'Tue' && currentDayName !== 'Thu') {
+      return res.status(200).json({ status: `Geen actie check-weather: Vandaag (${currentDayName}) is geen speeldag.` });
     }
+
+    const currentHour = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false }).format(now), 10);
+    if (currentHour !== 18) {
+      return res.status(200).json({ status: `Geen actie check-weather: Het is nu ${currentHour}:00 uur (vereist: 18:00).` });
+    }
+
+    const rainChance = await getRainChance();
+    if (rainChance < 60) {
+      return res.status(200).json({ status: `Geen actie: Regenkans is ${rainChance}% (onder de drempel van 60%).` });
+    }
+
+    const tokensSnap = await db.ref('padelData/tokens').once('value');
+    const tokensData = tokensSnap.val() || {};
+    const targetTokens = [];
+    Object.keys(tokensData).forEach(player => {
+      targetTokens.push(...Object.keys(tokensData[player]));
+    });
+
+    if (targetTokens.length === 0) {
+      return res.status(200).json({ status: 'Regenkans >= 60%, maar geen tokens gevonden.' });
+    }
+
+    const response = await admin.messaging().sendEachForMulticast({
+      notification: {
+        title: '🌧️ Padel Weeralarm',
+        body: `Let op! De regenkans vanavond is ${rainChance}%. Houd het weer in de gaten!`
+      },
+      tokens: targetTokens
+    });
+
+    return res.status(200).json({ success: true, rainChance, successCount: response.successCount });
+  } catch (error) {
+    console.error('Fout bij weerscheck:', error);
+    return res.status(500).json({ error: error.message });
+  }
 };
