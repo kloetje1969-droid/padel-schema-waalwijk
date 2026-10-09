@@ -1,15 +1,4 @@
-{
-  "crons": [
-    {
-      "path": "/api/check-weather",
-      "schedule": "0 * * * 2,4"
-    },
-    {
-      "path": "/api/match-reminder",
-      "schedule": "0 * * * 2,4"
-    }
-  ]
-}
+{}
 
 
 
