@@ -3,50 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, interactive-widget=resizes-content">
+    <!-- Cache control headers -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Padelschema - Rooster & Chat (v5.3)</title>
     
+    <!-- PWA / Apple & Android Meta Tags & Padelbal Icoon -->
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Padelschema">
     
+    <!-- Directe Padelbal Icoon Links -->
     <link rel="icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3d3.png" type="image/png">
     <link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3d3.png">
     
-    <meta name="theme-color" content="#061a12">
+    <meta name="theme-color" content="#0b0f19">
 
+    <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <!-- Firebase Realtime Database (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- Firebase Messaging (compat) voor pushmeldingen -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
     
     <style>
         :root {
-            --bg-color: #061a12;
-            --card-bg: #0d281c;
-            --card-border: #143d2c;
-            --btn-bg: #184e36;
-            --btn-hover: #1f6647;
-            --text-main: #f0fdf4;
-            --text-muted: #86efac;
-            --accent-blue: #34d399;
+            --bg-color: #0b0f19;
+            --card-bg: #111827;
+            --card-border: #1f2937;
+            --btn-bg: #263345;
+            --btn-hover: #32445c;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --accent-blue: #38bdf8;
             --accent-orange: #fb923c;
             --accent-green: #34d399;
             --accent-green-bg: rgba(52, 211, 153, 0.12);
             --danger: #f87171;
             --danger-bg: rgba(248, 113, 113, 0.15);
-            --main-glow: 0 16px 60px rgba(52, 211, 153, 0.18), 0 0 40px rgba(52, 211, 153, 0.1);
+            --main-glow: 0 16px 60px rgba(56, 189, 248, 0.22), 0 0 40px rgba(56, 189, 248, 0.12);
         }
 
+        /* Expliciete styling voor gegarandeerde weergave van de tennisbal */
         .tennis-ball {
             display: inline-block;
             font-size: 1.1em;
             font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
         }
 
+        /* Zacht groene styling voor de boekingsvelden */
         .booking-input-soft {
             background-color: rgba(52, 211, 153, 0.08) !important;
             color: #d1fae5 !important;
@@ -58,181 +66,989 @@
             color: var(--text-main);
         }
 
+        /* Zorg dat de datetime-picker op de hele balk klikbaar/bruikbaar is */
         input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-            background: transparent; bottom: 0; color: transparent; cursor: pointer; height: auto; left: 0; position: absolute; right: 0; top: 0; width: auto;
+            background: transparent;
+            bottom: 0;
+            color: transparent;
+            cursor: pointer;
+            height: auto;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: auto;
         }
-        input[type="datetime-local"] { position: relative; }
 
+        input[type="datetime-local"] {
+            position: relative;
+        }
+
+        /* Pull-to-refresh indicator */
         #ptr-element {
-            position: fixed; top: -50px; left: 0; width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; color: var(--accent-blue); font-size: 0.8rem; font-weight: 600; transition: transform 0.2s ease; background-color: var(--card-bg); border-bottom: 1px solid var(--card-border); z-index: 9998;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--bg-color); color: var(--text-main); padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
-
-        #pinOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(6, 26, 18, 0.96); backdrop-filter: blur(8px); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 16px;
-        }
-        .pin-box {
-            background: var(--card-bg); border: 1px solid var(--card-border); padding: 24px; border-radius: 16px; width: 100%; max-width: 340px; text-align: center; box-shadow: var(--main-glow); display: flex; flex-direction: column; gap: 14px;
-        }
-        .pin-box h2 { color: var(--accent-blue); font-size: 1.3rem; margin-bottom: 4px; }
-        .pin-box p { color: var(--text-muted); font-size: 0.85rem; }
-        .pin-box input { background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); padding: 12px; border-radius: 8px; font-size: 1.4rem; text-align: center; letter-spacing: 0.3em; outline: none; width: 100%; }
-        .pin-error { color: var(--danger); font-size: 0.75rem; display: none; }
-
-        .container { width: 100%; max-width: 768px; display: flex; flex-direction: column; gap: 14px; }
-        header, .card, .week-card, .chat-btn { box-shadow: var(--main-glow) !important; }
-
-        header {
-            background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 14px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%;
-        }
-        h1 {
-            font-size: 1.7rem; font-weight: 800; color: var(--accent-blue); letter-spacing: -0.025em; display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; text-align: center; text-shadow: 0 0 16px rgba(52, 211, 153, 0.4);
-        }
-
-        .user-select-row { display: flex; flex-direction: column; align-items: center; width: 100%; border-top: 1px solid var(--card-border); padding-top: 12px; gap: 10px; }
-        
-        .user-top-row {
-            display: flex;
-            gap: 10px;
+            position: fixed;
+            top: -50px;
+            left: 0;
             width: 100%;
+            height: 50px;
+            display: flex;
             align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .user-select-container {
-            display: flex; align-items: center; justify-content: center; gap: 12px; background: var(--bg-color); padding: 10px 16px; border-radius: 10px; border: 1px solid var(--card-border); font-size: 0.95rem; flex-grow: 1; min-width: 180px;
-        }
-        .user-select-container label { font-weight: 700; color: var(--accent-blue); }
-        .user-select-container select { background: var(--card-bg); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 8px; font-weight: 700; outline: none; cursor: pointer; width: 100%; }
-
-        /* Live klokje / datum badge naast de selectie */
-        .live-clock-badge {
-            background: var(--bg-color);
-            border: 1px solid var(--card-border);
-            padding: 10px 14px;
-            border-radius: 10px;
+            justify-content: center;
+            color: var(--accent-blue);
             font-size: 0.8rem;
-            color: var(--text-muted);
+            font-weight: 600;
+            transition: transform 0.2s ease;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--card-border);
+            z-index: 9998;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* PINCODE OVERLAY */
+        #pinOverlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 15, 25, 0.96);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: flex;
             justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .pin-box {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 24px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 340px;
             text-align: center;
-            min-width: 150px;
-            flex-shrink: 0;
+            box-shadow: var(--main-glow);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .pin-box h2 {
+            color: var(--accent-blue);
+            font-size: 1.3rem;
+            margin-bottom: 4px;
+        }
+
+        .pin-box p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .pin-box input {
+            background: var(--bg-color);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1.4rem;
+            text-align: center;
+            letter-spacing: 0.3em;
+            outline: none;
+            width: 100%;
+        }
+
+        .pin-error {
+            color: var(--danger);
+            font-size: 0.75rem;
+            display: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 768px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        header, .card, .week-card, .chat-btn {
+            box-shadow: var(--main-glow) !important;
+        }
+
+        header {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 18px 14px;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: var(--accent-blue);
+            letter-spacing: -0.025em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            text-align: center;
+            text-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+        }
+
+        .user-select-row {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            border-top: 1px solid var(--card-border);
+            padding-top: 12px;
+            gap: 10px;
+        }
+
+        .user-select-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: var(--bg-color);
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            font-size: 0.95rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            width: 100%;
+            flex-wrap: nowrap;
+        }
+
+        .user-select-container label {
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .user-select-container select {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            outline: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            width: 100%;
+        }
+
+        .status-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            width: 100%;
+            border-top: 1px solid var(--card-border);
+            padding-top: 10px;
+        }
+
+        @keyframes blinkBlue {
+            0% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #38bdf8; }
+            100% { opacity: 0.3; transform: scale(0.8); }
+        }
+
+        @keyframes pulseConnection {
+            0% { opacity: 0.5; text-shadow: none; }
+            50% { opacity: 1; text-shadow: 0 0 10px rgba(56, 189, 248, 0.6); }
+            100% { opacity: 0.5; text-shadow: none; }
+        }
+
+        .db-connection-status {
+            font-size: 0.72rem; 
+            color: #38bdf8; 
+            display: flex; 
+            align-items: center; 
+            gap: 4px;
+            animation: pulseConnection 2s infinite ease-in-out;
+        }
+
+        .header-actions-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .push-btn {
+            background: var(--btn-bg);
+            color: var(--accent-blue);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.2s;
+        }
+
+        .push-btn:hover {
+            background: var(--btn-hover);
+            border-color: var(--accent-blue);
+        }
+
+        /* Live klokje / datum badge naast meldingen knop */
+        .live-clock-badge {
+            background: var(--bg-color);
+            border: 1px solid var(--card-border);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
             font-weight: 600;
         }
         .live-clock-badge .clock-time {
             color: var(--accent-blue);
-            font-size: 0.95rem;
             font-weight: 700;
         }
 
-        .status-container { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: 100%; border-top: 1px solid var(--card-border); padding-top: 10px; }
-
-        @keyframes blinkGreen {
-            0% { opacity: 0.3; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #34d399; }
-            100% { opacity: 0.3; transform: scale(0.8); }
-        }
-        @keyframes pulseConnection {
-            0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; }
-        }
-        .db-connection-status { font-size: 0.72rem; color: #34d399; display: flex; align-items: center; gap: 4px; animation: pulseConnection 2s infinite ease-in-out; }
-        .header-actions-row { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; width: 100%; }
-        .push-btn { background: var(--btn-bg); color: var(--accent-blue); border: 1px solid rgba(52, 211, 153, 0.3); padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-
         .status-badge {
-            background: #0d2e20; border: 1px solid #144530; color: var(--text-main); padding: 6px 10px; border-radius: 8px; font-size: 0.72rem; font-weight: 500; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 145px;
+            background: #374151;
+            border: 1px solid #4b5563;
+            color: var(--text-main);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.72rem;
+            font-weight: 500;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            min-width: 145px;
         }
-        .status-badge.me { border-color: #34d399; background: rgba(52, 211, 153, 0.2); font-weight: bold; }
-        .status-line { display: flex; align-items: center; gap: 5px; font-weight: 600; }
-        .status-time { font-size: 0.6rem; color: var(--text-muted); font-weight: normal; text-align: center; }
-        .status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-        .status-dot.online { background: #34d399; animation: blinkGreen 1.5s infinite ease-in-out; }
-        .status-dot.offline { background: #4b5563; }
+
+        .status-badge.me {
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 6px rgba(56, 189, 248, 0.3);
+            font-weight: bold;
+        }
+
+        .status-line {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+        }
+
+        .status-time {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            font-weight: normal;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-dot.online {
+            background: #38bdf8;
+            animation: blinkBlue 1.5s infinite ease-in-out;
+        }
+
+        .status-dot.offline {
+            background: #6b7280;
+            animation: none;
+        }
 
         @keyframes pulseRed {
-            0% { background-color: var(--btn-bg); } 50% { background-color: rgba(220, 38, 38, 0.4); border-color: #dc2626; } 100% { background-color: var(--btn-bg); }
+            0% { background-color: var(--btn-bg); border-color: var(--card-border); }
+            50% { background-color: rgba(220, 38, 38, 0.4); border-color: #dc2626; box-shadow: 0 0 15px rgba(220, 38, 38, 0.6); }
+            100% { background-color: var(--btn-bg); border-color: var(--card-border); }
         }
-        .chat-btn { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; width: 100%; }
-        .chat-btn.blinking { animation: pulseRed 1.2s infinite !important; }
-        .alert-badge-count { background: #dc2626; color: white; font-size: 0.65rem; font-weight: 900; padding: 1px 5px; border-radius: 6px; display: none; }
 
-        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; width: 100%; }
-        .card-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--card-border); padding-bottom: 6px; }
-        .collapsible-header { cursor: pointer; user-select: none; }
-        .collapse-arrow { font-size: 0.75rem; font-weight: 600; color: var(--accent-blue); background: rgba(52, 211, 153, 0.1); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(52, 211, 153, 0.2); }
-        #baanBoekingenBody { display: none; flex-direction: column; gap: 8px; margin-top: 6px; }
-        .collapsible-body { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-        details summary::-webkit-details-marker { display: none; }
-        details > summary { list-style: none; }
-        .section-title { font-size: 1rem; font-weight: 600; color: var(--accent-blue); display: flex; align-items: center; gap: 6px; }
+        .chat-btn {
+            background: var(--btn-bg);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            width: 100%;
+            transition: background 0.2s;
+        }
 
-        .week-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; overflow: hidden; margin-bottom: 12px; width: 100%; padding-bottom: 2px; }
-        .week-header { background: rgba(255, 255, 255, 0.02); padding: 12px 14px; font-weight: 600; font-size: 0.9rem; color: #e5e7eb; border-bottom: 1px solid var(--card-border); }
-        .match-row-wrapper { display: flex; flex-direction: column; border-bottom: 1px solid var(--card-border); }
-        .match-row-wrapper:last-child { border-bottom: none; }
-        .match-row { padding: 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        .match-info { flex-grow: 1; min-width: 0; }
-        .match-title { font-weight: 600; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow-x: auto; }
-        .match-title::-webkit-scrollbar { display: none; }
-        .match-title.dinsdag-title .day-name { color: var(--accent-blue); }
-        .match-title.donderdag-title .day-name { color: var(--accent-orange); }
-        .match-date { color: var(--text-muted); opacity: 0.9; }
+        .chat-btn.blinking {
+            animation: pulseRed 1.2s infinite !important;
+        }
 
-        .weather-badge { background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.2); color: #34d399; padding: 1px 5px; border-radius: 4px; font-size: 0.68rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; }
-        .weather-sun { color: #facc15; }
+        .chat-btn:hover {
+            background: var(--btn-hover);
+            border-color: var(--accent-blue);
+        }
 
-        .players-container { display: flex; gap: 3px; flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; }
-        .players-container::-webkit-scrollbar { display: none; }
-        .player-chip { background: #0d2e20; border: 1px solid #144530; color: #d1d5db; padding: 3px 6px; border-radius: 5px; font-size: 0.78rem; font-weight: 500; white-space: nowrap; flex: 0 0 auto; }
-        .player-chip.me { background: #065f46; border: 1px solid #047857; color: #a7f3d0; font-weight: 700; }
-        .player-chip.sub { background: #7c2d12; border-color: #c2410c; color: #fed7aa; }
-        .player-chip.absent-player { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); text-decoration: line-through; font-weight: bold; }
-        .vs-text { color: var(--text-muted); font-size: 0.7rem; font-weight: 600; margin: 0 1px; flex: 0 0 auto; }
+        .alert-badge-count {
+            background: #dc2626;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 900;
+            padding: 1px 5px;
+            border-radius: 6px;
+            display: none;
+        }
 
-        .btn-edit { background-color: var(--btn-bg); color: var(--text-main); border: 1px solid var(--card-border); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
-        .absence-alert { background: var(--danger-bg); border-top: 1px solid rgba(248, 113, 113, 0.3); color: #fca5a5; padding: 8px 14px; font-size: 0.75rem; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
 
-        .table-scroll-wrapper { width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid var(--card-border); }
-        .stats-table, .absence-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; white-space: nowrap; background: var(--bg-color); }
-        .stats-table th, .stats-table td, .absence-table th, .absence-table td { padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--card-border); }
-        .stats-table th, .absence-table th { color: var(--text-muted); font-weight: 600; background: rgba(0, 0, 0, 0.2); }
-        .stats-table tr.highlight-row td, .absence-table tr.highlight-row td { background-color: rgba(52, 211, 153, 0.15); color: #6ee7b7; font-weight: bold; }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 6px;
+        }
 
-        .absence-btn { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid #34d399; padding: 4px 8px; border-radius: 5px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
-        .absence-btn.absent { background: rgba(248, 113, 113, 0.2); color: var(--danger); border-color: var(--danger); }
-        .absence-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+        }
 
-        .chat-messages { height: 220px; overflow-y: auto; border: 1px solid var(--card-border); border-radius: 8px; padding: 8px; background: var(--bg-color); display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; }
-        .message { background: #0d2e20; padding: 6px 10px; border-radius: 6px; max-width: 90%; display: flex; flex-direction: column; gap: 4px; }
-        .message.self { align-self: flex-end; background: #065f46; }
-        .message.system-update { background: #0b2218; border: 1px dashed var(--accent-blue); align-self: center; width: 100%; text-align: center; }
-        .message-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-        .message .author { font-size: 0.65rem; color: var(--text-muted); font-weight: 600; }
-        .delete-msg-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.7rem; }
+        .collapse-arrow {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            background: rgba(56, 189, 248, 0.1);
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
 
-        .chat-input-row { display: flex; gap: 6px; margin-top: 4px; align-items: flex-end; }
-        .chat-input-row textarea { flex-grow: 1; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 10px; border-radius: 6px; outline: none; font-size: 16px; resize: none; min-height: 38px; max-height: 120px; }
-        .btn-primary { background: #10b981; color: #061a12; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 800; font-size: 0.85rem; height: 38px; flex-shrink: 0; }
+        #baanBoekingenBody {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 6px;
+        }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 1000; padding: 12px; }
-        .modal-content { background: var(--card-bg); border: 1px solid var(--card-border); padding: 16px; border-radius: 14px; width: 100%; max-width: 380px; }
-        .modal-content h3 { color: #6ee7b7; font-size: 1.05rem; margin-bottom: 12px; }
-        .player-select-group { margin-bottom: 10px; }
-        .player-select-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 3px; font-weight: 600; }
-        .player-select-group select, .player-select-group input { width: 100%; padding: 8px; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 6px; font-size: 0.85rem; outline: none; }
-        .modal-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
-        .btn-cancel { background: transparent; color: var(--text-muted); border: 1px solid var(--card-border); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .collapsible-body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        details summary::-webkit-details-marker {
+            display: none;
+        }
+        details > summary {
+            list-style: none;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+        }
+
+        .week-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            width: 100%;
+            padding-bottom: 2px;
+        }
+
+        .week-header {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 12px 14px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #e5e7eb;
+            border-bottom: 1px solid var(--card-border);
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+        }
+
+        .match-row-wrapper {
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .match-row-wrapper:last-child {
+            border-bottom: none;
+        }
+
+        .match-row {
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .match-info {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .match-title {
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            flex-wrap: nowrap;
+            gap: 6px;
+            white-space: nowrap;
+            overflow-x: auto;
+        }
+
+        .match-title::-webkit-scrollbar {
+            display: none;
+        }
+
+        .match-title.dinsdag-title .day-name {
+            color: var(--accent-blue);
+            text-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+        }
+
+        .match-title.donderdag-title .day-name {
+            color: var(--accent-orange);
+        }
+
+        .match-date {
+            color: var(--text-muted);
+            opacity: 0.9;
+        }
+
+        .weather-badge {
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            color: #38bdf8;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 0.68rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            text-transform: none;
+            flex-shrink: 0;
+        }
+
+        .weather-sun {
+            color: #facc15;
+            text-shadow: 0 0 6px rgba(250, 204, 21, 0.4);
+        }
+
+        .players-container {
+            display: flex;
+            gap: 3px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .player-chip {
+            background: #374151;
+            border: 1px solid #4b5563;
+            color: #d1d5db;
+            padding: 3px 6px;
+            border-radius: 5px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .player-chip.me {
+            background: #0369a1;
+            border: 1px solid #0284c7;
+            color: #bae6fd;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+            font-weight: 700;
+        }
+
+        .player-chip.sub {
+            background: #7c2d12;
+            border-color: #c2410c;
+            color: #fed7aa;
+        }
+
+        .player-chip.absent-player {
+            background: var(--danger-bg);
+            border-color: var(--danger);
+            color: var(--danger);
+            text-decoration: line-through;
+            font-weight: bold;
+        }
+
+        .vs-text {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin: 0 1px;
+        }
+
+        .match-action-container {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+            align-items: center;
+        }
+
+        .btn-edit {
+            background-color: var(--btn-bg);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-edit:hover {
+            background-color: var(--btn-hover);
+            border-color: var(--accent-blue);
+        }
+
+        .absence-alert {
+            background: var(--danger-bg);
+            border-top: 1px solid rgba(248, 113, 113, 0.3);
+            color: #fca5a5;
+            padding: 8px 14px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .table-scroll-wrapper { 
+            width: 100%; 
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; 
+            border-radius: 8px; 
+            border: 1px solid var(--card-border); 
+        }
+        
+        .stats-table, .absence-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 0.75rem; 
+            white-space: nowrap; 
+            background: var(--bg-color); 
+        }
+        
+        .stats-table th, .stats-table td, .absence-table th, .absence-table td { 
+            padding: 6px 8px; 
+            text-align: center; 
+            border-bottom: 1px solid var(--card-border); 
+        }
+        
+        .stats-table th, .absence-table th { 
+            color: var(--text-muted); 
+            font-weight: 600; 
+            background: rgba(0, 0, 0, 0.2); 
+        }
+        
+        .stats-table tr.highlight-row, .absence-table tr.highlight-row { 
+            background-color: rgba(56, 189, 248, 0.15); 
+            font-weight: bold; 
+        }
+        
+        .stats-table tr.highlight-row td { 
+            color: #7dd3fc; 
+        }
+
+        .absence-btn { 
+            background: rgba(56, 189, 248, 0.15); 
+            color: #38bdf8; 
+            border: 1px solid #38bdf8; 
+            padding: 4px 8px; 
+            border-radius: 5px; 
+            font-size: 0.7rem; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+        
+        .absence-btn.absent { 
+            background: rgba(248, 113, 113, 0.2); 
+            color: var(--danger); 
+            border-color: var(--danger); 
+        }
+
+        .absence-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(40%);
+        }
+
+        .chat-messages { 
+            height: 220px; 
+            overflow-y: auto; 
+            border: 1px solid var(--card-border); 
+            border-radius: 8px; 
+            padding: 8px; 
+            background: var(--bg-color); 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px; 
+            font-size: 0.8rem; 
+        }
+        
+        .message { 
+            background: #1f2937; 
+            padding: 6px 10px; 
+            border-radius: 6px; 
+            max-width: 90%; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 4px; 
+        }
+        
+        .message.self { 
+            align-self: flex-end; 
+            background: #0369a1; 
+            box-shadow: 0 0 10px rgba(3, 105, 161, 0.5);
+        }
+        
+        .message.system-update {
+            background: #1e293b;
+            border: 1px dashed var(--accent-blue);
+            align-self: center;
+            max-width: 100%;
+            width: 100%;
+            text-align: center;
+        }
+
+        .message-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            gap: 8px; 
+        }
+        
+        .message .author { 
+            font-size: 0.65rem; 
+            color: var(--text-muted); 
+            font-weight: 600; 
+        }
+        
+        .message.self .author { 
+            color: #bae6fd; 
+        }
+        
+        .delete-msg-btn { 
+            background: transparent; 
+            border: none; 
+            color: var(--text-muted); 
+            cursor: pointer; 
+            font-size: 0.7rem; 
+        }
+
+        .chat-input-row { 
+            display: flex; 
+            gap: 6px; 
+            margin-top: 4px; 
+            align-items: flex-end; 
+        }
+        
+        .chat-input-row textarea { 
+            flex-grow: 1; 
+            background: var(--bg-color); 
+            color: var(--text-main); 
+            border: 1px solid var(--card-border); 
+            padding: 8px 10px; 
+            border-radius: 6px; 
+            outline: none; 
+            font-size: 16px; 
+            resize: none; 
+            min-height: 38px;
+            max-height: 120px; 
+            line-height: 1.4;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        
+        .btn-primary { 
+            background: #0ea5e9; 
+            color: #0b0f19; 
+            border: none; 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 800; 
+            font-size: 0.85rem; 
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+            height: 38px;
+            flex-shrink: 0;
+        }
+
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0, 0, 0, 0.75); 
+            backdrop-filter: blur(4px); 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000; 
+            padding: 12px; 
+        }
+        
+        .modal-content { 
+            background: var(--card-bg); 
+            border: 1px solid var(--card-border); 
+            padding: 16px; 
+            border-radius: 14px; 
+            width: 100%; 
+            max-width: 380px; 
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.3);
+        }
+        
+        .modal-content h3 { 
+            color: #7dd3fc; 
+            font-size: 1.05rem; 
+            margin-bottom: 12px; 
+        }
+        
+        .player-select-group { 
+            margin-bottom: 10px; 
+        }
+        
+        .player-select-group label { 
+            display: block; 
+            font-size: 0.75rem; 
+            color: var(--text-muted); 
+            margin-bottom: 3px; 
+            font-weight: 600; 
+        }
+        
+        .player-select-group select, .player-select-group input { 
+            width: 100%; 
+            padding: 8px; 
+            background: var(--bg-color); 
+            color: var(--text-main); 
+            border: 1px solid var(--card-border); 
+            border-radius: 6px; 
+            font-size: 0.85rem; 
+            outline: none; 
+        }
+        
+        .modal-buttons { 
+            display: flex; 
+            justify-content: flex-end; 
+            gap: 8px; 
+            margin-top: 14px; 
+        }
+        
+        .btn-cancel { 
+            background: transparent; 
+            color: var(--text-muted); 
+            border: 1px solid var(--card-border); 
+            padding: 6px 10px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 0.85rem; 
+        }
+
+        #scheduleContainer {
+            min-width: 0;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .week-card,
+        .match-row-wrapper,
+        .match-row,
+        .match-info,
+        .players-container {
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .match-row {
+            width: 100%;
+        }
+
+        .match-info {
+            flex: 1 1 auto;
+            overflow: hidden;
+        }
+
+        .players-container {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 1px;
+        }
+
+        .players-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .players-container .player-chip,
+        .players-container .vs-text {
+            flex: 0 0 auto;
+        }
+
+        .match-action-container {
+            flex: 0 0 auto;
+            min-width: max-content;
+        }
+
+        @media (max-width: 600px) {
+            .week-card {
+                border-radius: 11px;
+            }
+
+            .week-header {
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+
+            .match-row {
+                padding: 12px;
+                gap: 7px;
+                align-items: center;
+            }
+
+            .match-title {
+                gap: 4px;
+                font-size: 0.66rem;
+                margin-bottom: 5px;
+                overflow-x: auto;
+                scrollbar-width: none;
+            }
+
+            .match-title::-webkit-scrollbar {
+                display: none;
+            }
+
+            .player-chip {
+                padding: 3px 5px;
+                font-size: 0.70rem;
+            }
+
+            .vs-text {
+                font-size: 0.64rem;
+                margin: 0 1px;
+            }
+
+            .match-action-container .btn-edit {
+                padding: 5px 7px;
+                font-size: 0.72rem;
+                white-space: nowrap;
+            }
+
+            .absence-alert {
+                font-size: 0.72rem;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .match-row {
+                padding: 10px;
+                gap: 5px;
+            }
+
+            .player-chip {
+                padding: 2px 4px;
+                font-size: 0.65rem;
+            }
+
+            .vs-text {
+                font-size: 0.60rem;
+            }
+
+            .match-action-container .btn-edit {
+                padding: 4px 6px;
+                font-size: 0.68rem;
+            }
+        }
+
+        #connectionIndicator.is-offline .status-dot.offline {
+            background: #f87171;
+            animation: none;
+        }
+
+        #connectionIndicator.is-offline .connection-text {
+            color: #f87171;
+        }
     </style>
 </head>
 <body>
 
-<div id="ptr-element"><span>🔄 Loslaten om te verversen...</span></div>
+<!-- Pull-to-refresh indicator element -->
+<div id="ptr-element">
+    <span>🔄 Loslaten om te verversen...</span>
+</div>
 
+<!-- PINCODE BEVEILIGINGSSCHERM -->
 <div id="pinOverlay">
     <div class="pin-box">
         <h2>🔒 Padel App</h2>
@@ -248,18 +1064,12 @@
         <h1><span class="tennis-ball">🥎</span> Padelschema <span class="tennis-ball">🥎</span></h1>
         
         <div class="user-select-row">
-            <div class="user-top-row">
-                <!-- Speler selectie -->
-                <div class="user-select-container">
-                    <label for="userSelect">Jij:</label>
-                    <select id="userSelect" onchange="changeUser()"></select>
-                </div>
-                
-                <!-- Live Datum & Tijd Klokje -->
-                <div id="liveClockBadge" class="live-clock-badge">
-                    <span id="clockDate">--</span>
-                    <span id="clockTime" class="clock-time">--:--:--</span>
-                </div>
+            <!-- Speler selectie -->
+            <div class="user-select-container">
+                <label for="userSelect">Jij:</label>
+                <select id="userSelect" onchange="changeUser()">
+                    <!-- Wordt dynamisch gevuld -->
+                </select>
             </div>
             
             <div class="header-actions-row">
@@ -267,11 +1077,20 @@
                     <span class="status-dot online"></span>
                     <span class="connection-text">Live verbonden met database</span>
                 </div>
-                <button class="push-btn" onclick="subscribePush()">🔔 Meldingen aan</button>
+                <!-- Knop Meldingen aan met direct daarnaast het live klokje -->
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <button class="push-btn" onclick="subscribePush()">🔔 Meldingen aan</button>
+                    <div id="liveClockBadge" class="live-clock-badge">
+                        <span id="clockDate">--</span>
+                        <span id="clockTime" class="clock-time">--:--:--</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div id="statusList" class="status-container">Laden status...</div>
+        <div id="statusList" class="status-container">
+            Laden status...
+        </div>
     </header>
 
     <button class="chat-btn" id="globalChatAlertBtn" onclick="scrollToChat()">
@@ -282,6 +1101,7 @@
     <div class="section-title" style="margin-top: 4px;">📅 Speelschema (komende 6 weken)</div>
     <div id="scheduleContainer" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">Laden van schema...</div>
 
+    <!-- STATISTIEKEN KAART (Inklapbaar) -->
     <div class="card">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
@@ -306,6 +1126,7 @@
         </details>
     </div>
 
+    <!-- AFWEZIGHEID / VAKANTIE KAART (Inklapbaar) -->
     <div class="card">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
@@ -313,7 +1134,7 @@
                 <span class="collapse-arrow">▼ Open</span>
             </summary>
             <div class="collapsible-body">
-                <p style="font-size: 0.75rem; color: var(--text-muted);">Vaste spelers kunnen alleen hun eigen afwezigheid aanpassen.</p>
+                <p style="font-size: 0.75rem; color: var(--text-muted);">Vaste spelers kunnen alleen hun eigen afwezigheid aanpassen. Invallers kunnen door iedereen worden aangemeld/afgemeld.</p>
                 <div class="table-scroll-wrapper">
                     <table class="absence-table">
                         <thead>
@@ -328,9 +1149,12 @@
         </details>
     </div>
 
+    <!-- BAAN BOEKINGEN KAART -->
     <div class="card">
         <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
-            <div class="section-title" style="font-size: 0.95rem;"><span class="tennis-ball">🥎</span> Baan Boeken & Stand</div>
+            <div class="section-title" style="font-size: 0.95rem;">
+                <span class="tennis-ball">🥎</span> Baan Boeken & Stand
+            </div>
             <span id="collapseArrow" class="collapse-arrow">▼ Open</span>
         </div>
         <div id="baanBoekingenBody">
@@ -340,7 +1164,16 @@
                 </select>
                 <select id="baanDropdown" class="booking-input-soft" style="min-width: 90px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none;">
                     <option value="">-- Baan --</option>
-                    <option value="Baan 1">Baan 1</option><option value="Baan 2">Baan 2</option><option value="Baan 3">Baan 3</option><option value="Baan 4">Baan 4</option><option value="Baan 5">Baan 5</option><option value="Baan 6">Baan 6</option><option value="Baan 7">Baan 7</option><option value="Baan 8">Baan 8</option><option value="Baan 9">Baan 9</option><option value="Baan 10">Baan 10</option>
+                    <option value="Baan 1">Baan 1</option>
+                    <option value="Baan 2">Baan 2</option>
+                    <option value="Baan 3">Baan 3</option>
+                    <option value="Baan 4">Baan 4</option>
+                    <option value="Baan 5">Baan 5</option>
+                    <option value="Baan 6">Baan 6</option>
+                    <option value="Baan 7">Baan 7</option>
+                    <option value="Baan 8">Baan 8</option>
+                    <option value="Baan 9">Baan 9</option>
+                    <option value="Baan 10">Baan 10</option>
                 </select>
                 <input type="datetime-local" id="boekingDateTime" class="booking-input-soft" style="padding: 7px; border-radius: 6px; font-size: 0.8rem; outline: none; color-scheme: dark; flex-grow: 1;">
                 <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
@@ -350,6 +1183,7 @@
         </div>
     </div>
 
+    <!-- TEAM CHAT KAART -->
     <div class="card" id="chatCardSection">
         <div class="card-header">
             <div class="section-title" style="font-size: 0.95rem;">💬 Team Chat</div>
@@ -358,20 +1192,39 @@
         <div class="chat-messages" id="chatWindow"></div>
         <div class="chat-input-row">
             <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx" style="display: none;" onchange="handleFileSelect(event)">
-            <button class="push-btn" onclick="document.getElementById('fileInput').click()" title="Bijvoegen" style="padding: 9px 10px; font-size: 1rem; height: 38px;">📎</button>
+            <button class="push-btn" onclick="document.getElementById('fileInput').click()" title="Foto of PDF bijvoegen" style="padding: 9px 10px; font-size: 1rem; height: 38px;">📎</button>
             <textarea id="chatInput" rows="1" placeholder="Typ een bericht..." onkeydown="handleKeyDown(event)"></textarea>
             <button class="btn-primary" onclick="sendMessage()">Verzend</button>
         </div>
     </div>
 </div>
 
+<!-- Modal voor wijzigen -->
 <div id="replaceModal" class="modal">
     <div class="modal-content">
         <h3 id="modalSubTitle">Wijzig</h3>
-        <div class="player-select-group"><label>Speler 1</label><select id="p0Select" onchange="checkCustomInputs()"></select><input type="text" id="p0Custom" placeholder="Invaller" style="display:none; margin-top:4px;"></div>
-        <div class="player-select-group"><label>Speler 2</label><select id="p1Select" onchange="checkCustomInputs()"></select><input type="text" id="p1Custom" placeholder="Invaller" style="display:none; margin-top:4px;"></div>
-        <div class="player-select-group"><label>Speler 3</label><select id="p2Select" onchange="checkCustomInputs()"></select><input type="text" id="p2Custom" placeholder="Invaller" style="display:none; margin-top:4px;"></div>
-        <div class="player-select-group"><label>Speler 4</label><select id="p3Select" onchange="checkCustomInputs()"></select><input type="text" id="p3Custom" placeholder="Invaller" style="display:none; margin-top:4px;"></div>
+        
+        <div class="player-select-group">
+            <label>Speler 1</label>
+            <select id="p0Select" onchange="checkCustomInputs()"></select>
+            <input type="text" id="p0Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+        </div>
+        <div class="player-select-group">
+            <label>Speler 2</label>
+            <select id="p1Select" onchange="checkCustomInputs()"></select>
+            <input type="text" id="p1Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+        </div>
+        <div class="player-select-group">
+            <label>Speler 3</label>
+            <select id="p2Select" onchange="checkCustomInputs()"></select>
+            <input type="text" id="p2Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+        </div>
+        <div class="player-select-group">
+            <label>Speler 4</label>
+            <select id="p3Select" onchange="checkCustomInputs()"></select>
+            <input type="text" id="p3Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+        </div>
+
         <div class="modal-buttons">
             <button class="btn-cancel" onclick="closeModal()">Annuleren</button>
             <button class="btn-primary" onclick="confirmReplacement()">Opslaan</button>
@@ -379,14 +1232,30 @@
     </div>
 </div>
 
+<!-- Modal voor grote foto weergave -->
 <div id="imageModal" class="modal" onclick="closeImageModal()" style="padding: 0;">
     <div style="background: rgba(0,0,0,0.9); width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; padding: 20px;">
-        <img id="modalImageSrc" src="" style="max-width: 100%; max-height: 100%; border-radius: 8px; object-fit: contain;">
+        <img id="modalImageSrc" src="" style="max-width: 100%; max-height: 100%; border-radius: 8px; border: 1px solid var(--card-border); object-fit: contain;">
     </div>
 </div>
 
 <script>
     const APP_VERSION = "5.3";
+
+    async function checkAppVersion() {
+        try {
+            const res = await fetch('index.html?v=' + Date.now(), { cache: 'no-store' });
+            const htmlText = await res.text();
+            if (htmlText.includes('APP_VERSION')) {
+                const match = htmlText.match(/const APP_VERSION = "([^"]+)"/);
+                if (match && match[1] && match[1] !== APP_VERSION) {
+                    window.location.reload(true);
+                }
+            }
+        } catch (e) {}
+    }
+    setInterval(checkAppVersion, 30000);
+
     const firebaseConfig = {
         apiKey: "AIzaSyC2TvKuO8vSfzmaGu-CictLit5iuRnRFNU",
         authDomain: "padel-app-b8362.firebaseapp.com",
@@ -398,49 +1267,105 @@
         measurementId: "G-SN9VJ6Y4YF"
     };
     
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
     const db = firebase.database();
     
     let messaging = null;
     try {
         if (firebase.messaging.isSupported()) {
             messaging = firebase.messaging();
+            
             messaging.onMessage((payload) => {
                 if (payload && payload.notification) {
                     const { title, body } = payload.notification;
                     if ('serviceWorker' in navigator) {
-                        navigator.serviceWorker.ready.then(reg => reg.showNotification(title, { body }));
+                        navigator.serviceWorker.ready.then(registration => {
+                            registration.showNotification(title, {
+                                body: body,
+                                icon: 'https://cdn-icons-png.flaticon.com/512/33/33736.png'
+                            });
+                        });
                     }
                 }
             });
         }
-    } catch (e) {}
+    } catch (e) {
+        console.log("Messaging niet ondersteund:", e);
+    }
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
     let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
     const myOriginalUserName = currentUserName;
 
-    let selectedFileBase64 = null, selectedFileName = null, selectedFileType = null;
-    let baanBoekingenList = [], liveOverrides = {}, allStatuses = {}, allLastSeen = {}, absences = {}, messages = [], weatherCache = {};
+    let selectedFileBase64 = null;
+    let selectedFileName = null;
+    let selectedFileType = null;
+    let baanBoekingenList = [];
+
+    const defaultTemplate = [
+        { dinsdag: ["Robert", "Dennis", "Mark", "Sander"], donderdag: ["Sander", "Robert", "Marcel", "Ronald"] },
+        { dinsdag: ["Marcel", "Dennis", "Mark", "Ronald"], donderdag: ["Marcel", "Dennis", "Ronald", "Robert"] },
+        { dinsdag: ["Marcel", "Sander", "Mark", "Robert"], donderdag: ["Dennis", "Sander", "Ronald", "Mark"] },
+        { dinsdag: ["Ronald", "Dennis", "Marcel", "Robert"], donderdag: ["Sander", "Ronald", "Robert", "Dennis"] },
+        { dinsdag: ["Marcel", "Mark", "Dennis", "Sander"], donderdag: ["Robert", "Mark", "Ronald", "Sander"] },
+        { dinsdag: ["Ronald", "Dennis", "Robert", "Marcel"], donderdag: ["Mark", "Sander", "Ronald", "Marcel"] }
+    ];
+
+    let liveOverrides = {};
+    let allStatuses = {};
+    let allLastSeen = {};
+    let absences = {};
+    let messages = [];
+    let weatherCache = {};
     let lastSeenMessageCount = parseInt(localStorage.getItem('padel_last_seen_count') || '0');
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
 
     const PRESENCE_HEARTBEAT_MS = 10000;
     const PRESENCE_ONLINE_TIMEOUT_MS = 30000;
-    let presenceRef = null, presenceConnectedRef = null, presenceConnectedHandler = null, presenceHeartbeat = null, sessionStartTime = null, firebaseConnected = false, appInitialized = false;
+
+    let presenceRef = null;
+    let presenceConnectedRef = null;
+    let presenceConnectedHandler = null;
+    let presenceHeartbeat = null;
+    let sessionStartTime = null;
+    let firebaseConnected = false;
+    let appInitialized = false;
 
     document.addEventListener('DOMContentLoaded', () => {
         sessionStartTime = Date.now();
-        startLiveClock(); // Start het live klokje direct
+        startLiveClock();
+
         if (sessionStorage.getItem('padel_unlocked') === 'true') {
             document.getElementById('pinOverlay').style.display = 'none';
             initApp();
         } else {
             document.getElementById('pinInput').focus();
         }
+
+        const chatInput = document.getElementById('chatInput');
+        const chatWindow = document.getElementById('chatWindow');
+
+        if (chatInput) {
+            chatInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        }
+
+        if (window.visualViewport) {
+            const handleResize = () => {
+                if (chatWindow) {
+                    chatWindow.scrollTop = chatWindow.scrollHeight;
+                }
+            };
+            window.visualViewport.addEventListener('resize', handleResize);
+            window.visualViewport.addEventListener('scroll', handleResize);
+        }
     });
 
-    // Functie voor de live datum & tijd weergave
+    // Functie voor de live klok en datum
     function startLiveClock() {
         const updateClock = () => {
             const now = new Date();
@@ -459,69 +1384,185 @@
     function toggleBaanBoekingMenu() {
         const body = document.getElementById('baanBoekingenBody');
         const arrow = document.getElementById('collapseArrow');
-        body.style.display = body.style.display === 'flex' ? 'none' : 'flex';
-        arrow.innerText = body.style.display === 'flex' ? '▲ Sluiten' : '▼ Open';
+        if (body.style.display === 'flex') {
+            body.style.display = 'none';
+            arrow.innerText = '▼ Open';
+        } else {
+            body.style.display = 'flex';
+            arrow.innerText = '▲ Sluiten';
+        }
     }
 
     function updateCollapseArrow(detailsElem) {
         const arrow = detailsElem.querySelector('.collapse-arrow');
-        if (arrow) arrow.innerText = detailsElem.open ? '▲ Sluiten' : '▼ Open';
+        if (arrow) {
+            arrow.innerText = detailsElem.open ? '▲ Sluiten' : '▼ Open';
+        }
     }
 
+    let touchStartY = 0;
+    let pulling = false;
+    const ptrElement = document.getElementById('ptr-element');
+
+    window.addEventListener('touchstart', (e) => {
+        if (window.scrollY === 0) {
+            touchStartY = e.touches[0].clientY;
+            pulling = true;
+        }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!pulling) return;
+        const touchY = e.touches[0].clientY;
+        const diff = touchY - touchStartY;
+
+        if (window.scrollY === 0 && diff > 0 && diff < 150) {
+            ptrElement.style.transform = `translateY(${Math.min(diff, 60)}px)`;
+        }
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+        if (!pulling) return;
+        const touchEndY = e.changedTouches[0].clientY;
+        const diff = touchEndY - touchStartY;
+
+        if (window.scrollY === 0 && diff > 70) {
+            ptrElement.style.transform = 'translateY(50px)';
+            ptrElement.innerHTML = '<span>Gegevens bijwerken...</span>';
+            setTimeout(() => { location.reload(); }, 500);
+        } else {
+            ptrElement.style.transform = 'translateY(0px)';
+        }
+        pulling = false;
+    });
+
     function checkPin() {
-        if (document.getElementById('pinInput').value === "0416") {
+        const inputVal = document.getElementById('pinInput').value;
+        const errDiv = document.getElementById('pinError');
+
+        if (inputVal === "0416") {
             sessionStorage.setItem('padel_unlocked', 'true');
             document.getElementById('pinOverlay').style.display = 'none';
             initApp();
         } else {
-            document.getElementById('pinError').style.display = 'block';
+            errDiv.style.display = 'block';
             document.getElementById('pinInput').value = '';
             document.getElementById('pinInput').focus();
         }
     }
-    function handlePinKey(e) { if (e.key === 'Enter') checkPin(); }
+
+    function handlePinKey(e) {
+        if (e.key === 'Enter') {
+            checkPin();
+        }
+    }
 
     async function subscribePush() {
-        if (!messaging) { alert("Niet ondersteund op dit apparaat."); return; }
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        if (isIOS && !isStandalone) {
+            alert("📲 Voor pushmeldingen op je iPhone moet je deze app eerst toevoegen aan je beginscherm ('Zet op beginscherm' via het deelmenu in Safari) en van daaruit openen.");
+            return;
+        }
+
+        if (!messaging) {
+            alert("Pushmeldingen worden niet ondersteund op dit apparaat/deze browser.");
+            return;
+        }
+
         try {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
-                if ('serviceWorker' in navigator) await navigator.serviceWorker.register('firebase-messaging-sw.js');
-                const reg = await navigator.serviceWorker.ready;
-                const token = await messaging.getToken({ vapidKey: 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg', serviceWorkerRegistration: reg });
-                if (token) {
-                    await db.ref(`padelData/tokens/${currentUserName}`).update({ [token]: true });
-                    alert("✅ Meldingen aan!");
+                if ('serviceWorker' in navigator) {
+                    await navigator.serviceWorker.register('firebase-messaging-sw.js');
                 }
+                const registration = await navigator.serviceWorker.ready;
+
+                const token = await messaging.getToken({
+                    vapidKey: 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg',
+                    serviceWorkerRegistration: registration
+                });
+                
+                if (token) {
+                    localStorage.setItem('padel_fcm_token', token);
+                    const targetUser = window.currentUserName || currentUserName;
+                    await db.ref(`padelData/tokens/${targetUser}`).update({
+                        [token]: true
+                    });
+
+                    alert("✅ Pushmeldingen succesvol ingeschakeld voor dit apparaat!");
+                }
+            } else {
+                alert("Geen toestemming gegeven voor meldingen.");
             }
-        } catch (e) { alert("Kon pushmeldingen niet activeren."); }
+        } catch (err) {
+            console.error("Fout bij activeren pushmeldingen:", err);
+            alert("Kon pushmeldingen niet activeren: " + err.message);
+        }
     }
 
     async function triggerPushNotification(title, body) {
         try {
-            if ('serviceWorker' in navigator) navigator.serviceWorker.ready.then(reg => reg.showNotification(title, { body }));
-            await fetch('/api/send-notification', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, body }) });
-        } catch (e) {}
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification(title, {
+                        body: body,
+                        icon: 'https://cdn-icons-png.flaticon.com/512/33/33736.png'
+                    });
+                });
+            }
+
+            await fetch('/api/send-notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, body })
+            });
+        } catch (e) {
+            console.error("Fout bij triggeren pushmelding via Vercel:", e);
+        }
     }
 
     function initApp() {
         if (appInitialized) return;
         appInitialized = true;
+
         initUserSelect();
         fetchWaalwijkWeather();
 
-        db.ref('padelData/scheduleOverrides').on('value', s => { liveOverrides = s.val() || {}; renderAll(); });
-        db.ref('padelData/presence').on('value', s => { allStatuses = s.val() || {}; renderStatuses(); });
-        db.ref('padelData/lastSeen').on('value', s => { allLastSeen = s.val() || {}; renderStatuses(); });
-        db.ref('padelData/absence').on('value', s => { absences = s.val() || {}; renderAll(); });
-        db.ref('padelData/baanBoekingenList').on('value', s => {
-            const val = s.val() || {};
-            baanBoekingenList = Object.keys(val).map(k => ({ id: k, ...val[k] }));
+        db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
+            liveOverrides = snapshot.val() || {};
+            renderAll();
+        });
+
+        db.ref('padelData/presence').on('value', (snapshot) => {
+            allStatuses = snapshot.val() || {};
+            renderStatuses();
+        });
+
+        db.ref('padelData/lastSeen').on('value', (snapshot) => {
+            allLastSeen = snapshot.val() || {};
+            renderStatuses();
+        });
+
+        db.ref('padelData/absence').on('value', (snapshot) => {
+            absences = snapshot.val() || {};
+            renderAll();
+        });
+
+        db.ref('padelData/baanBoekingenList').on('value', (snapshot) => {
+            const val = snapshot.val() || {};
+            baanBoekingenList = Object.keys(val).map(key => ({ id: key, ...val[key] }));
             baanBoekingenList.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
             renderBaanBoekingen();
         });
-        db.ref('padelData/messages').on('value', s => {
-            messages = s.val() ? Object.values(s.val()) : [];
+
+        db.ref('padelData/messages').on('value', (snapshot) => {
+            messages = snapshot.val() ? Object.values(snapshot.val()) : [];
+            if (lastSeenMessageCount > messages.length) {
+                lastSeenMessageCount = messages.length;
+                localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
+            }
             updateAlertUI();
             renderChat();
         });
@@ -533,351 +1574,929 @@
     function renderBaanBoekingen() {
         const select = document.getElementById('boekingDropdown');
         if (select) {
-            const cur = select.value;
-            select.innerHTML = `<option value="">-- Wie boekt? --</option>` + basePlayers.map(p => `<option value="${p}">${p}</option>`).join('');
-            select.value = cur;
+            const currentVal = select.value;
+            select.innerHTML = `<option value="">-- Wie boekt? --</option>` +
+                basePlayers.map(p => `<option value="${p}">${p}</option>`).join('');
+            select.value = currentVal;
         }
 
         let counts = {};
         basePlayers.forEach(p => counts[p] = 0);
-        baanBoekingenList.forEach(b => { if (b.player) counts[b.player] = (counts[b.player] || 0) + 1; });
+        baanBoekingenList.forEach(b => {
+            if (b.player) {
+                counts[b.player] = (counts[b.player] || 0) + 1;
+            }
+        });
 
-        document.getElementById('baanBoekingStanden').innerHTML = basePlayers.map(p => `<span style="background: var(--bg-color); border: 1px solid var(--card-border); padding: 3px 8px; border-radius: 4px;">${p}: <strong>${counts[p] || 0}</strong></span>`).join('');
+        const standenContainer = document.getElementById('baanBoekingStanden');
+        if (standenContainer) {
+            standenContainer.innerHTML = basePlayers.map(p => {
+                const count = counts[p] || 0;
+                return `<span style="background: var(--bg-color); border: 1px solid var(--card-border); padding: 3px 8px; border-radius: 4px;">${p}: <strong>${count}</strong></span>`;
+            }).join('');
+        }
 
         const lijstContainer = document.getElementById('baanBoekingLijst');
-        if (baanBoekingenList.length === 0) {
-            lijstContainer.innerHTML = `<span style="color: var(--text-muted); font-size: 0.7rem;">Nog geen banen geboekt.</span>`;
-            return;
+        if (lijstContainer) {
+            if (baanBoekingenList.length === 0) {
+                lijstContainer.innerHTML = `<span style="color: var(--text-muted); font-size: 0.7rem;">Nog geen banen geboekt.</span>`;
+                return;
+            }
+
+            lijstContainer.innerHTML = `<div style="font-size: 0.72rem; color: var(--accent-blue); font-weight: 600; margin-bottom: 2px;">Geboekte momenten:</div>` +
+                baanBoekingenList.map(b => {
+                    const formattedDt = formatExactDateTime(new Date(b.dateTime).getTime());
+                    const baanInfo = b.baan ? ` op <strong>${b.baan}</strong>` : '';
+                    const canDelete = (currentUserName === "Robert" || b.player === currentUserName);
+                    const deleteBtn = canDelete ? `<button onclick="deleteBaanBoeking('${b.id}')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
+                    return `<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--card-border);">
+                        <span><span class="tennis-ball">🥎</span> <strong>${b.player}</strong>${baanInfo}: ${formattedDt}</span>
+                        ${deleteBtn}
+                    </div>`;
+                }).join('');
         }
-        lijstContainer.innerHTML = `<div style="font-size: 0.72rem; color: var(--accent-blue); font-weight: 600; margin-bottom: 2px;">Geboekte momenten:</div>` +
-            baanBoekingenList.map(b => {
-                let dtStr = new Date(b.dateTime).toLocaleString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-                let canDel = (currentUserName === "Robert" || b.player === currentUserName);
-                return `<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--card-border);">
-                    <span>🥎 <strong>${b.player}</strong> op <strong>${b.baan || 'Baan'}</strong>: ${dtStr}</span>
-                    ${canDel ? `<button onclick="deleteBaanBoeking('${b.id}')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem;">✕</button>` : ''}
-                </div>`;
-            }).join('');
     }
 
     async function registreerBoekingDropdown() {
-        const pSel = document.getElementById('boekingDropdown').value;
-        const bSel = document.getElementById('baanDropdown').value;
-        const dtVal = document.getElementById('boekingDateTime').value;
-        if (!pSel || !bSel || !dtVal) { alert("Selecteer speler, baan én datum/tijd!"); return; }
-        
-        await db.ref('padelData/baanBoekingenList').push({ player: pSel, baan: bSel, dateTime: dtVal, timestamp: firebase.database.ServerValue.TIMESTAMP });
-        let dtStr = new Date(dtVal).toLocaleString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-        await addSystemMessageIfUnique(`🥎 ${pSel} heeft ${bSel} geboekt voor ${dtStr}!`);
-        await triggerPushNotification("🥎 Nieuwe Baan Boeking!", `${pSel} heeft ${bSel} geboekt voor ${dtStr}!`);
-        document.getElementById('boekingDropdown').value = ""; document.getElementById('baanDropdown').value = ""; document.getElementById('boekingDateTime').value = "";
+        const select = document.getElementById('boekingDropdown');
+        const baanSelect = document.getElementById('baanDropdown');
+        const dateInput = document.getElementById('boekingDateTime');
+        const gekozenSpeler = select.value;
+        const gekozenBaan = baanSelect.value;
+        const gekozenDatum = dateInput.value;
+
+        if (!gekozenSpeler) {
+            alert("Selecteer eerst een speler uit het menu!");
+            return;
+        }
+
+        if (!gekozenBaan) {
+            alert("Selecteer welke baan er is geboekt (Baan 1 t/m 10)!");
+            return;
+        }
+
+        if (!gekozenDatum) {
+            alert("Kies alstublieft ook voor wanneer (datum en tijd) de baan is geboekt!");
+            return;
+        }
+
+        try {
+            const newRef = db.ref('padelData/baanBoekingenList').push();
+            await newRef.set({
+                player: gekozenSpeler,
+                baan: gekozenBaan,
+                dateTime: gekozenDatum,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            const formattedDt = formatExactDateTime(new Date(gekozenDatum).getTime());
+            const berichtTekst = `🥎 ${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${formattedDt}!`;
+            await addSystemMessageIfUnique(berichtTekst);
+            await triggerPushNotification("🥎 Nieuwe Baan Boeking!", `${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${formattedDt}!`);
+
+            select.value = "";
+            baanSelect.value = "";
+            dateInput.value = "";
+        } catch (error) {
+            console.error("Fout bij registreren boeking:", error);
+            alert("Er ging iets mis bij het opslaan.");
+        }
     }
 
     async function deleteBaanBoeking(id) {
-        if (confirm("Boeking verwijderen?")) await db.ref(`padelData/baanBoekingenList/${id}`).remove();
+        if (confirm("Weet je zeker dat je deze boeking wilt verwijderen?")) {
+            await db.ref(`padelData/baanBoekingenList/${id}`).remove();
+        }
     }
 
     function fetchWaalwijkWeather() {
-        fetch("https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation_probability,weathercode&timezone=Europe/Amsterdam&past_days=30&forecast_days=14")
+        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation_probability,weathercode&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
+        
+        fetch(weatherUrl)
             .then(res => res.json())
             .then(data => {
                 if (data && data.hourly) {
-                    data.hourly.time.forEach((t, i) => {
-                        weatherCache[t] = { temp: data.hourly.temperature_2m[i], rain: data.hourly.precipitation_probability ? data.hourly.precipitation_probability[i] : 0, code: data.hourly.weathercode[i] };
+                    const times = data.hourly.time;
+                    const temps = data.hourly.temperature_2m;
+                    const rain = data.hourly.precipitation_probability;
+                    const codes = data.hourly.weathercode;
+
+                    times.forEach((timeStr, index) => {
+                        weatherCache[timeStr] = {
+                            temp: temps[index],
+                            rain: rain ? rain[index] : 0,
+                            code: codes[index]
+                        };
                     });
                     renderSchedule();
                 }
-            }).catch(e => {});
+            })
+            .catch(err => console.error("Kon weer niet ophalen:", err));
     }
 
     function getWeatherEmoji(code) {
         if (code === 0) return '<span class="weather-sun">☀</span>';
-        if (code <= 3) return "⛅";
-        if (code <= 67) return "🌧️";
+        if (code >= 1 && code <= 3) return "⛅";
+        if (code >= 51 && code <= 67) return "🌧️";
+        if (code >= 71 && code <= 77) return "❄";
+        if (code >= 95) return "⛈️";
         return "☁️";
     }
 
     function getWeatherObject(dateObj) {
-        const y = dateObj.getFullYear(), m = String(dateObj.getMonth() + 1).padStart(2, '0'), d = String(dateObj.getDate()).padStart(2, '0');
-        return weatherCache[`${y}-${m}-${d}T18:00`] || null;
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        const key = `${y}-${m}-${d}T18:00`;
+        return weatherCache[key] || null;
     }
 
     function formatWeatherBadge(w) {
         if (!w) return `<span class="weather-badge">☁ Weer volgt</span>`;
-        return `<span class="weather-badge">${getWeatherEmoji(w.code)} ${w.temp}°C (${w.rain}%)</span>`;
+        const emoji = getWeatherEmoji(w.code);
+        return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
     }
 
     function updateAlertUI() {
         const btn = document.getElementById("globalChatAlertBtn");
         const badge = document.getElementById("alertBadgeCount");
-        const unread = messages.length - lastSeenMessageCount;
-        if (unread > 0) { btn.classList.add("blinking"); badge.style.display = "inline-block"; badge.innerText = unread; }
-        else { btn.classList.remove("blinking"); badge.style.display = "none"; }
+        const unreadCount = messages.length - lastSeenMessageCount;
+
+        if (unreadCount > 0) {
+            btn.classList.add("blinking");
+            badge.style.display = "inline-block";
+            badge.innerText = unreadCount;
+        } else {
+            btn.classList.remove("blinking");
+            badge.style.display = "none";
+            badge.innerText = "0";
+        }
     }
 
     function initUserSelect() {
-        document.getElementById('userSelect').innerHTML = basePlayers.map(p => `<option value="${p}" ${p === currentUserName ? 'selected' : ''}>${p}</option>`).join('');
+        const select = document.getElementById('userSelect');
+        select.innerHTML = basePlayers.map(p => {
+            return `<option value="${p}" ${p === currentUserName ? 'selected' : ''}>${p}</option>`;
+        }).join('');
+
         const clearBtn = document.getElementById('clearAllChatBtn');
-        if (clearBtn) clearBtn.style.display = (currentUserName === "Robert") ? 'inline-flex' : 'none';
+        if (clearBtn) {
+            clearBtn.style.display = (currentUserName === "Robert") ? 'inline-flex' : 'none';
+        }
     }
 
     function changeUser() {
-        const gekozen = document.getElementById('userSelect').value;
-        if (gekozen === "Robert" && currentUserName !== "Robert") {
-            if (prompt("Voer pincode in voor Robert:") !== "1412") { alert("Onjuist!"); document.getElementById('userSelect').value = currentUserName; return; }
+        const select = document.getElementById('userSelect');
+        const gekozenNaam = select.value;
+
+        if (gekozenNaam !== "Robert" && gekozenNaam !== myOriginalUserName && currentUserName !== "Robert") {
+            select.value = currentUserName;
+            return;
         }
-        currentUserName = gekozen;
+
+        if (gekozenNaam === "Robert" && currentUserName !== "Robert") {
+            let ingevoerdePincode = prompt("Voer de pincode in om als Robert in te loggen:");
+            if (ingevoerdePincode !== "1412") {
+                alert("Onjuiste pincode!");
+                select.value = currentUserName;
+                return;
+            }
+        }
+
+        saveCurrentSessionLastSeen();
+        currentUserName = gekozenNaam;
         localStorage.setItem('padel_current_user', currentUserName);
-        initUserSelect(); renderAll(); renderChat(); setupOnlinePresence();
+        sessionStartTime = Date.now();
+
+        initUserSelect();
+        renderAll();
+        renderChat();
+        setupOnlinePresence();
+    }
+
+    function saveCurrentSessionLastSeen() {
+        const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
+        db.ref(`padelData/lastSeen/${myRealName}`).set(Date.now());
     }
 
     function setupOnlinePresence() {
-        if (presenceConnectedRef && presenceConnectedHandler) presenceConnectedRef.off('value', presenceConnectedHandler);
-        if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
+        if (presenceConnectedRef && presenceConnectedHandler) {
+            presenceConnectedRef.off('value', presenceConnectedHandler);
+        }
+        if (presenceHeartbeat) {
+            clearInterval(presenceHeartbeat);
+            presenceHeartbeat = null;
+        }
 
-        const myRealName = currentUserName;
+        const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
+        if (!sessionStartTime) sessionStartTime = Date.now();
+
         presenceRef = db.ref(`padelData/presence/${myRealName}_${userSessionId}`);
         const userLastSeenRef = db.ref(`padelData/lastSeen/${myRealName}`);
         presenceConnectedRef = db.ref('.info/connected');
 
-        presenceConnectedHandler = (s) => {
-            firebaseConnected = s.val() === true;
-            if (!firebaseConnected) return;
+        presenceConnectedHandler = (snapshot) => {
+            const connected = snapshot.val() === true;
+            firebaseConnected = connected;
+            updateConnectionIndicator();
 
-            const updatePres = () => presenceRef.set({ name: myRealName, timestamp: Date.now() }).catch(() => {});
+            if (!connected) {
+                if (presenceHeartbeat) {
+                    clearInterval(presenceHeartbeat);
+                    presenceHeartbeat = null;
+                }
+                return;
+            }
+
+            const updatePresenceData = () => {
+                if (!presenceRef) return;
+                presenceRef.set({ name: myRealName, timestamp: Date.now() }).catch(() => {});
+            };
+
             presenceRef.onDisconnect().remove().then(() => {
                 userLastSeenRef.set(Date.now());
-                updatePres();
+                updatePresenceData();
                 if (presenceHeartbeat) clearInterval(presenceHeartbeat);
-                presenceHeartbeat = setInterval(updatePres, PRESENCE_HEARTBEAT_MS);
+                presenceHeartbeat = setInterval(updatePresenceData, PRESENCE_HEARTBEAT_MS);
             }).catch(() => {});
         };
+
         presenceConnectedRef.on('value', presenceConnectedHandler);
+    }
+
+    window.addEventListener('beforeunload', () => {
+        saveCurrentSessionLastSeen();
+    });
+
+    function updateConnectionIndicator() {
+        const indicator = document.getElementById('connectionIndicator');
+        if (!indicator) return;
+
+        const dot = indicator.querySelector('.status-dot');
+        const text = indicator.querySelector('.connection-text');
+
+        indicator.classList.toggle('is-online', firebaseConnected);
+        indicator.classList.toggle('is-offline', !firebaseConnected);
+
+        if (dot) dot.className = 'status-dot ' + (firebaseConnected ? 'online' : 'offline');
+        if (text) text.textContent = firebaseConnected ? 'Live verbonden met database' : 'Verbinding verbroken – opnieuw verbinden…';
     }
 
     function formatExactDateTime(ts) {
         if (!ts) return "";
-        let date = new Date(ts < 10000000000 ? ts * 1000 : ts);
-        return date.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' }) + ' om ' + date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+        let date = new Date(ts);
+        if (ts < 10000000000) date = new Date(ts * 1000);
+        if (isNaN(date.getTime())) return "";
+
+        const today = new Date();
+        const isToday = date.getDate() === today.getDate() &&
+                        date.getMonth() === today.getMonth() &&
+                        date.getFullYear() === today.getFullYear();
+
+        const timeStr = date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+        return isToday ? `Vandaag ${timeStr}` : `${date.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} om ${timeStr}`;
     }
 
     function renderStatuses() {
-        let activeUsers = {};
-        Object.values(allStatuses || {}).forEach(s => {
-            if (s && s.name && s.timestamp) {
-                let ts = s.timestamp < 10000000000 ? s.timestamp * 1000 : s.timestamp;
-                if (Date.now() - ts <= PRESENCE_ONLINE_TIMEOUT_MS) activeUsers[s.name] = true;
-            }
-        });
+        try {
+            const container = document.getElementById('statusList');
+            if (!container) return;
 
-        document.getElementById('statusList').innerHTML = basePlayers.map(player => {
-            let isMe = (player === currentUserName);
-            let isOnline = isMe ? firebaseConnected : !!activeUsers[player];
-            let subText = "";
-            if (!isOnline) {
-                let lastData = allLastSeen[player];
-                let lastTs = lastData ? (typeof lastData === 'object' ? lastData.timestamp : lastData) : 0;
-                if (lastTs < 10000000000) lastTs = lastTs * 1000;
-                if (lastTs > 0) subText = `<span class="status-time">Laatst: ${formatExactDateTime(lastTs)}</span>`;
+            let activeUsers = {};
+            if (typeof allStatuses === 'object' && allStatuses !== null) {
+                Object.values(allStatuses).forEach(s => {
+                    if (s && s.name && s.timestamp) {
+                        let ts = s.timestamp;
+                        if (ts < 10000000000) ts = ts * 1000;
+                        if (ts > Date.now()) ts = Date.now();
+                        if (Date.now() - ts <= PRESENCE_ONLINE_TIMEOUT_MS) {
+                            activeUsers[s.name] = ts;
+                        }
+                    }
+                });
             }
-            return `<div class="status-badge ${isMe ? 'me' : ''}">
-                <div class="status-line"><span class="status-dot ${isOnline ? 'online' : 'offline'}"></span><span>${player}</span></div>
-                ${subText}
-            </div>`;
-        }).join('');
+
+            let playerActivityList = basePlayers.map(player => {
+                const isMe = (player === currentUserName);
+                const isOnline = isMe ? firebaseConnected : !!activeUsers[player];
+                let lastSeenTs = 0;
+                if (isOnline) {
+                    lastSeenTs = Date.now();
+                } else {
+                    let lastSeenData = allLastSeen[player];
+                    if (lastSeenData) {
+                        lastSeenTs = (typeof lastSeenData === 'object' && lastSeenData !== null) ? (lastSeenData.timestamp || 0) : lastSeenData;
+                        if (lastSeenTs < 10000000000) lastSeenTs = lastSeenTs * 1000;
+                    }
+                }
+                return { player, isMe, isOnline, lastSeenTs };
+            });
+
+            playerActivityList.sort((a, b) => b.lastSeenTs - a.lastSeenTs);
+
+            container.innerHTML = playerActivityList.map(item => {
+                const { player, isMe, isOnline } = item;
+                let subText = "";
+                if (!isOnline) {
+                    if (item.lastSeenTs > 0) {
+                        let exactTimeStr = formatExactDateTime(item.lastSeenTs);
+                        if (exactTimeStr) subText = `<span class="status-time">Laatst: ${exactTimeStr}</span>`;
+                    } else {
+                        subText = `<span class="status-time">Offline</span>`;
+                    }
+                }
+
+                return `
+                    <div class="status-badge ${isMe ? 'me' : ''}">
+                        <div class="status-line">
+                            <span class="status-dot ${isOnline ? 'online' : 'offline'}"></span>
+                            <span>${player}</span>
+                        </div>
+                        ${subText}
+                    </div>
+                `;
+            }).join('');
+        } catch (err) {
+            console.error("Fout in renderStatuses:", err);
+        }
     }
 
-    function renderAll() { renderSchedule(); renderStats(); renderAbsenceTable(); }
-    function getMonday(d) { d = new Date(d); let day = d.getDay(); return new Date(d.setDate(d.getDate() - day + (day === 0 ? -6 : 1))); }
+    function renderAll() {
+        renderSchedule();
+        renderStats();
+        renderAbsenceTable();
+    }
+
+    function getMonday(d) {
+        d = new Date(d);
+        let day = d.getDay();
+        let diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(d.setDate(diff));
+    }
+
     function getISOWeekNumber(d) {
-        let date = new Date(d.getTime()); date.setHours(0,0,0,0);
+        let date = new Date(d.getTime());
+        date.setHours(0, 0, 0, 0);
         date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
         let week1 = new Date(date.getFullYear(), 0, 4);
         return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
-    function getAdjustedBaseDate() {
-        let now = new Date(), cm = getMonday(now);
-        let thu = new Date(cm); thu.setDate(cm.getDate() + 3); thu.setHours(23,59,59);
-        return now > thu ? new Date(cm.setDate(cm.getDate() + 7)) : cm;
-    }
-    function checkPlayerAbsent(p, uwk, day) { return absences[p] ? !!absences[p][`${uwk}_${day}`] : false; }
 
-    const defaultTemplate = [
-        { dinsdag: ["Robert", "Dennis", "Mark", "Sander"], donderdag: ["Sander", "Robert", "Marcel", "Ronald"] },
-        { dinsdag: ["Marcel", "Dennis", "Mark", "Ronald"], donderdag: ["Marcel", "Dennis", "Ronald", "Robert"] },
-        { dinsdag: ["Marcel", "Sander", "Mark", "Robert"], donderdag: ["Dennis", "Sander", "Ronald", "Mark"] },
-        { dinsdag: ["Ronald", "Dennis", "Marcel", "Robert"], donderdag: ["Sander", "Ronald", "Robert", "Dennis"] },
-        { dinsdag: ["Marcel", "Mark", "Dennis", "Sander"], donderdag: ["Robert", "Mark", "Ronald", "Sander"] },
-        { dinsdag: ["Ronald", "Dennis", "Robert", "Marcel"], donderdag: ["Mark", "Sander", "Ronald", "Marcel"] }
-    ];
+    function getAdjustedBaseDate() {
+        let now = new Date();
+        let currentMonday = getMonday(now);
+        currentMonday.setHours(0, 0, 0, 0);
+
+        let thursdayOfThisWeek = new Date(currentMonday);
+        thursdayOfThisWeek.setDate(currentMonday.getDate() + 3);
+        thursdayOfThisWeek.setHours(23, 59, 59, 999);
+
+        let target = new Date(currentMonday);
+        if (now > thursdayOfThisWeek) target.setDate(target.getDate() + 7);
+        return target;
+    }
+
+    function checkPlayerAbsent(playerName, uniqueWeekKey, day) {
+        if (!absences[playerName]) return false;
+        return !!absences[playerName][`${uniqueWeekKey}_${day}`];
+    }
 
     function renderSchedule() {
-        let cm = getAdjustedBaseDate(), refM = new Date(2026, 8, 21), html = '';
-        for (let i = 0; i < 6; i++) {
-            let ws = new Date(cm); ws.setDate(cm.getDate() + (i * 7));
-            let wn = getISOWeekNumber(ws), uwk = `${ws.getFullYear()}_w${wn}`;
-            let diffWeeks = Math.round((ws.getTime() - refM.getTime()) / (1000 * 60 * 60 * 24 * 7));
-            let tpl = defaultTemplate[((diffWeeks % 6) + 6) % 6];
-            let ov = liveOverrides[uwk] || {};
-            let dip = ov.dinsdag || tpl.dinsdag, dop = ov.donderdag || tpl.donderdag;
-            let dd = new Date(ws); dd.setDate(ws.getDate() + 1);
-            let dod = new Date(ws); dod.setDate(ws.getDate() + 3);
+        const container = document.getElementById('scheduleContainer');
+        let currentMonday = getAdjustedBaseDate();
+        let referenceMonday = new Date(2026, 8, 21); 
 
-            html += `<div class="week-card">
-                <div class="week-header">Week ${wn} (start ${ws.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</div>
-                <div class="match-row-wrapper"><div class="match-row">
-                    <div class="match-info"><div class="match-title dinsdag-title"><span class="day-name">Dinsdag</span> <span class="match-date">${dd.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}</span> ${formatWeatherBadge(getWeatherObject(dd))}</div><div class="players-container">${renderPlayerChips(dip, uwk, 'dinsdag')}</div></div>
-                    <div class="match-action-container"><button class="btn-edit" onclick="openModal('${uwk}', ${((diffWeeks % 6) + 6) % 6}, 'dinsdag', ${wn})">✏️ Wijzig</button></div>
-                </div></div>
-                <div class="match-row-wrapper"><div class="match-row">
-                    <div class="match-info"><div class="match-title donderdag-title"><span class="day-name">Donderdag</span> <span class="match-date">${dod.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}</span> ${formatWeatherBadge(getWeatherObject(dod))}</div><div class="players-container">${renderPlayerChips(dop, uwk, 'donderdag')}</div></div>
-                    <div class="match-action-container"><button class="btn-edit" onclick="openModal('${uwk}', ${((diffWeeks % 6) + 6) % 6}, 'donderdag', ${wn})">✏️ Wijzig</button></div>
-                </div></div>
-            </div>`;
+        let html = '';
+
+        for (let i = 0; i < 6; i++) {
+            let weekStart = new Date(currentMonday);
+            weekStart.setDate(currentMonday.getDate() + (i * 7));
+
+            let currentWeekNum = getISOWeekNumber(weekStart);
+            let currentYear = weekStart.getFullYear();
+            let uniqueWeekKey = `${currentYear}_w${currentWeekNum}`;
+
+            let diffTime = weekStart.getTime() - referenceMonday.getTime();
+            let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+            let templateIndex = ((diffWeeks % 6) + 6) % 6;
+
+            let dinsdagDate = new Date(weekStart);
+            dinsdagDate.setDate(weekStart.getDate() + 1);
+            let donderdagDate = new Date(weekStart);
+            donderdagDate.setDate(weekStart.getDate() + 3);
+
+            let tpl = defaultTemplate[templateIndex];
+            let overrideData = liveOverrides[uniqueWeekKey] || {};
+            let dinsdagPlayers = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
+            let donderdagPlayers = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
+
+            let dinsdagFormatted = dinsdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+            let donderdagFormatted = donderdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+
+            let dinsdagWeatherObj = getWeatherObject(dinsdagDate);
+            let donderdagWeatherObj = getWeatherObject(donderdagDate);
+
+            let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
+            let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
+
+            let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
+            let donderdagAbsentees = donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
+
+            let matchesContent = `
+                <div class="match-row-wrapper">
+                    <div class="match-row">
+                        <div class="match-info">
+                            <div class="match-title dinsdag-title">
+                                <span class="day-name">Dinsdag</span> <span class="match-date">${dinsdagFormatted}</span>
+                                ${dinsdagWeather}
+                            </div>
+                            <div class="players-container">
+                                ${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag')}
+                            </div>
+                        </div>
+                        <div class="match-action-container">
+                            <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig</button>
+                        </div>
+                    </div>
+                    ${dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
+                </div>
+
+                <div class="match-row-wrapper">
+                    <div class="match-row">
+                        <div class="match-info">
+                            <div class="match-title donderdag-title">
+                                <span class="day-name">Donderdag</span> <span class="match-date">${donderdagFormatted}</span>
+                                ${donderdagWeather}
+                            </div>
+                            <div class="players-container">
+                                ${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag')}
+                            </div>
+                        </div>
+                        <div class="match-action-container">
+                            <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig</button>
+                        </div>
+                    </div>
+                    ${donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
+                </div>
+            `;
+
+            if (i === 0) {
+                html += `
+                    <div class="week-card">
+                        <div class="week-header">Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}) - Huidige week</div>
+                        ${matchesContent}
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="week-card">
+                        <details ontoggle="updateCollapseArrow(this)">
+                            <summary class="week-header collapsible-header" style="list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                                <span>Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</span>
+                                <span class="collapse-arrow">▼ Open</span>
+                            </summary>
+                            <div class="collapsible-body" style="margin-top: 0;">
+                                ${matchesContent}
+                            </div>
+                        </details>
+                    </div>
+                `;
+            }
         }
-        document.getElementById('scheduleContainer').innerHTML = html;
+        container.innerHTML = html;
     }
 
-    function renderPlayerChips(players, uwk, day) {
-        return players.map((p, idx) => {
-            let cls = "player-chip" + (p === currentUserName ? " me" : "") + (!basePlayers.includes(p) ? " sub" : "") + (checkPlayerAbsent(p, uwk, day) ? " absent-player" : "");
-            return `<span class="${cls}">${p}</span>` + (idx === 1 ? ` <span class="vs-text">vs</span> ` : '');
-        }).join('');
+    function renderPlayerChips(players, uniqueWeekKey, day) {
+        if (!players || players.length < 4) return '';
+
+        const createChip = (p) => {
+            const isMe = (p === currentUserName);
+            const isSub = !basePlayers.includes(p);
+            const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, day);
+
+            let cls = "player-chip";
+            if (isMe) cls += " me";
+            else if (isSub) cls += " sub";
+            if (isAbsent) cls += " absent-player";
+
+            return `<span class="${cls}">${p}</span>`;
+        };
+
+        const team1 = players.slice(0, 2).map(createChip).join('');
+        const team2 = players.slice(2, 4).map(createChip).join('');
+        return `${team1} <span class="vs-text">vs</span> ${team2}`;
     }
 
     function renderStats() {
+        const tbody = document.getElementById('statsTableBody');
         let counts = {};
-        basePlayers.forEach(p => counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0 });
-        let cm = getAdjustedBaseDate(), refM = new Date(2026, 8, 21);
-        for (let i = 0; i < 6; i++) {
-            let ws = new Date(cm); ws.setDate(cm.getDate() + (i * 7));
-            let uwk = `${ws.getFullYear()}_w${getISOWeekNumber(ws)}`;
-            let diffWeeks = Math.round((ws.getTime() - refM.getTime()) / (1000 * 60 * 60 * 24 * 7));
-            let tpl = defaultTemplate[((diffWeeks % 6) + 6) % 6], ov = liveOverrides[uwk] || {};
-            (ov.dinsdag || tpl.dinsdag).forEach(p => { if (!checkPlayerAbsent(p, uwk, 'dinsdag')) { counts[p] = counts[p] || {dinsdag:0,donderdag:0,totaal:0}; counts[p].dinsdag++; counts[p].totaal++; } });
-            (ov.donderdag || tpl.donderdag).forEach(p => { if (!checkPlayerAbsent(p, uwk, 'donderdag')) { counts[p] = counts[p] || {dinsdag:0,donderdag:0,totaal:0}; counts[p].donderdag++; counts[p].totaal++; } });
-        }
-        document.getElementById('statsTableBody').innerHTML = Object.keys(counts).sort((a,b)=>counts[b].totaal-counts[a].totaal).map(p => `
-            <tr class="${p === currentUserName ? 'highlight-row' : ''}">
-                <td style="text-align: left;">${p}</td><td>${counts[p].dinsdag}</td><td>${counts[p].donderdag}</td><td><strong>${counts[p].totaal}</strong></td>
-            </tr>`).join('');
-    }
+        basePlayers.forEach(p => counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: false });
 
-    function renderAbsenceTable() {
-        let cm = getAdjustedBaseDate(), subs = new Set();
+        let currentMonday = getAdjustedBaseDate();
         for (let i = 0; i < 6; i++) {
-            let ws = new Date(cm); ws.setDate(cm.getDate() + (i * 7));
-            let uwk = `${ws.getFullYear()}_w${getISOWeekNumber(ws)}`;
-            let refM = new Date(2026, 8, 21), diffWeeks = Math.round((ws.getTime() - refM.getTime()) / (1000 * 60 * 60 * 24 * 7));
-            let tpl = defaultTemplate[((diffWeeks % 6) + 6) % 6], ov = liveOverrides[uwk] || {};
-            [...(ov.dinsdag || tpl.dinsdag), ...(ov.donderdag || tpl.donderdag)].forEach(p => { if (!basePlayers.includes(p)) subs.add(p); });
-        }
-        let allP = [...basePlayers, ...Array.from(subs)];
-        let hHtml = `<th style="text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2;">Speler</th>`;
-        for (let i = 0; i < 6; i++) {
-            let wn = getISOWeekNumber(new Date(cm.getTime() + i*7*86400000));
-            hHtml += `<th>W${wn} Di</th><th>W${wn} Do</th>`;
-        }
-        document.getElementById('absenceHeaderRow').innerHTML = hHtml;
+            let weekStart = new Date(currentMonday);
+            weekStart.setDate(currentMonday.getDate() + (i * 7));
+            let wn = getISOWeekNumber(weekStart);
+            let yr = weekStart.getFullYear();
+            let uniqueWeekKey = `${yr}_w${wn}`;
 
-        document.getElementById('absenceTableBody').innerHTML = allP.map(p => {
-            let r = `<td style="text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2;">${p}</td>`;
-            for (let i = 0; i < 6; i++) {
-                let ws = new Date(cm); ws.setDate(cm.getDate() + (i * 7));
-                let wn = getISOWeekNumber(ws), uwk = `${ws.getFullYear()}_w${wn}`;
-                ['dinsdag', 'donderdag'].forEach(day => {
-                    let abs = checkPlayerAbsent(p, uwk, day);
-                    r += `<td><button class="absence-btn ${abs ? 'absent' : ''}" ${(!basePlayers.includes(p) && p !== currentUserName) ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uwk}', '${day}', ${wn})">${abs ? 'Afwezig' : 'Aanwezig'}</button></td>`;
-                });
-            }
-            return `<tr class="${p === currentUserName ? 'highlight-row' : ''}">${r}</tr>`;
+            let referenceMonday = new Date(2026, 8, 21);
+            let diffTime = weekStart.getTime() - referenceMonday.getTime();
+            let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+            let templateIndex = ((diffWeeks % 6) + 6) % 6;
+
+            let tpl = defaultTemplate[templateIndex];
+            let overrideData = liveOverrides[uniqueWeekKey] || {};
+            let dinsdagPlayers = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
+            let donderdagPlayers = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
+
+            dinsdagPlayers.forEach(p => {
+                if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
+                if (!checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag')) {
+                    counts[p].dinsdag++;
+                    counts[p].totaal++;
+                }
+            });
+
+            donderdagPlayers.forEach(p => {
+                if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
+                if (!checkPlayerAbsent(p, uniqueWeekKey, 'donderdag')) {
+                    counts[p].donderdag++;
+                    counts[p].totaal++;
+                }
+            });
+        }
+
+        let allKeys = Object.keys(counts);
+        allKeys.sort((a, b) => counts[b].totaal - counts[a].totaal);
+
+        tbody.innerHTML = allKeys.map(p => {
+            const isMe = (p === currentUserName);
+            const data = counts[p];
+            let displayName = p;
+            if (isMe) displayName += ' (jij)';
+            if (data.isSub) displayName += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
+
+            return `
+                <tr class="${isMe ? 'highlight-row' : ''}">
+                    <td style="text-align: left; font-weight: 600;">${displayName}</td>
+                    <td>${data.dinsdag}</td>
+                    <td>${data.donderdag}</td>
+                    <td style="font-weight: bold;">${data.totaal}</td>
+                </tr>
+            `;
         }).join('');
     }
 
-    let amKey = '', amDay = '', amWn = 0, amTplIdx = 0;
-    function openModal(uwk, tplIdx, day, wn) {
-        amKey = uwk; amDay = day; amWn = wn; amTplIdx = tplIdx;
-        document.getElementById('modalSubTitle').innerText = `Wijzig Week ${wn} (${day})`;
-        let cur = (liveOverrides[uwk] || {})[day] || defaultTemplate[tplIdx][day];
+    function renderAbsenceTable() {
+        const headerRow = document.getElementById('absenceHeaderRow');
+        const tbody = document.getElementById('absenceTableBody');
+        let currentMonday = getAdjustedBaseDate();
+
+        let activeSubs = new Set();
+        for (let i = 0; i < 6; i++) {
+            let weekStart = new Date(currentMonday);
+            weekStart.setDate(currentMonday.getDate() + (i * 7));
+            let wn = getISOWeekNumber(weekStart);
+            let yr = weekStart.getFullYear();
+            let uniqueWeekKey = `${yr}_w${wn}`;
+
+            let referenceMonday = new Date(2026, 8, 21);
+            let diffTime = weekStart.getTime() - referenceMonday.getTime();
+            let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+            let templateIndex = ((diffWeeks % 6) + 6) % 6;
+
+            let tpl = defaultTemplate[templateIndex];
+            ['dinsdag', 'donderdag'].forEach(day => {
+                let overrideData = liveOverrides[uniqueWeekKey] || {};
+                let players = overrideData[day] !== undefined ? overrideData[day] : tpl[day];
+                players.forEach(p => {
+                    if (!basePlayers.includes(p)) activeSubs.add(p);
+                });
+            });
+        }
+        let allTablePlayers = [...basePlayers, ...Array.from(activeSubs)];
+
+        let headersHtml = `<th style="text-align: left; position: sticky; left: 0; background: var(--card-bg); z-index: 2;">Speler</th>`;
+        for (let i = 0; i < 6; i++) {
+            let weekStart = new Date(currentMonday);
+            weekStart.setDate(currentMonday.getDate() + (i * 7));
+            let wn = getISOWeekNumber(weekStart);
+            headersHtml += `<th>W${wn} Di</th><th>W${wn} Do</th>`;
+        }
+        headerRow.innerHTML = headersHtml;
+
+        tbody.innerHTML = allTablePlayers.map(p => {
+            const isMe = (p === currentUserName);
+            const isSub = !basePlayers.includes(p);
+            let nameDisplay = p;
+            if (isMe) nameDisplay += ' (jij)';
+            if (isSub) nameDisplay += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
+
+            let rowHtml = `<td style="text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 2; color: ${isMe ? '#7dd3fc' : (isSub ? '#fed7aa' : 'inherit')}">${nameDisplay}</td>`;
+
+            for (let i = 0; i < 6; i++) {
+                let weekStart = new Date(currentMonday);
+                weekStart.setDate(currentMonday.getDate() + (i * 7));
+                let wn = getISOWeekNumber(weekStart);
+                let yr = weekStart.getFullYear();
+                let uniqueWeekKey = `${yr}_w${wn}`;
+
+                ['dinsdag', 'donderdag'].forEach(day => {
+                    const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, day);
+                    const isDisabled = (!isSub && !isMe);
+
+                    rowHtml += `
+                        <td>
+                            <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uniqueWeekKey}', '${day}', ${wn})">
+                                ${isAbsent ? 'Afwezig' : 'Aanwezig'}
+                            </button>
+                        </td>
+                    `;
+                });
+            }
+            return `<tr class="${isMe ? 'highlight-row' : ''}">${rowHtml}</tr>`;
+        }).join('');
+    }
+
+    let activeModalUniqueKey = '';
+    let activeModalDay = '';
+    let activeModalWeekNum = 0;
+    let activeTemplateIndex = 0;
+
+    function openModal(uniqueWeekKey, templateIndex, day, weekNum) {
+        activeModalUniqueKey = uniqueWeekKey;
+        activeModalDay = day;
+        activeModalWeekNum = weekNum;
+        activeTemplateIndex = templateIndex;
+        
+        document.getElementById('modalSubTitle').innerText = `Wijzig Week ${weekNum} (${day})`;
+
+        let tpl = defaultTemplate[templateIndex];
+        let overrideData = liveOverrides[uniqueWeekKey] || {};
+        let currentPlayers = overrideData[day] !== undefined ? overrideData[day] : tpl[day];
+
         for (let i = 0; i < 4; i++) {
-            let sel = document.getElementById(`p${i}Select`), inp = document.getElementById(`p${i}Custom`);
-            sel.innerHTML = [...basePlayers, "Extern / Invaller"].map(o => `<option value="${o}">${o}</option>`).join('');
-            let pVal = cur[i] || basePlayers[i];
-            if (basePlayers.includes(pVal)) { sel.value = pVal; inp.style.display = 'none'; }
-            else { sel.value = "Extern / Invaller"; inp.style.display = 'block'; inp.value = pVal; }
+            let sel = document.getElementById(`p${i}Select`);
+            let inp = document.getElementById(`p${i}Custom`);
+            
+            let availableOpts = (currentUserName === "Robert") ? [...basePlayers, "Extern / Invaller"] : [currentUserName, "Extern / Invaller"];
+            sel.innerHTML = availableOpts.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+
+            let pVal = currentPlayers[i] || basePlayers[i];
+            if (currentUserName !== "Robert" && !availableOpts.includes(pVal)) {
+                sel.innerHTML = `<option value="${pVal}">${pVal}</option>` + sel.innerHTML;
+            }
+
+            if (basePlayers.includes(pVal) || (currentUserName !== "Robert" && pVal === currentUserName)) {
+                sel.value = pVal;
+                inp.style.display = "none";
+                inp.value = "";
+            } else {
+                sel.value = "Extern / Invaller";
+                inp.style.display = "block";
+                inp.value = pVal;
+            }
         }
         document.getElementById('replaceModal').style.display = 'flex';
     }
 
     function checkCustomInputs() {
-        for (let i = 0; i < 4; i++) document.getElementById(`p${i}Custom`).style.display = document.getElementById(`p${i}Select`).value === "Extern / Invaller" ? 'block' : 'none';
+        for (let i = 0; i < 4; i++) {
+            let sel = document.getElementById(`p${i}Select`);
+            let inp = document.getElementById(`p${i}Custom`);
+            inp.style.display = (sel.value === "Extern / Invaller") ? "block" : "none";
+            if (sel.value !== "Extern / Invaller") inp.value = "";
+        }
     }
-    function closeModal() { document.getElementById('replaceModal').style.display = 'none'; }
 
-    async function addSystemMessageIfUnique(txt) {
-        await db.ref('padelData/messages').push({ author: "Systeem", text: txt, timestamp: firebase.database.ServerValue.TIMESTAMP, type: "system" });
+    function closeModal() {
+        document.getElementById('replaceModal').style.display = 'none';
+    }
+
+    async function addSystemMessageIfUnique(msgText) {
+        const now = Date.now();
+        const timeStr = new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const isDuplicate = messages.slice(-3).some(m => m.text === msgText && (now - (m.timestamp || 0) < 3000));
+        if (isDuplicate) return;
+
+        await db.ref('padelData/messages').push({
+            author: "Systeem",
+            text: msgText,
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            tijd: timeStr,
+            type: "system"
+        });
     }
 
     async function confirmReplacement() {
-        let np = [];
+        let newPlayers = [];
         for (let i = 0; i < 4; i++) {
-            let sel = document.getElementById(`p${i}Select`).value, inp = document.getElementById(`p${i}Custom`).value.trim();
-            np.push(sel === "Extern / Invaller" ? (inp || "Invaller") : sel);
+            let sel = document.getElementById(`p${i}Select`);
+            let inp = document.getElementById(`p${i}Custom`);
+            let chosenVal = sel.value === "Extern / Invaller" ? (inp.value.trim() || "Invaller") : sel.value;
+            
+            if (currentUserName !== "Robert") {
+                let tpl = defaultTemplate[activeTemplateIndex];
+                let overrideData = liveOverrides[activeModalUniqueKey] || {};
+                let originalVal = (overrideData[activeModalDay] !== undefined ? overrideData[activeModalDay] : tpl[activeModalDay])[i];
+
+                if (chosenVal !== currentUserName && chosenVal !== originalVal && !inp.value.trim()) {
+                    alert("Je mag alleen je eigen naam invullen op een vrije of afgewezen plek!");
+                    return;
+                }
+            }
+            newPlayers.push(chosenVal);
         }
-        await db.ref(`padelData/scheduleOverrides/${amKey}/${amDay}`).set(np);
-        await addSystemMessageIfUnique(`🔄 Schema gewijzigd voor week ${amWn} (${amDay}): ${np.join(', ')}`);
+
+        db.ref(`padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`).set(newPlayers);
+        let msgText = `🔄 Schema gewijzigd voor week ${activeModalWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
+        
+        await addSystemMessageIfUnique(msgText);
+        await triggerPushNotification("Padel Schema Gewijzigd", msgText);
         closeModal();
     }
 
-    async function toggleAbsence(p, uwk, day, wn) {
-        let path = `padelData/absence/${p}/${uwk}_${day}`;
-        db.ref(path).once('value', async s => {
-            let nv = !(s.val() || false);
-            await db.ref(path).set(nv);
-            await addSystemMessageIfUnique(`📅 ${p} is ${nv ? "afgemeld" : "aangemeld"} voor week ${wn} (${day})`);
+    async function toggleAbsence(playerName, uniqueWeekKey, day, weekNum) {
+        const isSub = !basePlayers.includes(playerName);
+        if (!isSub && playerName !== currentUserName) return;
+        
+        const path = `padelData/absence/${playerName}/${uniqueWeekKey}_${day}`;
+        db.ref(path).once('value', async snapshot => {
+            const newVal = !(snapshot.val() || false);
+            await db.ref(path).set(newVal);
+
+            let msgText = `📅 ${playerName} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${day}) (door ${currentUserName})`;
+            await addSystemMessageIfUnique(msgText);
+            await triggerPushNotification("Padel Afwezigheid", msgText);
         });
+    }
+
+    function formatMessageTime(timestamp, fallbackTijd) {
+        if (!timestamp && !fallbackTijd) return "";
+        let msgDate = timestamp ? new Date(timestamp) : new Date();
+        let today = new Date();
+        const isToday = msgDate.getDate() === today.getDate() &&
+                        msgDate.getMonth() === today.getMonth() &&
+                        msgDate.getFullYear() === today.getFullYear();
+
+        const timeStr = fallbackTijd || msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return isToday ? timeStr : `${msgDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })} ${timeStr}`;
     }
 
     function handleFileSelect(event) {
         const file = event.target.files[0];
         if (!file) return;
+
+        if (file.size > 4 * 1024 * 1024) {
+            alert("Het bestand is te groot (maximaal 4MB).");
+            event.target.value = '';
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = function(e) {
-            selectedFileBase64 = e.target.result; selectedFileName = file.name; selectedFileType = file.type;
-            document.getElementById('chatInput').placeholder = "📎 Bestand gekozen: " + file.name + "...";
+            selectedFileBase64 = e.target.result;
+            selectedFileName = file.name;
+            selectedFileType = file.type;
+            
+            const chatInput = document.getElementById('chatInput');
+            if (selectedFileType.includes('pdf')) {
+                chatInput.placeholder = "📄 PDF gekozen: " + file.name + "...";
+            } else if (selectedFileType.includes('image')) {
+                chatInput.placeholder = "📷 Foto gekozen: " + file.name + "...";
+            } else {
+                chatInput.placeholder = "📎 Bestand gekozen: " + file.name + "...";
+            }
         };
         reader.readAsDataURL(file);
     }
 
     function renderChat() {
-        document.getElementById('chatWindow').innerHTML = messages.map((m, idx) => {
-            let attach = m.fileUrl ? (m.fileType?.includes('image') ? `<img src="${m.fileUrl}" style="max-width: 100%; max-height: 200px; border-radius: 6px; cursor: pointer;" onclick="openImageModal('${m.fileUrl}')">` : `<a href="${m.fileUrl}" download="${m.fileName}" target="_blank" style="color:var(--accent-blue);">📄 ${m.fileName}</a>`) : '';
-            return `<div class="message ${m.author === currentUserName ? 'self' : ''} ${m.type === 'system' ? 'system-update' : ''}">
-                <div class="message-header"><span class="author">${m.author}</span>${(currentUserName === 'Robert' || m.author === currentUserName) ? `<button class="delete-msg-btn" onclick="deleteMessage(${idx})">✕</button>` : ''}</div>
-                <span>${m.text || ''}</span>${attach}
-            </div>`;
+        const windowDiv = document.getElementById('chatWindow');
+        windowDiv.innerHTML = messages.map((m, index) => {
+            const isSelf = (m.author === currentUserName);
+            const isSystem = (m.type === "system" || m.author === "Systeem");
+            const formattedTime = formatMessageTime(m.timestamp, m.tijd);
+            const tijdWeergave = formattedTime ? `<span style="font-size: 0.65rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${formattedTime}</span>` : '';
+
+            let canDelete = (currentUserName === "Robert" || isSelf || (isSystem && currentUserName === "Robert"));
+            let deleteBtnHtml = canDelete ? `<button class="delete-msg-btn" onclick="deleteMessage(${index})" title="Verwijder bericht">✕</button>` : '';
+
+            if (isSystem) {
+                return `
+                    <div class="message system-update">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <span style="font-size: 0.75rem; color: var(--accent-blue); flex-grow: 1;">${m.text} ${tijdWeergave}</span>
+                            ${deleteBtnHtml}
+                        </div>
+                    </div>
+                `;
+            }
+
+            let attachmentHtml = '';
+            if (m.fileUrl) {
+                if (m.fileType && m.fileType.includes('image')) {
+                    attachmentHtml = `<img src="${m.fileUrl}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 4px; cursor: pointer; object-fit: cover;" onclick="openImageModal('${m.fileUrl}')">`;
+                } else {
+                    let icon = m.fileType && m.fileType.includes('pdf') ? '📄' : '📎';
+                    attachmentHtml = `
+                        <a href="${m.fileUrl}" download="${m.fileName || 'document'}" target="_blank" style="display: flex; align-items: center; gap: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 10px; border-radius: 6px; color: var(--accent-blue); text-decoration: none; margin-top: 4px; font-weight: 500;">
+                            <span style="font-size: 1.2rem;">${icon}</span>
+                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1;">
+                                <div style="font-size: 0.8rem; font-weight: bold;">${m.fileName || 'Bijlage openen'}</div>
+                                <div style="font-size: 0.65rem; color: var(--text-muted);">Klik om te downloaden/bekijken</div>
+                            </div>
+                        </a>
+                    `;
+                }
+            }
+
+            let textHtml = (m.text && m.text !== "(Bestand)" && m.text !== "(Foto)") ? `<span>${m.text}</span>` : '';
+
+            return `
+                <div class="message ${isSelf ? 'self' : ''}">
+                    <div class="message-header">
+                        <span class="author">${m.author} ${tijdWeergave}</span>
+                        ${deleteBtnHtml}
+                    </div>
+                    ${textHtml}
+                    ${attachmentHtml}
+                </div>
+            `;
         }).join('');
-        document.getElementById('chatWindow').scrollTop = document.getElementById('chatWindow').scrollHeight;
+        windowDiv.scrollTop = windowDiv.scrollHeight;
     }
 
     async function sendMessage() {
-        let input = document.getElementById('chatInput'), txt = input.value.trim();
-        if (!txt && !selectedFileBase64) return;
-        let data = { author: currentUserName, text: txt, timestamp: firebase.database.ServerValue.TIMESTAMP };
-        if (selectedFileBase64) { data.fileUrl = selectedFileBase64; data.fileName = selectedFileName; data.fileType = selectedFileType; }
-        await db.ref('padelData/messages').push(data);
-        await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, txt || 'Bijlage');
-        input.value = ''; selectedFileBase64 = null; document.getElementById('fileInput').value = '';
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (!text && !selectedFileBase64) return;
+
+        const now = new Date();
+        let messageData = {
+            author: currentUserName,
+            text: text || "",
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            tijd: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        if (selectedFileBase64) {
+            messageData.fileUrl = selectedFileBase64;
+            messageData.fileName = selectedFileName;
+            messageData.fileType = selectedFileType;
+        }
+
+        await db.ref('padelData/messages').push(messageData);
+        await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, text || (selectedFileType?.includes('pdf') ? '📄 PDF bijlage' : '📷 Foto bijlage'));
+
+        input.value = '';
+        input.style.height = 'auto'; 
+        input.placeholder = "Typ een bericht...";
+        selectedFileBase64 = null;
+        selectedFileName = null;
+        selectedFileType = null;
+        document.getElementById('fileInput').value = '';
     }
 
-    function handleKeyDown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
-    function deleteMessage(idx) {
-        db.ref('padelData/messages').once('value', s => { let keys = Object.keys(s.val() || {}); if (keys[idx]) db.ref(`padelData/messages/${keys[idx]}`).remove(); });
+    function handleKeyDown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
     }
-    function clearAllChat() { if (confirm("Chat wissen?")) db.ref('padelData/messages').remove(); }
-    function scrollToChat() { document.getElementById('chatCardSection').scrollIntoView({ behavior: 'smooth' }); }
-    function openImageModal(url) { document.getElementById('modalImageSrc').src = url; document.getElementById('imageModal').style.display = 'flex'; }
-    function closeImageModal() { document.getElementById('imageModal').style.display = 'none'; }
+
+    function deleteMessage(index) {
+        db.ref('padelData/messages').once('value', snapshot => {
+            let val = snapshot.val();
+            if (val) {
+                let keys = Object.keys(val);
+                if (keys[index]) db.ref(`padelData/messages/${keys[index]}`).remove();
+            }
+        });
+    }
+
+    function clearAllChat() {
+        if (currentUserName === "Robert" && confirm("Weet je zeker dat je alle chatberichten wilt wissen?")) {
+            db.ref('padelData/messages').remove();
+        }
+    }
+
+    function scrollToChat() {
+        lastSeenMessageCount = messages.length;
+        localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
+        updateAlertUI();
+        document.getElementById('chatCardSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function openImageModal(url) {
+        document.getElementById('modalImageSrc').src = url;
+        document.getElementById('imageModal').style.display = 'flex';
+    }
+
+    function closeImageModal() {
+        document.getElementById('imageModal').style.display = 'none';
+    }
 </script>
 
 </body>
