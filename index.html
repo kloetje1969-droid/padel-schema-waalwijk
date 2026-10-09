@@ -289,14 +289,16 @@
             align-items: center; 
             gap: 4px;
             animation: pulseConnection 2s infinite ease-in-out;
+            justify-content: center;
+            width: 100%;
         }
 
         .header-actions-row {
             display: flex;
+            flex-direction: column;
             gap: 8px;
             align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
+            justify-content: center;
             width: 100%;
         }
 
@@ -320,7 +322,7 @@
             border-color: var(--accent-blue);
         }
 
-        /* Live klokje / datum badge naast meldingen knop */
+        /* Live klokje / datum badge */
         .live-clock-badge {
             background: var(--bg-color);
             border: 1px solid var(--card-border);
@@ -1077,8 +1079,8 @@
                     <span class="status-dot online"></span>
                     <span class="connection-text">Live verbonden met database</span>
                 </div>
-                <!-- Knop Meldingen aan met direct daarnaast het live klokje -->
-                <div style="display: flex; gap: 6px; align-items: center;">
+                <!-- Netjes in het midden uitgelijnd: Knop Meldingen aan en live klokje naast elkaar -->
+                <div style="display: flex; gap: 8px; align-items: center; justify-content: center; width: 100%;">
                     <button class="push-btn" onclick="subscribePush()">🔔 Meldingen aan</button>
                     <div id="liveClockBadge" class="live-clock-badge">
                         <span id="clockDate">--</span>
