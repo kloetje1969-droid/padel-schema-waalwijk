@@ -1547,7 +1547,6 @@
         db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
             liveOverrides = snapshot.val() || {};
             renderAll();
-            checkAndSendMatchReminder();
         });
 
         db.ref('padelData/presence').on('value', (snapshot) => {
@@ -1563,7 +1562,6 @@
         db.ref('padelData/absence').on('value', (snapshot) => {
             absences = snapshot.val() || {};
             renderAll();
-            checkAndSendMatchReminder();
         });
 
         db.ref('padelData/baanBoekingenList').on('value', (snapshot) => {
@@ -1585,75 +1583,88 @@
 
         setupOnlinePresence();
         setInterval(renderStatuses, 5000);
-    }
-
-    // Automatische Match Reminder functie
-    function checkAndSendMatchReminder() {
-        let currentMonday = getAdjustedBaseDate();
-        let referenceMonday = new Date(2026, 8, 21);
-        let today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        for (let i = 0; i < 2; i++) { // Check huidige week en volgende week
-            let weekStart = new Date(currentMonday);
-            weekStart.setDate(currentMonday.getDate() + (i * 7));
-
-            let currentWeekNum = getISOWeekNumber(weekStart);
-            let currentYear = weekStart.getFullYear();
-            let uniqueWeekKey = `${currentYear}_w${currentWeekNum}`;
-
-            let diffTime = weekStart.getTime() - referenceMonday.getTime();
-            let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
-            let templateIndex = ((diffWeeks % 6) + 6) % 6;
-
-            let dinsdagDate = new Date(weekStart);
-            dinsdagDate.setDate(weekStart.getDate() + 1);
-            dinsdagDate.setHours(0, 0, 0, 0);
-
-            let donderdagDate = new Date(weekStart);
-            donderdagDate.setDate(weekStart.getDate() + 3);
-            donderdagDate.setHours(0, 0, 0, 0);
-
-            let tpl = defaultTemplate[templateIndex];
-            let overrideData = liveOverrides[uniqueWeekKey] || {};
-            let dinsdagPlayers = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
-            let donderdagPlayers = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
-
-            // Check Dinsdag match
-            checkAndTriggerDayMatch(dinsdagDate, dinsdagPlayers, uniqueWeekKey, 'dinsdag', 'Dinsdag');
-            // Check Donderdag match
-            checkAndTriggerDayMatch(donderdagDate, donderdagPlayers, uniqueWeekKey, 'donderdag', 'Donderdag');
-        }
-    }
-
-    function checkAndTriggerDayMatch(matchDate, players, uniqueWeekKey, dayKey, dayName) {
-        let today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        let diffDays = Math.round((matchDate - today) / (1000 * 60 * 60 * 24));
         
-        // Stuur herinnering als het vandaag (0) of morgen (1) is dat je moet spelen
-        if ((diffDays === 0 || diffDays === 1) && players.includes(currentUserName)) {
-            let isAbsent = checkPlayerAbsent(currentUserName, uniqueWeekKey, dayKey);
-            if (!isAbsent) {
-                let reminderKey = `padel_reminder_${uniqueWeekKey}_${dayKey}_${currentUserName}`;
-                let lastSent = localStorage.getItem(reminderKey);
-                let todayStr = today.toDateString();
+        // Controleer elke minuut of het exact 17:00 uur is op een speeldag
+        setInterval(check17HourMatchReminder, 60000);
+    }
 
-                if (lastSent !== todayStr) {
-                    let whenText = diffDays === 0 ? "vandaag!" : "morgen!";
-                    let title = `🥎 Padel Reminder: Je speelt ${whenText}!`;
-                    let body = `Hoi ${currentUserName}, je staat ${dayName.toLowerCase()} ingepland om te padellen!`;
+    // Exacte 17:00 uur Match Reminder voor de actieve spelers van die avond
+    function check17HourMatchReminder() {
+        let now = new Date();
+        let currentHour = now.getHours();
+        let currentMinute = now.getMinutes();
 
-                    if ('serviceWorker' in navigator && Notification.permission === 'granted') {
-                        navigator.serviceWorker.ready.then(registration => {
-                            registration.showNotification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/33/33736.png' });
-                        });
-                    }
-                    localStorage.setItem(reminderKey, todayStr);
+        // Controleer of het exact 17:00 uur is (of tussen 17:00 en 17:01 voor betrouwbaarheid)
+        if (currentHour === 17 && currentMinute <= 1) {
+            let today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let currentMonday = getAdjustedBaseDate();
+            let referenceMonday = new Date(2026, 8, 21);
+
+            for (let i = 0; i < 2; i++) {
+                let weekStart = new Date(currentMonday);
+                weekStart.setDate(currentMonday.getDate() + (i * 7));
+
+                let currentWeekNum = getISOWeekNumber(weekStart);
+                let currentYear = weekStart.getFullYear();
+                let uniqueWeekKey = `${currentYear}_w${currentWeekNum}`;
+
+                let diffTime = weekStart.getTime() - referenceMonday.getTime();
+                let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+                let templateIndex = ((diffWeeks % 6) + 6) % 6;
+
+                let dinsdagDate = new Date(weekStart);
+                dinsdagDate.setDate(weekStart.getDate() + 1);
+                dinsdagDate.setHours(0, 0, 0, 0);
+
+                let donderdagDate = new Date(weekStart);
+                donderdagDate.setDate(weekStart.getDate() + 3);
+                donderdagDate.setHours(0, 0, 0, 0);
+
+                let tpl = defaultTemplate[templateIndex];
+                let overrideData = liveOverrides[uniqueWeekKey] || {};
+
+                // Check Dinsdag
+                if (dinsdagDate.getTime() === today.getTime()) {
+                    let players = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
+                    sendReminderToPlayingPlayers(players, uniqueWeekKey, 'dinsdag', 'Dinsdag');
+                }
+
+                // Check Donderdag
+                if (donderdagDate.getTime() === today.getTime()) {
+                    let players = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
+                    sendReminderToPlayingPlayers(players, uniqueWeekKey, 'donderdag', 'Donderdag');
                 }
             }
         }
+    }
+
+    function sendReminderToPlayingPlayers(players, uniqueWeekKey, dayKey, dayName) {
+        let todayStr = new Date().toDateString();
+        let reminderKey = `padel_17h_reminder_${uniqueWeekKey}_${dayKey}`;
+
+        // Zorg dat deze herinnering slechts 1 keer per speeldag wordt verstuurd
+        if (localStorage.getItem(reminderKey) === todayStr) return;
+
+        // Filter spelers die niet afwezig zijn
+        let activePlayersTonight = players.filter(p => !checkPlayerAbsent(p, uniqueWeekKey, dayKey));
+
+        // Controleer of de ingelogde gebruiker tot de spelers van vanavond behoort
+        if (activePlayersTonight.includes(currentUserName)) {
+            let title = `🥎 Padel Herinnering: Vanavond om padellen!`;
+            let body = `Hoi ${currentUserName}, je staat vanavond (${dayName}) ingepland om te padellen! Veel plezier!`;
+
+            if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/33/33736.png' });
+                });
+            } else {
+                alert(title + "\n" + body);
+            }
+        }
+
+        localStorage.setItem(reminderKey, todayStr);
     }
 
     function renderBaanBoekingen() {
@@ -1857,7 +1868,6 @@
         renderAll();
         renderChat();
         setupOnlinePresence();
-        checkAndSendMatchReminder();
     }
 
     function saveCurrentSessionLastSeen() {
@@ -2555,14 +2565,16 @@
     }
 
     function handleKeyDown(e) {
-        e.preventDefault();
-        sendMessage();
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
     }
 
     function deleteMessage(index) {
         db.ref('padelData/messages').once('value', snapshot => {
             let val = snapshot.val();
-            if (val) {
+            if, (val) {
                 let keys = Object.keys(val);
                 if (keys[index]) db.ref(`padelData/messages/${keys[index]}`).remove();
             }
