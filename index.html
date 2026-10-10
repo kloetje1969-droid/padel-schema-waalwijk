@@ -1310,7 +1310,7 @@
     }
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
-    let currentUserName = localStorage.getItem('padel_current_user') || "Robert";
+    let currentUserName = localStorage.getItem('padel_current_user') || "";
     const myOriginalUserName = currentUserName;
 
     let selectedFileBase64 = null;
@@ -1591,14 +1591,12 @@
     // Exacte 17:00 uur Match Reminder op basis van Nederlandse tijd (Europe/Amsterdam)
     function check17HourNLMatchReminder() {
         try {
-            // Haal de huidige tijd op in de Nederlandse tijdzone
             const optionsHour = { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false };
             const optionsMinute = { timeZone: 'Europe/Amsterdam', minute: 'numeric' };
             
             const nlHour = parseInt(new Intl.DateTimeFormat('en-US', optionsHour).format(new Date()));
             const nlMinute = parseInt(new Intl.DateTimeFormat('en-US', optionsMinute).format(new Date()));
 
-            // Controleer of het exact 17:00 uur (of 17:01) in Nederland is
             if (nlHour === 17 && nlMinute <= 1) {
                 let today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -1629,13 +1627,11 @@
                     let tpl = defaultTemplate[templateIndex];
                     let overrideData = liveOverrides[uniqueWeekKey] || {};
 
-                    // Check Dinsdag
                     if (dinsdagDate.getTime() === today.getTime()) {
                         let players = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
                         sendReminderToPlayingPlayers(players, uniqueWeekKey, 'dinsdag', 'Dinsdag');
                     }
 
-                    // Check Donderdag
                     if (donderdagDate.getTime() === today.getTime()) {
                         let players = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
                         sendReminderToPlayingPlayers(players, uniqueWeekKey, 'donderdag', 'Donderdag');
@@ -1651,14 +1647,11 @@
         let todayStr = new Date().toDateString();
         let reminderKey = `padel_17h_reminder_${uniqueWeekKey}_${dayKey}`;
 
-        // Zorg dat deze herinnering slechts 1 keer per speeldag wordt verstuurd
         if (localStorage.getItem(reminderKey) === todayStr) return;
 
-        // Filter spelers die niet afwezig zijn
         let activePlayersTonight = players.filter(p => !checkPlayerAbsent(p, uniqueWeekKey, dayKey));
 
-        // Controleer of de ingelogde gebruiker tot de spelers van vanavond behoort
-        if (activePlayersTonight.includes(currentUserName)) {
+        if (currentUserName && activePlayersTonight.includes(currentUserName)) {
             let title = `🥎 Padel Herinnering: Vanavond om padellen!`;
             let body = `Hoi ${currentUserName}, je staat vanavond (${dayName}) ingepland om te padellen! Veel plezier!`;
 
@@ -1838,9 +1831,14 @@
 
     function initUserSelect() {
         const select = document.getElementById('userSelect');
-        select.innerHTML = basePlayers.map(p => {
+        const availableUsers = (currentUserName === "Robert") ? ["Robert"] : basePlayers;
+        
+        let html = `<option value="">-- Kies je naam --</option>`;
+        html += availableUsers.map(p => {
             return `<option value="${p}" ${p === currentUserName ? 'selected' : ''}>${p}</option>`;
         }).join('');
+
+        select.innerHTML = html;
 
         const clearBtn = document.getElementById('clearAllChatBtn');
         if (clearBtn) {
@@ -1852,18 +1850,22 @@
         const select = document.getElementById('userSelect');
         const gekozenNaam = select.value;
 
-        if (gekozenNaam !== "Robert" && gekozenNaam !== myOriginalUserName && currentUserName !== "Robert") {
-            select.value = currentUserName;
+        if (!gekozenNaam) return;
+
+        if (gekozenNaam === "Robert") {
+            currentUserName = "Robert";
+            localStorage.setItem('padel_current_user', currentUserName);
+            sessionStartTime = Date.now();
+            initUserSelect();
+            renderAll();
+            renderChat();
+            setupOnlinePresence();
             return;
         }
 
-        if (gekozenNaam === "Robert" && currentUserName !== "Robert") {
-            let ingevoerdePincode = prompt("Voer de pincode in om als Robert in te loggen:");
-            if (ingevoerdePincode !== "1412") {
-                alert("Onjuiste pincode!");
-                select.value = currentUserName;
-                return;
-            }
+        if (gekozenNaam !== "Robert" && gekozenNaam !== myOriginalUserName && currentUserName !== "Robert") {
+            select.value = currentUserName;
+            return;
         }
 
         saveCurrentSessionLastSeen();
@@ -1878,11 +1880,14 @@
     }
 
     function saveCurrentSessionLastSeen() {
+        if (!currentUserName) return;
         const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
         db.ref(`padelData/lastSeen/${myRealName}`).set(Date.now());
     }
 
     function setupOnlinePresence() {
+        if (!currentUserName) return;
+
         if (presenceConnectedRef && presenceConnectedHandler) {
             presenceConnectedRef.off('value', presenceConnectedHandler);
         }
@@ -2102,7 +2107,6 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            // Controleer of de neerslagkans groter is dan 60%
             let dinsdagRainAlert = (dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) 
                 ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${dinsdagWeatherObj.rain}%)!</div>` : '';
             
@@ -2337,6 +2341,11 @@
     let activeTemplateIndex = 0;
 
     function openModal(uniqueWeekKey, templateIndex, day, weekNum) {
+        if (!currentUserName) {
+            alert("Kies eerst je naam bovenin de app!");
+            return;
+        }
+
         activeModalUniqueKey = uniqueWeekKey;
         activeModalDay = day;
         activeModalWeekNum = weekNum;
@@ -2430,6 +2439,11 @@
     }
 
     async function toggleAbsence(playerName, uniqueWeekKey, day, weekNum) {
+        if (!currentUserName) {
+            alert("Kies eerst je naam bovenin de app!");
+            return;
+        }
+
         const isSub = !basePlayers.includes(playerName);
         if (!isSub && playerName !== currentUserName) return;
         
@@ -2541,6 +2555,11 @@
     }
 
     async function sendMessage() {
+        if (!currentUserName) {
+            alert("Kies eerst je naam bovenin de app voordat je een bericht stuurt!");
+            return;
+        }
+
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
         if (!text && !selectedFileBase64) return;
