@@ -15,7 +15,7 @@ const db = admin.database();
 
 const defaultTemplate = [
  defaultTemplate = [
-          { dinsdag: ["Robert", "Dennis", "Mark", "Sander"], donderdag: ["Sander", "Robert", "Marcel", "Ronald"] },
+          { dinsdag: ["Robert", "Dennis", "Mark", "Sander"], donderdag: ["Sander", "Robert", "Marcel", "Mark"] },
   { dinsdag: ["Marcel", "Dennis", "Mark", "Ronald"], donderdag: ["Marcel", "Dennis", "Ronald", "Robert"] },
   { dinsdag: ["Marcel", "Sander", "Mark", "Robert"], donderdag: ["Dennis", "Sander", "Ronald", "Mark"] },
   { dinsdag: ["Ronald", "Dennis", "Marcel", "Robert"], donderdag: ["Sander", "Ronald", "Robert", "Dennis"] },
