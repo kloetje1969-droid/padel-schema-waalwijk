@@ -1831,10 +1831,8 @@
 
     function initUserSelect() {
         const select = document.getElementById('userSelect');
-        const availableUsers = (currentUserName === "Robert") ? ["Robert"] : basePlayers;
-        
         let html = `<option value="">-- Kies je naam --</option>`;
-        html += availableUsers.map(p => {
+        html += basePlayers.map(p => {
             return `<option value="${p}" ${p === currentUserName ? 'selected' : ''}>${p}</option>`;
         }).join('');
 
@@ -1852,18 +1850,11 @@
 
         if (!gekozenNaam) return;
 
-        if (gekozenNaam === "Robert") {
-            currentUserName = "Robert";
-            localStorage.setItem('padel_current_user', currentUserName);
-            sessionStartTime = Date.now();
-            initUserSelect();
-            renderAll();
-            renderChat();
-            setupOnlinePresence();
-            return;
-        }
-
-        if (gekozenNaam !== "Robert" && gekozenNaam !== myOriginalUserName && currentUserName !== "Robert") {
+        // Beveiliging: als iemand anders (die niet Robert is op dit apparaat) probeert Robert te selecteren, blokkeer dat
+        const isDeviceOwnerRobert = localStorage.getItem('padel_device_owner') === 'Robert';
+        if (gekozenNaam === "Robert" && currentUserName !== "Robert" && sessionStorage.getItem('padel_unlocked') !== 'true') {
+            // Als de pincode niet is ingevoerd op dit apparaat, mag je niet zomaar Robert kiezen
+            alert("Je kunt niet zomaar als Robert inloggen zonder de juiste pincode.");
             select.value = currentUserName;
             return;
         }
