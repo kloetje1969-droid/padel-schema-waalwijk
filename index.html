@@ -684,6 +684,18 @@
             gap: 6px;
         }
 
+        .rain-alert {
+            background: var(--danger-bg);
+            border-top: 1px solid rgba(248, 113, 113, 0.3);
+            color: #fca5a5;
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
         .table-scroll-wrapper { 
             width: 100%; 
             overflow-x: auto; 
@@ -2001,6 +2013,13 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
+            // Controleer of de neerslagkans groter is dan 60%
+            let dinsdagRainAlert = (dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) 
+                ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${dinsdagWeatherObj.rain}%)!</div>` : '';
+            
+            let donderdagRainAlert = (donderdagWeatherObj && donderdagWeatherObj.rain > 60) 
+                ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${donderdagWeatherObj.rain}%)!</div>` : '';
+
             let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
             let donderdagAbsentees = donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
 
@@ -2020,6 +2039,7 @@
                             <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig</button>
                         </div>
                     </div>
+                    ${dinsdagRainAlert}
                     ${dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
                 </div>
 
@@ -2038,6 +2058,7 @@
                             <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig</button>
                         </div>
                     </div>
+                    ${donderdagRainAlert}
                     ${donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
                 </div>
             `;
