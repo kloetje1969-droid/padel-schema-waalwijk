@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v5.8)</title>
+    <title>Padelschema - Rooster & Chat (v5.9)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padelbal Icoon -->
     <link rel="manifest" href="manifest.json">
@@ -1133,7 +1133,7 @@
             Laden status...
         </div>
 
-        <!-- Meldingen knop die dankzij localStorage permanent actief blijft -->
+        <!-- Meldingen knop met VAPID integratie -->
         <button class="btn-edit" id="pushPermissionBtn" onclick="requestPushPermission()" style="width: 100%; justify-content: center; margin-top: 4px; background: rgba(56, 189, 248, 0.15); border-color: var(--accent-blue); color: var(--accent-blue);">
             🔔 Meldingen aan (ook als app dicht is)
         </button>
@@ -1286,7 +1286,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "5.8";
+    const APP_VERSION = "5.9";
 
     async function checkAppVersion() {
         try {
@@ -1449,9 +1449,16 @@
                 updatePushPermissionButtonUI();
 
                 if (messaging) {
-                    const token = await messaging.getToken({ vapidKey: 'BMy...' }).catch(() => null);
+                    const token = await messaging.getToken({ 
+                        vapidKey: 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg' 
+                    }).catch(err => {
+                        console.error("Fout bij ophalen FCM token:", err);
+                        return null;
+                    });
+                    
                     if (token) {
                         await db.ref(`padelData/fcmTokens/${currentUserName}`).set(token);
+                        console.log("FCM Token succesvol opgeslagen in Firebase!");
                     }
                 }
                 alert("Meldingen zijn succesvol ingeschakeld!");
@@ -2636,7 +2643,7 @@
         });
     }
 
-    function clearAllChat() {
+    clearAllChat = function() {
         if (currentUserName === "Robert" && confirm("Weet je zeker dat je alle chatberichten wilt wissen?")) {
             db.ref('padelData/messages').remove();
         }
