@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v5.6)</title>
+    <title>Padelschema - Rooster & Chat (v5.7)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padelbal Icoon -->
     <link rel="manifest" href="manifest.json">
@@ -1133,7 +1133,7 @@
             Laden status...
         </div>
 
-        <!-- Meldingen activeren knop voor push notificaties -->
+        <!-- Meldingen knop die automatisch actieve status toont -->
         <button class="btn-edit" id="pushPermissionBtn" onclick="requestPushPermission()" style="width: 100%; justify-content: center; margin-top: 4px; background: rgba(56, 189, 248, 0.15); border-color: var(--accent-blue); color: var(--accent-blue);">
             🔔 Meldingen aan (ook als app dicht is)
         </button>
@@ -1286,7 +1286,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "5.6";
+    const APP_VERSION = "5.7";
 
     async function checkAppVersion() {
         try {
@@ -1366,6 +1366,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         sessionStartTime = Date.now();
         startLiveClock();
+        updatePushPermissionButtonUI();
 
         if (sessionStorage.getItem('padel_unlocked') === 'true') {
             document.getElementById('pinOverlay').style.display = 'none';
@@ -1404,6 +1405,31 @@
         });
     }
 
+    // Controleer de actuele status van de browser toestemming en pas de knop aan
+    function updatePushPermissionButtonUI() {
+        const btn = document.getElementById('pushPermissionBtn');
+        if (!btn) return;
+
+        if (typeof Notification !== 'undefined') {
+            if (Notification.permission === 'granted') {
+                btn.innerText = "✓ Meldingen actief";
+                btn.style.background = "rgba(52, 211, 153, 0.15)";
+                btn.style.borderColor = "var(--accent-green)";
+                btn.style.color = "var(--accent-green)";
+            } else if (Notification.permission === 'denied') {
+                btn.innerText = "✕ Meldingen geblokkeerd in browser";
+                btn.style.background = "var(--danger-bg)";
+                btn.style.borderColor = "var(--danger)";
+                btn.style.color = "var(--danger)";
+            } else {
+                btn.innerText = "🔔 Meldingen aan (ook als app dicht is)";
+                btn.style.background = "rgba(56, 189, 248, 0.15)";
+                btn.style.borderColor = "var(--accent-blue)";
+                btn.style.color = "var(--accent-blue)";
+            }
+        }
+    }
+
     async function requestPushPermission() {
         if (!currentUserName) {
             alert("Kies eerst je naam bovenin de app voordat je meldingen inschakelt!");
@@ -1412,17 +1438,16 @@
 
         try {
             const permission = await Notification.requestPermission();
+            updatePushPermissionButtonUI();
+
             if (permission === 'granted') {
                 if (messaging) {
-                    // Vraag VAPID token op bij Firebase
-                    const token = await messaging.getToken({ vapidKey: 'BMy... (optioneel of automatisch via Firebase)' }).catch(() => null);
+                    const token = await messaging.getToken({ vapidKey: 'BMy...' }).catch(() => null);
                     if (token) {
                         await db.ref(`padelData/fcmTokens/${currentUserName}`).set(token);
                     }
                 }
-                alert("Meldingen zijn succesvol ingeschakeld! Je ontvangt voortaan ook meldingen als de app gesloten is.");
-                const btn = document.getElementById('pushPermissionBtn');
-                if (btn) btn.innerText = "✓ Meldingen actief";
+                alert("Meldingen zijn succesvol ingeschakeld!");
             } else {
                 alert("Toestemming voor meldingen is geweigerd in je browserinstellingen.");
             }
@@ -1553,6 +1578,7 @@
 
         initUserSelect();
         fetchWaalwijkWeather();
+        updatePushPermissionButtonUI();
 
         db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
             liveOverrides = snapshot.val() || {};
