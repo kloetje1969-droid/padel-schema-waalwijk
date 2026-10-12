@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v5.5)</title>
+    <title>Padelschema - Rooster & Chat (v5.6)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padelbal Icoon -->
     <link rel="manifest" href="manifest.json">
@@ -26,6 +26,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <!-- Firebase Realtime Database (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- Firebase Messaging (compat) voor echte pushnotificaties -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
     
     <style>
         :root {
@@ -1130,6 +1132,11 @@
         <div id="statusList" class="status-container">
             Laden status...
         </div>
+
+        <!-- Meldingen activeren knop voor push notificaties -->
+        <button class="btn-edit" id="pushPermissionBtn" onclick="requestPushPermission()" style="width: 100%; justify-content: center; margin-top: 4px; background: rgba(56, 189, 248, 0.15); border-color: var(--accent-blue); color: var(--accent-blue);">
+            🔔 Meldingen aan (ook als app dicht is)
+        </button>
     </header>
 
     <button class="chat-btn" id="globalChatAlertBtn" onclick="scrollToChat()">
@@ -1279,7 +1286,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "5.5";
+    const APP_VERSION = "5.6";
 
     async function checkAppVersion() {
         try {
@@ -1310,6 +1317,12 @@
         firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.database();
+    let messaging = null;
+    try {
+        if (firebase.messaging.isSupported()) {
+            messaging = firebase.messaging();
+        }
+    } catch (e) {}
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
     let currentUserName = localStorage.getItem('padel_current_user') || "";
@@ -1382,6 +1395,43 @@
         }
     });
 
+    // Registreer Service Worker voor echte achtergrond-pushes
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('firebase-messaging-sw.js')
+                .then(reg => console.log('Service Worker geregistreerd:', reg.scope))
+                .catch(err => console.error('Service Worker registratie mislukt:', err));
+        });
+    }
+
+    async function requestPushPermission() {
+        if (!currentUserName) {
+            alert("Kies eerst je naam bovenin de app voordat je meldingen inschakelt!");
+            return;
+        }
+
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                if (messaging) {
+                    // Vraag VAPID token op bij Firebase
+                    const token = await messaging.getToken({ vapidKey: 'BMy... (optioneel of automatisch via Firebase)' }).catch(() => null);
+                    if (token) {
+                        await db.ref(`padelData/fcmTokens/${currentUserName}`).set(token);
+                    }
+                }
+                alert("Meldingen zijn succesvol ingeschakeld! Je ontvangt voortaan ook meldingen als de app gesloten is.");
+                const btn = document.getElementById('pushPermissionBtn');
+                if (btn) btn.innerText = "✓ Meldingen actief";
+            } else {
+                alert("Toestemming voor meldingen is geweigerd in je browserinstellingen.");
+            }
+        } catch (e) {
+            console.error("Fout bij aanvragen push toestemming:", e);
+            alert("Kon geen pushmeldingen instellen op dit apparaat.");
+        }
+    }
+
     // Functie voor de live klok en datum
     function startLiveClock() {
         const updateClock = () => {
@@ -1398,7 +1448,7 @@
         setInterval(updateClock, 1000);
     }
 
-    // In-app Toast Banner weergeven (voor zowel anderen als jezelf)
+    // In-app Toast Banner weergeven
     function showToast(title, text) {
         const container = document.getElementById('toastContainer');
         if (!container) return;
@@ -1535,7 +1585,6 @@
             const rawMessages = snapshot.val() ? Object.values(snapshot.val()) : [];
             
             if (!isInitialMessageLoad && rawMessages.length > messages.length) {
-                // Toon de toast banner voor *alle* nieuwe berichten/updates (dus ook je eigen berichten)
                 const latestMsg = rawMessages[rawMessages.length - 1];
                 if (latestMsg) {
                     showToast(latestMsg.author === 'Systeem' ? 'Systeemmelding' : `Bericht van ${latestMsg.author}`, latestMsg.text || 'Nieuwe update');
@@ -1558,7 +1607,6 @@
         setInterval(check17HourNLMatchReminder, 60000);
     }
 
-    // Exacte 17:00 uur Match Reminder op basis van Nederlandse tijd (Europe/Amsterdam)
     function check17HourNLMatchReminder() {
         try {
             const optionsHour = { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false };
