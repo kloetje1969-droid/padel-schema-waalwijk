@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v5.3)</title>
+    <title>Padelschema - Rooster & Chat (v5.5)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padelbal Icoon -->
     <link rel="manifest" href="manifest.json">
@@ -26,8 +26,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <!-- Firebase Realtime Database (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <!-- Firebase Messaging (compat) voor pushmeldingen -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
     
     <style>
         :root {
@@ -45,6 +43,51 @@
             --danger: #f87171;
             --danger-bg: rgba(248, 113, 113, 0.15);
             --main-glow: 0 16px 60px rgba(56, 189, 248, 0.22), 0 0 40px rgba(56, 189, 248, 0.12);
+        }
+
+        /* IN-APP TOAST NOTIFICATION BANNER */
+        #toastContainer {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 92%;
+            max-width: 420px;
+            pointer-events: none;
+        }
+
+        .toast-banner {
+            background: linear-gradient(135deg, #0ea5e9, #0369a1);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            pointer-events: auto;
+            animation: slideDownIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .toast-banner.fade-out {
+            animation: fadeOutUp 0.3s ease forwards;
+        }
+
+        @keyframes slideDownIn {
+            from { opacity: 0; transform: translateY(-30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes fadeOutUp {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(-20px) scale(0.95); }
         }
 
         /* Expliciete styling voor gegarandeerde weergave van de tennisbal */
@@ -302,31 +345,11 @@
             width: 100%;
         }
 
-        .push-btn {
-            background: var(--btn-bg);
-            color: var(--accent-blue);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: background 0.2s;
-        }
-
-        .push-btn:hover {
-            background: var(--btn-hover);
-            border-color: var(--accent-blue);
-        }
-
         /* Live klokje / datum badge */
         .live-clock-badge {
             background: var(--bg-color);
             border: 1px solid var(--card-border);
-            padding: 5px 10px;
+            padding: 5px 12px;
             border-radius: 8px;
             font-size: 0.72rem;
             color: var(--text-muted);
@@ -1057,6 +1080,9 @@
 </head>
 <body>
 
+<!-- Toast Notification Container voor in-app meldingen -->
+<div id="toastContainer"></div>
+
 <!-- Pull-to-refresh indicator element -->
 <div id="ptr-element">
     <span>🔄 Loslaten om te verversen...</span>
@@ -1091,12 +1117,11 @@
                     <span class="status-dot online"></span>
                     <span class="connection-text">Live verbonden met database</span>
                 </div>
-                <!-- Netjes in het midden uitgelijnd: Knop Meldingen aan en live klokje naast elkaar -->
+                <!-- Live klokje gecentreerd -->
                 <div style="display: flex; gap: 8px; align-items: center; justify-content: center; width: 100%;">
-                    <button class="push-btn" onclick="subscribePush()">🔔 Meldingen aan</button>
-                    <div id="liveClockBadge" class="live-clock-badge">
-                        <span id="clockDate">--</span>
-                        <span id="clockTime" class="clock-time">--:--:--</span>
+                    <div id="liveClockBadge" class="live-clock-badge" style="width: 100%; justify-content: center;">
+                        <span>📅 <span id="clockDate">--</span></span>
+                        <span>⏰ <span id="clockTime" class="clock-time">--:--:--</span></span>
                     </div>
                 </div>
             </div>
@@ -1254,7 +1279,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "5.3";
+    const APP_VERSION = "5.5";
 
     async function checkAppVersion() {
         try {
@@ -1285,29 +1310,6 @@
         firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.database();
-    
-    let messaging = null;
-    try {
-        if (firebase.messaging.isSupported()) {
-            messaging = firebase.messaging();
-            
-            messaging.onMessage((payload) => {
-                if (payload && payload.notification) {
-                    const { title, body } = payload.notification;
-                    if ('serviceWorker' in navigator) {
-                        navigator.serviceWorker.ready.then(registration => {
-                            registration.showNotification(title, {
-                                body: body,
-                                icon: 'https://cdn-icons-png.flaticon.com/512/33/33736.png'
-                            });
-                        });
-                    }
-                }
-            });
-        }
-    } catch (e) {
-        console.log("Messaging niet ondersteund:", e);
-    }
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
     let currentUserName = localStorage.getItem('padel_current_user') || "";
@@ -1334,6 +1336,7 @@
     let messages = [];
     let weatherCache = {};
     let lastSeenMessageCount = parseInt(localStorage.getItem('padel_last_seen_count') || '0');
+    let isInitialMessageLoad = true;
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
 
     const PRESENCE_HEARTBEAT_MS = 10000;
@@ -1393,6 +1396,29 @@
         };
         updateClock();
         setInterval(updateClock, 1000);
+    }
+
+    // In-app Toast Banner weergeven (voor zowel anderen als jezelf)
+    function showToast(title, text) {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = 'toast-banner';
+        toast.innerHTML = `
+            <span style="font-size: 1.4rem;">🥎</span>
+            <div style="flex-grow: 1;">
+                <div style="font-size: 0.75rem; color: #bae6fd; font-weight: 700; text-transform: uppercase;">${title}</div>
+                <div>${text}</div>
+            </div>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            setTimeout(() => toast.remove(), 300);
+        }, 5000);
     }
 
     function toggleBaanBoekingMenu() {
@@ -1471,72 +1497,6 @@
         }
     }
 
-    async function subscribePush() {
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-
-        if (isIOS && !isStandalone) {
-            alert("📲 Voor pushmeldingen op je iPhone moet je deze app eerst toevoegen aan je beginscherm ('Zet op beginscherm' via het deelmenu in Safari) en van daaruit openen.");
-            return;
-        }
-
-        if (!messaging) {
-            alert("Pushmeldingen worden niet ondersteund op dit apparaat/deze browser.");
-            return;
-        }
-
-        try {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                if ('serviceWorker' in navigator) {
-                    await navigator.serviceWorker.register('firebase-messaging-sw.js');
-                }
-                const registration = await navigator.serviceWorker.ready;
-
-                const token = await messaging.getToken({
-                    vapidKey: 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg',
-                    serviceWorkerRegistration: registration
-                });
-                
-                if (token) {
-                    localStorage.setItem('padel_fcm_token', token);
-                    const targetUser = window.currentUserName || currentUserName;
-                    await db.ref(`padelData/tokens/${targetUser}`).update({
-                        [token]: true
-                    });
-
-                    alert("✅ Pushmeldingen succesvol ingeschakeld voor dit apparaat!");
-                }
-            } else {
-                alert("Geen toestemming gegeven voor meldingen.");
-            }
-        } catch (err) {
-            console.error("Fout bij activeren pushmeldingen:", err);
-            alert("Kon pushmeldingen niet activeren: " + err.message);
-        }
-    }
-
-    async function triggerPushNotification(title, body) {
-        try {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.ready.then(registration => {
-                    registration.showNotification(title, {
-                        body: body,
-                        icon: 'https://cdn-icons-png.flaticon.com/512/33/33736.png'
-                    });
-                });
-            }
-
-            await fetch('/api/send-notification', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, body })
-            });
-        } catch (e) {
-            console.error("Fout bij triggeren pushmelding via Vercel:", e);
-        }
-    }
-
     function initApp() {
         if (appInitialized) return;
         appInitialized = true;
@@ -1572,7 +1532,19 @@
         });
 
         db.ref('padelData/messages').on('value', (snapshot) => {
-            messages = snapshot.val() ? Object.values(snapshot.val()) : [];
+            const rawMessages = snapshot.val() ? Object.values(snapshot.val()) : [];
+            
+            if (!isInitialMessageLoad && rawMessages.length > messages.length) {
+                // Toon de toast banner voor *alle* nieuwe berichten/updates (dus ook je eigen berichten)
+                const latestMsg = rawMessages[rawMessages.length - 1];
+                if (latestMsg) {
+                    showToast(latestMsg.author === 'Systeem' ? 'Systeemmelding' : `Bericht van ${latestMsg.author}`, latestMsg.text || 'Nieuwe update');
+                }
+            }
+
+            messages = rawMessages;
+            isInitialMessageLoad = false;
+
             if (lastSeenMessageCount > messages.length) {
                 lastSeenMessageCount = messages.length;
                 localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
@@ -1583,8 +1555,6 @@
 
         setupOnlinePresence();
         setInterval(renderStatuses, 5000);
-        
-        // Controleer elke minuut of het exact 17:00 uur is in Nederland (rekening houdend met zomer/wintertijd)
         setInterval(check17HourNLMatchReminder, 60000);
     }
 
@@ -1652,16 +1622,9 @@
         let activePlayersTonight = players.filter(p => !checkPlayerAbsent(p, uniqueWeekKey, dayKey));
 
         if (currentUserName && activePlayersTonight.includes(currentUserName)) {
-            let title = `🥎 Padel Herinnering: Vanavond om padellen!`;
-            let body = `Hoi ${currentUserName}, je staat vanavond (${dayName}) ingepland om te padellen! Veel plezier!`;
-
-            if ('serviceWorker' in navigator && Notification.permission === 'granted') {
-                navigator.serviceWorker.ready.then(registration => {
-                    registration.showNotification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/33/33736.png' });
-                });
-            } else {
-                alert(title + "\n" + body);
-            }
+            let title = `🥎 Padel Herinnering`;
+            let body = `Hoi ${currentUserName}, je staat vanavond (${dayName}) ingepland om te padellen!`;
+            showToast(title, body);
         }
 
         localStorage.setItem(reminderKey, todayStr);
@@ -1748,7 +1711,6 @@
             const formattedDt = formatExactDateTime(new Date(gekozenDatum).getTime());
             const berichtTekst = `🥎 ${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${formattedDt}!`;
             await addSystemMessageIfUnique(berichtTekst);
-            await triggerPushNotification("🥎 Nieuwe Baan Boeking!", `${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${formattedDt}!`);
 
             select.value = "";
             baanSelect.value = "";
@@ -2422,7 +2384,6 @@
         let msgText = `🔄 Schema gewijzigd voor week ${activeModalWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
         
         await addSystemMessageIfUnique(msgText);
-        await triggerPushNotification("🥎 Padel Schema Gewijzigd", msgText);
         closeModal();
     }
 
@@ -2442,7 +2403,6 @@
 
             let msgText = `📅 ${playerName} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${day}) (door ${currentUserName})`;
             await addSystemMessageIfUnique(msgText);
-            await triggerPushNotification("🥎 Padel Afwezigheid", msgText);
         });
     }
 
@@ -2567,7 +2527,6 @@
         }
 
         await db.ref('padelData/messages').push(messageData);
-        await triggerPushNotification(`Nieuw bericht van ${currentUserName}`, text || (selectedFileType?.includes('pdf') ? '📄 PDF bijlage' : '📷 Foto bijlage'));
 
         input.value = '';
         input.style.height = 'auto'; 
