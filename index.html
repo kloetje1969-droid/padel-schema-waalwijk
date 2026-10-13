@@ -1103,7 +1103,6 @@
     </div>
 </div>
 
-<!-- Extra pop-up voor Robert's specifieke pincode (1412) -->
 <div id="pinModal">
     <div class="pin-box">
         <h2>🔒 Beveiligd</h2>
@@ -1740,19 +1739,6 @@
             let rainMsgText = `🌧️ Weerwaarschuwing (${dayName}): De regenkans om 18:00 uur is ${weatherObj.rain}%! Houd de baan in de gaten.`;
             
             await addSystemMessageIfUnique(rainMsgText);
-
-            try {
-                await fetch('https://eoe8fijxoang3hm.m.pipedream.net', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        author: "Padel Weerbericht",
-                        text: rainMsgText
-                    })
-                });
-            } catch (e) {
-                console.error("Fout bij verzenden regen-pushmelding om 18:00:", e);
-            }
         }
 
         localStorage.setItem(rainKey, todayStr);
@@ -1941,7 +1927,6 @@
         if (!gekozenNaam) return;
 
         if (gekozenNaam === "Robert" && currentUserName !== "Robert") {
-            // Vraag om pincode 1412 voor Robert
             document.getElementById('pinModal').style.display = 'flex';
             document.getElementById('robertPinInput').value = '';
             document.getElementById('robertPinError').style.display = 'none';
@@ -2545,20 +2530,6 @@
         let msgText = `🔄 Schema gewijzigd voor week ${activeModalWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
         
         await addSystemMessageIfUnique(msgText);
-
-        try {
-            await fetch('https://eoe8fijxoang3hm.m.pipedream.net', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    author: currentUserName || "Padel Systeem",
-                    text: msgText
-                })
-            });
-        } catch (e) {
-            console.error("Fout bij webhook wissel:", e);
-        }
-
         closeModal();
     }
 
@@ -2578,19 +2549,6 @@
 
             let msgText = `📅 ${playerName} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${day}) (door ${currentUserName})`;
             await addSystemMessageIfUnique(msgText);
-
-            try {
-                await fetch('https://eoe8fijxoang3hm.m.pipedream.net', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        author: currentUserName || "Padel Systeem",
-                        text: msgText
-                    })
-                });
-            } catch (e) {
-                console.error("Fout bij webhook afmelding:", e);
-            }
         });
     }
 
@@ -2716,21 +2674,9 @@
 
         try {
             await db.ref('padelData/messages').push(messageData);
-
-            await fetch('https://eoe8fijxoang3hm.m.pipedream.net', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    author: currentUserName,
-                    text: text || (selectedFileName ? `Bijlage: ${selectedFileName}` : "Nieuwe update")
-                })
-            });
-
-            console.log("Bericht verzonden en webhook getriggerd.");
+            console.log("Bericht succesvol opgeslagen in Firebase.");
         } catch (error) {
-            console.error("Fout bij verzenden bericht of webhook:", error);
+            console.error("Fout bij opslaan in Firebase:", error);
         }
 
         input.value = '';
