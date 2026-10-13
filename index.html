@@ -47,7 +47,6 @@
             --main-glow: 0 16px 60px rgba(56, 189, 248, 0.22), 0 0 40px rgba(56, 189, 248, 0.12);
         }
 
-        /* IN-APP TOAST NOTIFICATION BANNER */
         #toastContainer {
             position: fixed;
             top: 15px;
@@ -1622,11 +1621,11 @@
 
         setupOnlinePresence();
         setInterval(renderStatuses, 5000);
-        setInterval(check17HourNLMatchReminder, 60000);
+        setInterval(checkNLTimedReminders, 60000);
     }
 
-    // Automatische herinnering om 17:00 uur voor speelavonden
-    function check17HourNLMatchReminder() {
+    // Automatische controler om 17:00 (wedstrijdherinnering) en 18:00 (regenmelding >= 60%)
+    function checkNLTimedReminders() {
         try {
             const optionsHour = { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false };
             const optionsMinute = { timeZone: 'Europe/Amsterdam', minute: 'numeric' };
@@ -1634,7 +1633,7 @@
             const nlHour = parseInt(new Intl.DateTimeFormat('en-US', optionsHour).format(new Date()));
             const nlMinute = parseInt(new Intl.DateTimeFormat('en-US', optionsMinute).format(new Date()));
 
-            if (nlHour === 17 && nlMinute <= 1) {
+            if (nlMinute <= 1) {
                 let today = new Date();
                 today.setHours(0, 0, 0, 0);
 
@@ -1666,21 +1665,30 @@
 
                     if (dinsdagDate.getTime() === today.getTime()) {
                         let players = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
-                        sendReminderToPlayingPlayers(players, uniqueWeekKey, 'dinsdag', 'Dinsdag');
+                        if (nlHour === 17) {
+                            sendMatchReminder(players, uniqueWeekKey, 'dinsdag', 'Dinsdag');
+                        } else if (nlHour === 18) {
+                            sendRainWarningIfNeeded(uniqueWeekKey, 'dinsdag', 'Dinsdag', dinsdagDate);
+                        }
                     }
 
                     if (donderdagDate.getTime() === today.getTime()) {
                         let players = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
-                        sendReminderToPlayingPlayers(players, uniqueWeekKey, 'donderdag', 'Donderdag');
+                        if (nlHour === 17) {
+                            sendMatchReminder(players, uniqueWeekKey, 'donderdag', 'Donderdag');
+                        } else if (nlHour === 18) {
+                            sendRainWarningIfNeeded(uniqueWeekKey, 'donderdag', 'Donderdag', donderdagDate);
+                        }
                     }
                 }
             }
         } catch (e) {
-            console.error("Fout bij controleren Nederlandse tijdzone:", e);
+            console.error("Fout bij controleren tijdgebonden meldingen:", e);
         }
     }
 
-    function sendReminderToPlayingPlayers(players, uniqueWeekKey, dayKey, dayName) {
+    // 1. Om 17:00 uur: Eenmalige herinnering naar de spelers die vanavond spelen
+    function sendMatchReminder(players, uniqueWeekKey, dayKey, dayName) {
         let todayStr = new Date().toDateString();
         let reminderKey = `padel_17h_reminder_${uniqueWeekKey}_${dayKey}`;
 
@@ -1695,6 +1703,36 @@
         }
 
         localStorage.setItem(reminderKey, todayStr);
+    }
+
+    // 2. Om 18:00 uur: Eenmalige regenmelding naar iedereen als kans >= 60%
+    async function sendRainWarningIfNeeded(uniqueWeekKey, dayKey, dayName, matchDate) {
+        let todayStr = new Date().toDateString();
+        let rainKey = `padel_18h_rain_warn_${uniqueWeekKey}_${dayKey}`;
+
+        if (localStorage.getItem(rainKey) === todayStr) return;
+
+        let weatherObj = getWeatherObject(matchDate);
+        if (weatherObj && weatherObj.rain >= 60) {
+            let rainMsgText = `🌧️ Weerwaarschuwing (${dayName}): De regenkans om 18:00 uur is ${weatherObj.rain}%! Houd de baan in de gaten.`;
+            
+            await addSystemMessageIfUnique(rainMsgText);
+
+            try {
+                await fetch('https://eoe8fijxoang3hm.m.pipedream.net', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        author: "Padel Weerbericht",
+                        text: rainMsgText
+                    })
+                });
+            } catch (e) {
+                console.error("Fout bij verzenden regen-pushmelding om 18:00:", e);
+            }
+        }
+
+        localStorage.setItem(rainKey, todayStr);
     }
 
     function renderBaanBoekingen() {
@@ -2124,7 +2162,6 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            // Regenkans > 60% alert logica
             let dinsdagRainAlert = (dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) 
                 ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${dinsdagWeatherObj.rain}%)!</div>` : '';
             
@@ -2545,7 +2582,7 @@
         const windowDiv = document.getElementById('chatWindow');
         windowDiv.innerHTML = messages.map((m, index) => {
             const isSelf = (m.author === currentUserName);
-            const isSystem = (m.type === "system" || m.author === "Systeem");
+            const isSystem = (m.type === "system" || m.author === "Systeem" || m.author === "Padel Weerbericht");
             const formattedTime = formatMessageTime(m.timestamp, m.tijd);
             const tijdWeergave = formattedTime ? `<span style="font-size: 0.65rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${formattedTime}</span>` : '';
 
