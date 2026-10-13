@@ -2615,7 +2615,26 @@
             messageData.fileType = selectedFileType;
         }
 
-        await db.ref('padelData/messages').push(messageData);
+        try {
+            // 1. Sla het bericht op in Firebase Realtime Database
+            await db.ref('padelData/messages').push(messageData);
+
+            // 2. Trigger direct de Pipedream webhook voor de achtergrondnotificatie
+            await fetch('https://eoe8fijxoang3hm.m.pipedream.net', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    author: currentUserName,
+                    text: text || (selectedFileName ? `Bijlage: ${selectedFileName}` : "Nieuwe update")
+                })
+            });
+
+            console.log("Bericht verzonden en webhook getriggerd.");
+        } catch (error) {
+            console.error("Fout bij verzenden bericht of webhook:", error);
+        }
 
         input.value = '';
         input.style.height = 'auto'; 
