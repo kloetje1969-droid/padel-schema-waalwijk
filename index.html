@@ -944,6 +944,18 @@
             font-size: 0.85rem; 
         }
 
+        #pinModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 10001;
+            padding: 16px;
+        }
+
         #scheduleContainer {
             min-width: 0;
             max-width: 100%;
@@ -1088,6 +1100,20 @@
         <input type="password" id="pinInput" maxlength="4" placeholder="••••" onkeypress="handlePinKey(event)">
         <div id="pinError" class="pin-error">Onjuiste pincode. Probeer het opnieuw.</div>
         <button class="btn-primary" onclick="checkPin()">Ontgrendelen</button>
+    </div>
+</div>
+
+<!-- Extra pop-up voor Robert's specifieke pincode (1412) -->
+<div id="pinModal">
+    <div class="pin-box">
+        <h2>🔒 Beveiligd</h2>
+        <p>Voer de pincode voor Robert in:</p>
+        <input type="password" id="robertPinInput" maxlength="4" placeholder="••••" onkeypress="handleRobertPinKey(event)">
+        <div id="robertPinError" class="pin-error">Onjuiste pincode voor Robert.</div>
+        <div class="modal-buttons" style="justify-content: center; margin-top: 10px;">
+            <button class="btn-cancel" onclick="cancelRobertSelect()">Annuleren</button>
+            <button class="btn-primary" onclick="confirmRobertPin()">Bevestigen</button>
+        </div>
     </div>
 </div>
 
@@ -1624,7 +1650,6 @@
         setInterval(checkNLTimedReminders, 60000);
     }
 
-    // Automatische controler om 17:00 (wedstrijdherinnering) en 18:00 (regenmelding >= 60%)
     function checkNLTimedReminders() {
         try {
             const optionsHour = { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false };
@@ -1687,7 +1712,6 @@
         }
     }
 
-    // 1. Om 17:00 uur: Eenmalige herinnering naar de spelers die vanavond spelen
     function sendMatchReminder(players, uniqueWeekKey, dayKey, dayName) {
         let todayStr = new Date().toDateString();
         let reminderKey = `padel_17h_reminder_${uniqueWeekKey}_${dayKey}`;
@@ -1705,7 +1729,6 @@
         localStorage.setItem(reminderKey, todayStr);
     }
 
-    // 2. Om 18:00 uur: Eenmalige regenmelding naar iedereen als kans >= 60%
     async function sendRainWarningIfNeeded(uniqueWeekKey, dayKey, dayName, matchDate) {
         let todayStr = new Date().toDateString();
         let rainKey = `padel_18h_rain_warn_${uniqueWeekKey}_${dayKey}`;
@@ -1917,12 +1940,45 @@
 
         if (!gekozenNaam) return;
 
-        if (gekozenNaam === "Robert" && currentUserName !== "Robert" && sessionStorage.getItem('padel_unlocked') !== 'true') {
-            alert("Je kunt niet zomaar als Robert inloggen zonder de juiste pincode.");
-            select.value = currentUserName;
+        if (gekozenNaam === "Robert" && currentUserName !== "Robert") {
+            // Vraag om pincode 1412 voor Robert
+            document.getElementById('pinModal').style.display = 'flex';
+            document.getElementById('robertPinInput').value = '';
+            document.getElementById('robertPinError').style.display = 'none';
+            document.getElementById('robertPinInput').focus();
             return;
         }
 
+        completeUserChange(gekozenNaam);
+    }
+
+    function handleRobertPinKey(e) {
+        if (e.key === 'Enter') {
+            confirmRobertPin();
+        }
+    }
+
+    function confirmRobertPin() {
+        const pinVal = document.getElementById('robertPinInput').value;
+        const errDiv = document.getElementById('robertPinError');
+
+        if (pinVal === "1412") {
+            document.getElementById('pinModal').style.display = 'none';
+            completeUserChange("Robert");
+        } else {
+            errDiv.style.display = 'block';
+            document.getElementById('robertPinInput').value = '';
+            document.getElementById('robertPinInput').focus();
+        }
+    }
+
+    function cancelRobertSelect() {
+        document.getElementById('pinModal').style.display = 'none';
+        const select = document.getElementById('userSelect');
+        select.value = currentUserName;
+    }
+
+    function completeUserChange(gekozenNaam) {
         saveCurrentSessionLastSeen();
         currentUserName = gekozenNaam;
         localStorage.setItem('padel_current_user', currentUserName);
