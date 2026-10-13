@@ -2473,6 +2473,21 @@
         let msgText = `🔄 Schema gewijzigd voor week ${activeModalWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
         
         await addSystemMessageIfUnique(msgText);
+
+        // Trigger webhook voor de wissel
+        try {
+            await fetch('https://eoe8fijxoang3hm.m.pipedream.net', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    author: currentUserName || "Padel Systeem",
+                    text: msgText
+                })
+            });
+        } catch (e) {
+            console.error("Fout bij webhook wissel:", e);
+        }
+
         closeModal();
     }
 
@@ -2492,6 +2507,20 @@
 
             let msgText = `📅 ${playerName} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${day}) (door ${currentUserName})`;
             await addSystemMessageIfUnique(msgText);
+
+            // Trigger webhook voor de afmelding
+            try {
+                await fetch('https://eoe8fijxoang3hm.m.pipedream.net', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        author: currentUserName || "Padel Systeem",
+                        text: msgText
+                    })
+                });
+            } catch (e) {
+                console.error("Fout bij webhook afmelding:", e);
+            }
         });
     }
 
