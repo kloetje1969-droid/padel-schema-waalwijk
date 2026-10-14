@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v6.3)</title>
+    <title>Padelschema - Rooster & Chat (v6.4)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padel Icon -->
     <link rel="manifest" href="manifest.json">
@@ -93,8 +93,10 @@
 
         .emoji-icon {
             display: inline-block;
-            width: 32px;
-            height: 32px;
+            width: 30px !important;
+            height: 30px !important;
+            max-width: 30px !important;
+            max-height: 30px !important;
             vertical-align: middle;
             object-fit: contain;
         }
@@ -252,7 +254,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            flex-wrap: nowrap;
+            gap: 10px;
             width: 100%;
             text-align: center;
             text-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
@@ -1298,7 +1301,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "6.3";
+    const APP_VERSION = "6.4";
 
     const emojiIconHtml = `<img class="emoji-icon" src="image.png" alt="Padel">`;
 
