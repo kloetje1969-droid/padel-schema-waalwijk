@@ -16,10 +16,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Padelschema">
     
-    <!-- Directe Padel Icon Links -->
-    <link rel="icon" href="image.png" type="image/png">
-    <link rel="apple-touch-icon" href="image.png">
-    
     <meta name="theme-color" content="#0b0f19">
 
     <!-- Firebase App (compat) -->
@@ -92,13 +88,8 @@
         }
 
         .emoji-icon {
-            display: inline-block;
-            width: 30px !important;
-            height: 30px !important;
-            max-width: 30px !important;
-            max-height: 30px !important;
+            font-size: 1.4rem;
             vertical-align: middle;
-            object-fit: contain;
         }
 
         .booking-input-soft {
@@ -1124,9 +1115,9 @@
 <div class="container">
     <header>
         <h1>
-            <img class="emoji-icon" src="image.png" alt="Padel">
+            <span class="emoji-icon">🥎</span>
             Padelschema 
-            <img class="emoji-icon" src="image.png" alt="Padel">
+            <span class="emoji-icon">🥎</span>
         </h1>
         
         <div class="user-select-row">
@@ -1216,7 +1207,7 @@
     <div class="card">
         <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
             <div class="section-title" style="font-size: 0.95rem;">
-                <img class="emoji-icon" src="image.png" alt="Padel">
+                <span class="emoji-icon">🥎</span>
                 Baan Boeken & Stand
             </div>
             <span id="collapseArrow" class="collapse-arrow">▼ Open</span>
@@ -1303,7 +1294,7 @@
 <script>
     const APP_VERSION = "6.4";
 
-    const emojiIconHtml = `<img class="emoji-icon" src="image.png" alt="Padel">`;
+    const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
 
     async function checkAppVersion() {
         try {
