@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v6.4)</title>
+    <title>Padelschema - Rooster & Chat (v6.5)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padel Icon -->
     <link rel="manifest" href="manifest.json">
@@ -1292,7 +1292,8 @@
 </div>
 
 <script>
-    const APP_VERSION = "6.4";
+    const APP_VERSION = "6.5";
+    const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
 
@@ -1419,16 +1420,14 @@
         const btn = document.getElementById('pushPermissionBtn');
         if (!btn) return;
 
-        const isGrantedLocally = localStorage.getItem('padel_push_granted') === 'true';
         const browserGranted = (typeof Notification !== 'undefined' && Notification.permission === 'granted');
         const browserDenied = (typeof Notification !== 'undefined' && Notification.permission === 'denied');
 
-        if (isGrantedLocally || browserGranted) {
+        if (browserGranted) {
             btn.innerText = "✓ Meldingen actief";
             btn.style.background = "rgba(52, 211, 153, 0.15)";
             btn.style.borderColor = "var(--accent-green)";
             btn.style.color = "var(--accent-green)";
-            localStorage.setItem('padel_push_granted', 'true');
         } else if (browserDenied) {
             btn.innerText = "✕ Meldingen geblokkeerd in browser";
             btn.style.background = "var(--danger-bg)";
@@ -1442,35 +1441,50 @@
         }
     }
 
+    // Slaat het FCM-token op waar de server het zoekt: padelData/tokens/<naam>/<token>
+    async function registerPushToken() {
+        if (!messaging || !currentUserName) return;
+        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+
+        try {
+            const swReg = ('serviceWorker' in navigator) ? await navigator.serviceWorker.ready : undefined;
+            const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+            if (!token) return;
+
+            const prevUser = localStorage.getItem('padel_fcm_user');
+            const prevToken = localStorage.getItem('padel_fcm_token');
+            const updates = {};
+            if (prevUser && prevToken && (prevUser !== currentUserName || prevToken !== token)) {
+                updates[`padelData/tokens/${prevUser}/${prevToken}`] = null;
+            }
+            updates[`padelData/tokens/${currentUserName}/${token}`] = true;
+            await db.ref().update(updates);
+
+            localStorage.setItem('padel_fcm_user', currentUserName);
+            localStorage.setItem('padel_fcm_token', token);
+        } catch (err) {
+            console.error("Fout bij registreren van push-token:", err);
+        }
+    }
+
     async function requestPushPermission() {
         if (!currentUserName) {
             alert("Kies eerst je naam bovenin de app voordat je meldingen inschakelt!");
             return;
         }
+        if (typeof Notification === 'undefined') {
+            alert("Dit apparaat ondersteunt geen pushmeldingen.");
+            return;
+        }
 
         try {
             const permission = await Notification.requestPermission();
+            updatePushPermissionButtonUI();
             if (permission === 'granted') {
-                localStorage.setItem('padel_push_granted', 'true');
-                updatePushPermissionButtonUI();
-
-                if (messaging) {
-                    const token = await messaging.getToken({ 
-                        vapidKey: 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg' 
-                    }).catch(err => {
-                        console.error("Fout bij ophalen FCM token:", err);
-                        return null;
-                    });
-                    
-                    if (token) {
-                        await db.ref(`padelData/fcmTokens/${currentUserName}`).set(token);
-                        console.log("FCM Token succesvol opgeslagen in Firebase!");
-                    }
-                }
+                await registerPushToken();
                 alert("Meldingen zijn succesvol ingeschakeld!");
             } else {
                 alert("Toestemming voor meldingen is geweigerd in je browserinstellingen.");
-                updatePushPermissionButtonUI();
             }
         } catch (e) {
             console.error("Fout bij aanvragen push toestemming:", e);
@@ -1598,6 +1612,17 @@
         initUserSelect();
         fetchWaalwijkWeather();
         updatePushPermissionButtonUI();
+        registerPushToken();
+
+        // Meldingen die binnenkomen terwijl de app open staat tonen als banner
+        if (messaging) {
+            try {
+                messaging.onMessage((payload) => {
+                    const n = payload.notification || payload.data || {};
+                    showToast(n.title || 'Padel', n.body || '');
+                });
+            } catch (e) {}
+        }
 
         db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
             liveOverrides = snapshot.val() || {};
@@ -1649,102 +1674,8 @@
 
         setupOnlinePresence();
         setInterval(renderStatuses, 5000);
-        setInterval(checkNLTimedReminders, 60000);
-    }
-
-    function checkNLTimedReminders() {
-        try {
-            const optionsHour = { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false };
-            const optionsMinute = { timeZone: 'Europe/Amsterdam', minute: 'numeric' };
-            
-            const nlHour = parseInt(new Intl.DateTimeFormat('en-US', optionsHour).format(new Date()));
-            const nlMinute = parseInt(new Intl.DateTimeFormat('en-US', optionsMinute).format(new Date()));
-
-            if (nlMinute <= 1) {
-                let today = new Date();
-                today.setHours(0, 0, 0, 0);
-
-                let currentMonday = getAdjustedBaseDate();
-                let referenceMonday = new Date(2026, 8, 21);
-
-                for (let i = 0; i < 2; i++) {
-                    let weekStart = new Date(currentMonday);
-                    weekStart.setDate(currentMonday.getDate() + (i * 7));
-
-                    let currentWeekNum = getISOWeekNumber(weekStart);
-                    let currentYear = weekStart.getFullYear();
-                    let uniqueWeekKey = `${currentYear}_w${currentWeekNum}`;
-
-                    let diffTime = weekStart.getTime() - referenceMonday.getTime();
-                    let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
-                    let templateIndex = ((diffWeeks % 6) + 6) % 6;
-
-                    let dinsdagDate = new Date(weekStart);
-                    dinsdagDate.setDate(weekStart.getDate() + 1);
-                    dinsdagDate.setHours(0, 0, 0, 0);
-
-                    let donderdagDate = new Date(weekStart);
-                    donderdagDate.setDate(weekStart.getDate() + 3);
-                    donderdagDate.setHours(0, 0, 0, 0);
-
-                    let tpl = defaultTemplate[templateIndex];
-                    let overrideData = liveOverrides[uniqueWeekKey] || {};
-
-                    if (dinsdagDate.getTime() === today.getTime()) {
-                        let players = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
-                        if (nlHour === 17) {
-                            sendMatchReminder(players, uniqueWeekKey, 'dinsdag', 'Dinsdag');
-                        } else if (nlHour === 18) {
-                            sendRainWarningIfNeeded(uniqueWeekKey, 'dinsdag', 'Dinsdag', dinsdagDate);
-                        }
-                    }
-
-                    if (donderdagDate.getTime() === today.getTime()) {
-                        let players = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
-                        if (nlHour === 17) {
-                            sendMatchReminder(players, uniqueWeekKey, 'donderdag', 'Donderdag');
-                        } else if (nlHour === 18) {
-                            sendRainWarningIfNeeded(uniqueWeekKey, 'donderdag', 'Donderdag', donderdagDate);
-                        }
-                    }
-                }
-            }
-        } catch (e) {
-            console.error("Fout bij controleren tijdgebonden meldingen:", e);
-        }
-    }
-
-    function sendMatchReminder(players, uniqueWeekKey, dayKey, dayName) {
-        let todayStr = new Date().toDateString();
-        let reminderKey = `padel_17h_reminder_${uniqueWeekKey}_${dayKey}`;
-
-        if (localStorage.getItem(reminderKey) === todayStr) return;
-
-        let activePlayersTonight = players.filter(p => !checkPlayerAbsent(p, uniqueWeekKey, dayKey));
-
-        if (currentUserName && activePlayersTonight.includes(currentUserName)) {
-            let title = `Padel Herinnering`;
-            let body = `Hoi ${currentUserName}, je staat vanavond (${dayName}) ingepland om te padellen!`;
-            showToast(title, body);
-        }
-
-        localStorage.setItem(reminderKey, todayStr);
-    }
-
-    async function sendRainWarningIfNeeded(uniqueWeekKey, dayKey, dayName, matchDate) {
-        let todayStr = new Date().toDateString();
-        let rainKey = `padel_18h_rain_warn_${uniqueWeekKey}_${dayKey}`;
-
-        if (localStorage.getItem(rainKey) === todayStr) return;
-
-        let weatherObj = getWeatherObject(matchDate);
-        if (weatherObj && weatherObj.rain >= 60) {
-            let rainMsgText = `🌧️ Weerwaarschuwing (${dayName}): De regenkans om 18:00 uur is ${weatherObj.rain}%! Houd de baan in de gaten.`;
-            
-            await addSystemMessageIfUnique(rainMsgText);
-        }
-
-        localStorage.setItem(rainKey, todayStr);
+        // De herinnering (17:00) en het weeralarm (18:00) worden alleen nog door de server verstuurd
+        // (api/match-reminder en api/check-weather), zodat niemand ze dubbel krijgt.
     }
 
     function renderBaanBoekingen() {
@@ -1976,6 +1907,7 @@
         renderAll();
         renderChat();
         setupOnlinePresence();
+        registerPushToken();
     }
 
     function saveCurrentSessionLastSeen() {
