@@ -1,152 +1,56 @@
-import admin from 'firebase-admin';
+import { db, amsterdamNow, getWeekInfo, defaultTemplate, getTokensByPlayer, tokensOf, sendToTokens } from '../lib/padel.js';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
-    }),
-    databaseURL: process.env.FIREBASE_DATABASE_URL
-  });
-}
-const db = admin.database();
-
-const defaultTemplate = [
-{ dinsdag: ["Sander", "Mark", "Robert", "Dennis"],  donderdag: ["Marcel", "Ronald", "Robert", "Dennis"] },
-{ dinsdag: ["Sander", "Dennis", "Mark", "Ronald"],  donderdag: ["Robert", "Marcel", "Mark", "Ronald"] },
-{ dinsdag: ["Mark", "Marcel", "Robert", "Sander"],  donderdag: ["Ronald", "Dennis", "Robert", "Sander"] },
-{ dinsdag: ["Ronald", "Sander", "Dennis", "Marcel"], donderdag: ["Robert", "Mark", "Dennis", "Marcel"] },
-{ dinsdag: ["Robert", "Ronald", "Marcel", "Sander"], donderdag: ["Dennis", "Mark", "Marcel", "Sander"] },
-{ dinsdag: ["Robert", "Dennis", "Mark", "Ronald"],  donderdag: ["Marcel", "Sander", "Mark", "Ronald"] }
-];
-
-
-
-
-function getMonday(d) {
-  d = new Date(d);
-  let day = d.getDay();
-  let diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
-}
-
-function getISOWeekNumber(d) {
-  let date = new Date(d.getTime());
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-  let week1 = new Date(date.getFullYear(), 0, 4);
-  return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
-}
-
+// Aanroepen via cron (bijv. elk uur of elke 10 min). Doet alleen iets op di/do tussen 17:00 en 17:59 NL-tijd.
 export default async function handler(req, res) {
   try {
-    const { title, body } = req.body || {};
+    const nl = amsterdamNow();
+    if ((nl.weekday !== 'Tue' && nl.weekday !== 'Thu') || nl.hour !== 17) {
+      return res.status(200).json({ status: `Geen actie: ${nl.weekday} ${nl.hour}:xx NL-tijd (vereist: di of do, 17 uur).` });
+    }
 
-    const now = new Date();
-    const currentDay = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Amsterdam', weekday: 'short' }).format(now);
-    const currentHour = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Amsterdam', hour: 'numeric', hour12: false }).format(now), 10);
+    const dayKey = nl.weekday === 'Tue' ? 'dinsdag' : 'donderdag';
 
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const dayNum = String(now.getDate()).padStart(2, '0');
-    const dateKey = `${year}-${month}-${dayNum}`;
-    const dayKey = currentDay === 'Tue' ? 'dinsdag' : 'donderdag';
+    // Atomair "claimen" zodat dubbele cron-aanroepen geen dubbele meldingen geven
+    const flagRef = db.ref(`padelData/sentMatchReminders/${nl.dateKey}`);
+    const claim = await flagRef.transaction(cur => (cur ? undefined : true));
+    if (!claim.committed) {
+      return res.status(200).json({ status: `Herinnering voor ${nl.dateKey} is al verzonden.` });
+    }
 
-    // 1. Handmatige aanroep met eigen titel/body: stuur naar alle tokens
-    if (title && body) {
-      const tokensSnap = await db.ref('padelData/tokens').once('value');
-      const tokensData = tokensSnap.val() || {};
+    try {
+      const week = getWeekInfo(nl.year, nl.month, nl.day);
+      const [overridesSnap, absenceSnap, tokensData] = await Promise.all([
+        db.ref(`padelData/scheduleOverrides/${week.key}/${dayKey}`).once('value'),
+        db.ref('padelData/absence').once('value'),
+        getTokensByPlayer()
+      ]);
 
-      const allTokens = [];
-      Object.values(tokensData).forEach(userTokensObj => {
-        if (userTokensObj) allTokens.push(...Object.keys(userTokensObj));
-      });
+      const override = overridesSnap.val();
+      const players = (Array.isArray(override) && override.length === 4) ? override : defaultTemplate[week.templateIndex][dayKey];
+      const absences = absenceSnap.val() || {};
 
-      if (allTokens.length === 0) {
-        return res.status(200).json({ status: 'Geen tokens gevonden.' });
+      const active = players.filter(p => !(absences[p] && absences[p][`${week.key}_${dayKey}`]));
+      const tokens = tokensOf(tokensData, active);
+
+      if (tokens.length === 0) {
+        await flagRef.remove();
+        return res.status(200).json({ status: 'Geen tokens gevonden voor de spelers van vanavond.', players: active });
       }
 
-      const response = await admin.messaging().sendEachForMulticast({
-        notification: { title, body },
-        tokens: allTokens
-      });
-
-      return res.status(200).json({ success: true, successCount: response.successCount });
-    }
-
-    // 2. Automatische reminder om 17:00 (dinsdag of donderdag)
-    if ((currentDay !== 'Tue' && currentDay !== 'Thu') || currentHour !== 17) {
-      return res.status(200).json({
-        status: `Geen actie: Vandaag is ${currentDay} en het is ${currentHour}:00 uur (vereist: di of do om 17:00).`
-      });
-    }
-
-    const reminderRef = db.ref(`padelData/sentMatchReminders/${dateKey}`);
-    const snapshot = await reminderRef.once('value');
-    if (snapshot.exists()) {
-      return res.status(200).json({ status: `Wedstrijdherinnering voor ${dateKey} is al verzonden.` });
-    }
-
-    const currentMonday = getMonday(now);
-    currentMonday.setHours(0, 0, 0, 0);
-
-    const currentWeekNum = getISOWeekNumber(currentMonday);
-    const currentYear = currentMonday.getFullYear();
-    const uniqueWeekKey = `${currentYear}_w${currentWeekNum}`;
-
-    const referenceMonday = new Date(2026, 8, 21);
-    const diffTime = currentMonday.getTime() - referenceMonday.getTime();
-    const diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
-    const templateIndex = ((diffWeeks % 6) + 6) % 6;
-
-    const [overridesSnap, absenceSnap, tokensSnap] = await Promise.all([
-      db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}`).once('value'),
-      db.ref('padelData/absence').once('value'),
-      db.ref('padelData/tokens').once('value')
-    ]);
-
-    const overrides = overridesSnap.val() || {};
-    const absences = absenceSnap.val() || {};
-    const tokensData = tokensSnap.val() || {};
-
-    const tpl = defaultTemplate[templateIndex];
-    const matchPlayers = overrides[dayKey] !== undefined ? overrides[dayKey] : tpl[dayKey];
-
-    const activePlayersToNotify = matchPlayers.filter(player => {
-      const playerAbsences = absences[player] || {};
-      return !playerAbsences[`${uniqueWeekKey}_${dayKey}`];
-    });
-
-    const targetTokens = [];
-    activePlayersToNotify.forEach(player => {
-      if (tokensData[player]) {
-        targetTokens.push(...Object.keys(tokensData[player]));
-      }
-    });
-
-    if (targetTokens.length === 0) {
-      return res.status(200).json({ status: 'Geen actieve tokens gevonden om te notifiëren.' });
-    }
-
-    const response = await admin.messaging().sendEachForMulticast({
-      notification: {
+      const result = await sendToTokens(tokens, {
         title: '🎾 Padel Reminder',
         body: 'Vanavond is het weer zover! Vergeet niet dat je vanavond de baan op moet.'
-      },
-      tokens: targetTokens
-    });
+      });
 
-    await reminderRef.set(true);
+      if (result.successCount === 0) await flagRef.remove(); // volgende cron-aanroep mag opnieuw proberen
 
-    return res.status(200).json({
-      success: true,
-      notifiedPlayers: activePlayersToNotify,
-      successCount: response.successCount
-    });
+      return res.status(200).json({ success: result.successCount > 0, notifiedPlayers: active, ...result });
+    } catch (err) {
+      await flagRef.remove();
+      throw err;
+    }
   } catch (error) {
     console.error('Fout bij versturen match reminder:', error);
     return res.status(500).json({ error: error.message });
   }
 }
-// v4
