@@ -12,47 +12,34 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
+const ICON = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3d3.png';
 
-// Vang achtergrondberichten op als de app op de achtergrond staat of gesloten is
+// Berichten met een "notification"-veld toont FCM zelf. Hier alleen data-only berichten tonen,
+// anders zie je dezelfde melding dubbel.
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Ontvangen achtergrondbericht:', payload);
-  
-  // Haal de data op uit notification of val terug op de data-payload
-  const notificationTitle = payload.notification?.title || payload.data?.title || 'Padel Update';
-  const notificationOptions = {
-    body: payload.notification?.body || payload.data?.body || 'Er is een nieuw bericht in de padel app',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
-    data: {
-      url: payload.notification?.click_action || payload.data?.click_action || '/'
-    }
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  if (payload.notification) return;
+  const d = payload.data || {};
+  self.registration.showNotification(d.title || 'Padel Update', {
+    body: d.body || 'Er is een nieuw bericht in de padel app',
+    icon: ICON,
+    data: { url: d.click_action || '/' }
+  });
 });
 
-// Zorg ervoor dat de app opent wanneer er op de melding wordt geklikt
 self.addEventListener('notificationclick', (event) => {
-  console.log('[firebase-messaging-sw.js] Melding aangeklikt:', event);
-  event.notification.close();
+  // Door FCM getoonde melding met link: de Firebase-SDK opent die link zelf
+  const fcm = event.notification.data && event.notification.data.FCM_MSG;
+  if (fcm && ((fcm.fcmOptions && fcm.fcmOptions.link) || (fcm.notification && fcm.notification.click_action))) return;
 
-  const clickURL = event.notification.data?.url || '/';
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // Als de app al open staat in een tabblad, focus daar dan op
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i];
-        if (client.url === clickURL && 'focus' in client) {
-          return client.focus();
-        }
+      for (const client of windowClients) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) return client.focus();
       }
-      // Anders open je een nieuw venster/tabblad op de juiste URL
-      if (clients.openWindow) {
-        return clients.openWindow(clickURL);
-      }
+      return clients.openWindow(target);
     })
   );
 });
-
-
