@@ -999,6 +999,9 @@
         .match-action-container {
             flex: 0 0 auto;
             min-width: max-content;
+            display: flex;
+            gap: 6px;
+            align-items: center;
         }
 
         @media (max-width: 600px) {
@@ -1155,7 +1158,17 @@
         <span class="alert-badge-count" id="alertBadgeCount">0</span>
     </button>
 
-    <div class="section-title" style="margin-top: 4px;">📅 Speelschema (komende 6 weken)</div>
+    <!-- Klassement gewonnen sets (Boven de chat) -->
+    <div class="card">
+        <div class="card-header">
+            <div class="section-title" style="font-size: 0.95rem;">📊 Stand (Gewonnen Sets)</div>
+        </div>
+        <div id="setsRankingContainer" style="display: flex; flex-direction: column; gap: 6px; padding-top: 4px;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Sets berekenen...</div>
+        </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 4px;">📅 Speelschema & Uitslagen (komende 6 weken)</div>
     <div id="scheduleContainer" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">Laden van schema...</div>
 
     <div class="card">
@@ -1346,6 +1359,7 @@
     let selectedFileName = null;
     let selectedFileType = null;
     let baanBoekingenList = [];
+    let matchResults = {}; // Opslag voor uitslagen
 
     const defaultTemplate = [
         { dinsdag: ["Mark", "Robert", "Ronald", "Sander"], donderdag: ["Marcel", "Robert", "Sander", "Dennis"] },
@@ -1634,6 +1648,12 @@
             renderAll();
         });
 
+        db.ref('padelData/matchResults').on('value', (snapshot) => {
+            matchResults = snapshot.val() || {};
+            renderSetsRanking();
+            renderSchedule();
+        });
+
         db.ref('padelData/presence').on('value', (snapshot) => {
             allStatuses = snapshot.val() || {};
             renderStatuses();
@@ -1672,6 +1692,57 @@
 
         setupOnlinePresence();
         setInterval(renderStatuses, 5000);
+    }
+
+    function renderSetsRanking() {
+        const container = document.getElementById('setsRankingContainer');
+        if (!container) return;
+
+        let setCounts = {};
+        basePlayers.forEach(p => setCounts[p] = 0);
+
+        for (let matchId in matchResults) {
+            let res = matchResults[matchId];
+            if (res && res.players && res.players.length === 4) {
+                let s1 = Number(res.team1Score) || 0;
+                let s2 = Number(res.team2Score) || 0;
+                setCounts[res.players[0]] = (setCounts[res.players[0]] || 0) + s1;
+                setCounts[res.players[1]] = (setCounts[res.players[1]] || 0) + s1;
+                setCounts[res.players[2]] = (setCounts[res.players[2]] || 0) + s2;
+                setCounts[res.players[3]] = (setCounts[res.players[3]] || 0) + s2;
+            }
+        }
+
+        let sortedPlayers = [...basePlayers].sort((a, b) => (setCounts[b] || 0) - (setCounts[a] || 0));
+
+        container.innerHTML = sortedPlayers.map((p, index) => {
+            let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+            let isMe = (p === currentUserName);
+            return `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: ${isMe ? 'rgba(56, 189, 248, 0.15)' : 'var(--bg-color)'}; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
+                    <span style="font-weight: ${isMe ? 'bold' : '500'}; color: ${isMe ? '#7dd3fc' : 'var(--text-main)'};">${medal} ${p}</span>
+                    <span style="color: var(--accent-blue); font-weight: bold;">${setCounts[p] || 0} sets</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function saveMatchScore(matchId, p1, p2, p3, p4) {
+        let s1Input = document.getElementById(`s1_${matchId}`);
+        let s2Input = document.getElementById(`s2_${matchId}`);
+        if (!s1Input || !s2Input) return;
+
+        let s1 = parseInt(s1Input.value) || 0;
+        let s2 = parseInt(s2Input.value) || 0;
+
+        let matchData = {
+            team1Score: s1,
+            team2Score: s2,
+            players: [p1, p2, p3, p4]
+        };
+
+        await db.ref(`padelData/matchResults/${matchId}`).set(matchData);
+        showToast("Uitslag opgeslagen", `Team 1 (${p1}, ${p2}): ${s1} | Team 2 (${p3}, ${p4}): ${s2}`);
     }
 
     function renderBaanBoekingen() {
@@ -2060,6 +2131,7 @@
         renderSchedule();
         renderStats();
         renderAbsenceTable();
+        renderSetsRanking();
     }
 
     function getMonday(d) {
@@ -2143,6 +2215,11 @@
             let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
             let donderdagAbsentees = donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
 
+            let diMatchId = `${uniqueWeekKey}_dinsdag`;
+            let doMatchId = `${uniqueWeekKey}_donderdag`;
+            let diRes = matchResults[diMatchId] || { team1Score: '', team2Score: '' };
+            let doRes = matchResults[doMatchId] || { team1Score: '', team2Score: '' };
+
             let matchesContent = `
                 <div class="match-row-wrapper">
                     <div class="match-row">
@@ -2156,7 +2233,11 @@
                             </div>
                         </div>
                         <div class="match-action-container">
-                            <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig</button>
+                            <input type="number" id="s1_${diMatchId}" value="${diRes.team1Score !== undefined ? diRes.team1Score : ''}" placeholder="0" class="w-12 bg-slate-900 border border-slate-700 rounded text-center py-1 text-slate-100" min="0" style="width: 36px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                            <span style="font-size: 0.7rem; color: var(--text-muted);">-</span>
+                            <input type="number" id="s2_${diMatchId}" value="${diRes.team2Score !== undefined ? diRes.team2Score : ''}" placeholder="0" class="w-12 bg-slate-900 border border-slate-700 rounded text-center py-1 text-slate-100" min="0" style="width: 36px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                            <button class="btn-edit" onclick="saveMatchScore('${diMatchId}', '${dinsdagPlayers[0]}', '${dinsdagPlayers[1]}', '${dinsdagPlayers[2]}', '${dinsdagPlayers[3]}')" style="padding: 5px 8px; font-size: 0.7rem;">💾</button>
+                            <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️</button>
                         </div>
                     </div>
                     ${dinsdagRainAlert}
@@ -2175,7 +2256,11 @@
                             </div>
                         </div>
                         <div class="match-action-container">
-                            <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig</button>
+                            <input type="number" id="s1_${doMatchId}" value="${doRes.team1Score !== undefined ? doRes.team1Score : ''}" placeholder="0" class="w-12 bg-slate-900 border border-slate-700 rounded text-center py-1 text-slate-100" min="0" style="width: 36px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                            <span style="font-size: 0.7rem; color: var(--text-muted);">-</span>
+                            <input type="number" id="s2_${doMatchId}" value="${doRes.team2Score !== undefined ? doRes.team2Score : ''}" placeholder="0" class="w-12 bg-slate-900 border border-slate-700 rounded text-center py-1 text-slate-100" min="0" style="width: 36px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                            <button class="btn-edit" onclick="saveMatchScore('${doMatchId}', '${donderdagPlayers[0]}', '${donderdagPlayers[1]}', '${donderdagPlayers[2]}', '${donderdagPlayers[3]}')" style="padding: 5px 8px; font-size: 0.7rem;">💾</button>
+                            <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️</button>
                         </div>
                     </div>
                     ${donderdagRainAlert}
