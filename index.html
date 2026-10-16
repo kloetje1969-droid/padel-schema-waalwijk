@@ -1251,6 +1251,11 @@
             <button class="btn-primary" onclick="sendMessage()">Verzend</button>
         </div>
     </div>
+
+    <!-- Versienummer onderaan -->
+    <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
+        Padelschema v6.9
+    </div>
 </div>
 
 <div id="replaceModal" class="modal">
@@ -1441,8 +1446,6 @@
         }
     }
 
-    // Slaat het FCM-token op waar de server het zoekt: padelData/tokens/<naam>/<token>
-    // Vraagt de server om een pushmelding te sturen voor een zojuist geplaatst bericht
     function notifyServer(messageKey) {
         try {
             fetch('/api/notify', {
@@ -1469,7 +1472,6 @@
             if (prevUser && prevToken && prevUser !== currentUserName) {
                 updates[`padelData/tokens/${prevUser}/${prevToken}`] = null;
             }
-            // Eén apparaat per speler: het laatst geopende apparaat/de laatst geopende app krijgt de meldingen.
             updates[`padelData/tokens/${currentUserName}`] = { [token]: true };
             await db.ref().update(updates);
 
@@ -1627,7 +1629,6 @@
         updatePushPermissionButtonUI();
         registerPushToken();
 
-        // Meldingen die binnenkomen terwijl de app open staat tonen als banner
         db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
             liveOverrides = snapshot.val() || {};
             renderAll();
@@ -1671,8 +1672,6 @@
 
         setupOnlinePresence();
         setInterval(renderStatuses, 5000);
-        // De herinnering (17:00) en het weeralarm (18:00) worden alleen nog door de server verstuurd
-        // (api/match-reminder en api/check-weather), zodat niemand ze dubbel krijgt.
     }
 
     function renderBaanBoekingen() {
