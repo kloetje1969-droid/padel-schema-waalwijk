@@ -665,19 +665,29 @@
 
         .players-container {
             display: flex;
-            gap: 3px;
-            flex-wrap: wrap;
+            gap: 5px;
+            flex-wrap: nowrap;
             align-items: center;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 1px;
+        }
+
+        .players-container::-webkit-scrollbar {
+            display: none;
         }
 
         .player-chip {
             background: #374151;
             border: 1px solid #4b5563;
             color: #d1d5db;
-            padding: 3px 6px;
-            border-radius: 5px;
-            font-size: 0.78rem;
-            font-weight: 500;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            font-weight: 600;
             white-space: nowrap;
         }
 
@@ -705,9 +715,9 @@
 
         .vs-text {
             color: var(--text-muted);
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             font-weight: 600;
-            margin: 0 1px;
+            margin: 0 3px;
         }
 
         .match-action-container {
@@ -1029,20 +1039,6 @@
             overflow: hidden;
         }
 
-        .players-container {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            overflow-y: hidden;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            padding-bottom: 1px;
-        }
-
-        .players-container::-webkit-scrollbar {
-            display: none;
-        }
-
         .players-container .player-chip,
         .players-container .vs-text {
             flex: 0 0 auto;
@@ -1084,13 +1080,13 @@
             }
 
             .player-chip {
-                padding: 3px 5px;
-                font-size: 0.70rem;
+                padding: 3px 6px;
+                font-size: 0.8rem;
             }
 
             .vs-text {
-                font-size: 0.64rem;
-                margin: 0 1px;
+                font-size: 0.7rem;
+                margin: 0 2px;
             }
 
             .match-action-container .btn-edit {
@@ -1111,12 +1107,12 @@
             }
 
             .player-chip {
-                padding: 2px 4px;
-                font-size: 0.65rem;
+                padding: 3px 5px;
+                font-size: 0.75rem;
             }
 
             .vs-text {
-                font-size: 0.60rem;
+                font-size: 0.65rem;
             }
 
             .match-action-container .btn-edit {
