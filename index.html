@@ -591,11 +591,27 @@
             align-items: center;
         }
 
+        .set-column-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .set-column-title {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
         .set-input-box {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 4px;
+            width: 100%;
         }
 
         .match-info {
@@ -2290,29 +2306,33 @@
                             </div>
                         </div>
                         <div class="match-score-section">
-                            <div class="sets-header-grid">
-                                <div>Set 1</div>
-                                <div>Set 2</div>
-                                <div>Set 3</div>
-                            </div>
                             <div class="sets-inputs-grid">
-                                <div class="set-input-box">
-                                    <input type="number" id="t1s1_${diMatchId}" value="${diRes.t1s1 !== undefined ? diRes.t1s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
-                                    <span>-</span>
-                                    <input type="number" id="t2s1_${diMatchId}" value="${diRes.t2s1 !== undefined ? diRes.t2s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
-                                </div>
-                                <div class="set-input-box">
-                                    <input type="number" id="t1s2_${diMatchId}" value="${diRes.t1s2 !== undefined ? diRes.t1s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
-                                    <span>-</span>
-                                    <input type="number" id="t2s2_${diMatchId}" value="${diRes.t2s2 !== undefined ? diRes.t2s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
-                                </div>
-                                <div class="set-input-box" style="justify-content: space-between;">
-                                    <div style="display: flex; align-items: center; gap: 4px;">
-                                        <input type="number" id="t1s3_${diMatchId}" value="${diRes.t1s3 !== undefined ? diRes.t1s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                <div class="set-column-wrapper">
+                                    <div class="set-column-title">Set 1</div>
+                                    <div class="set-input-box">
+                                        <input type="number" id="t1s1_${diMatchId}" value="${diRes.t1s1 !== undefined ? diRes.t1s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s3_${diMatchId}" value="${diRes.t2s3 !== undefined ? diRes.t2s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s1_${diMatchId}" value="${diRes.t2s1 !== undefined ? diRes.t2s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
-                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${diMatchId}', '${dinsdagPlayers[0]}', '${dinsdagPlayers[1]}', '${dinsdagPlayers[2]}', '${dinsdagPlayers[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
+                                </div>
+                                <div class="set-column-wrapper">
+                                    <div class="set-column-title">Set 2</div>
+                                    <div class="set-input-box">
+                                        <input type="number" id="t1s2_${diMatchId}" value="${diRes.t1s2 !== undefined ? diRes.t1s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <span>-</span>
+                                        <input type="number" id="t2s2_${diMatchId}" value="${diRes.t2s2 !== undefined ? diRes.t2s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                    </div>
+                                </div>
+                                <div class="set-column-wrapper">
+                                    <div class="set-column-title">Set 3</div>
+                                    <div class="set-input-box" style="justify-content: space-between;">
+                                        <div style="display: flex; align-items: center; gap: 4px;">
+                                            <input type="number" id="t1s3_${diMatchId}" value="${diRes.t1s3 !== undefined ? diRes.t1s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                            <span>-</span>
+                                            <input type="number" id="t2s3_${diMatchId}" value="${diRes.t2s3 !== undefined ? diRes.t2s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        </div>
+                                        <button class="btn-edit" onclick="saveMatchScore3Sets('${diMatchId}', '${dinsdagPlayers[0]}', '${dinsdagPlayers[1]}', '${dinsdagPlayers[2]}', '${dinsdagPlayers[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2338,29 +2358,33 @@
                             </div>
                         </div>
                         <div class="match-score-section">
-                            <div class="sets-header-grid">
-                                <div>Set 1</div>
-                                <div>Set 2</div>
-                                <div>Set 3</div>
-                            </div>
                             <div class="sets-inputs-grid">
-                                <div class="set-input-box">
-                                    <input type="number" id="t1s1_${doMatchId}" value="${doRes.t1s1 !== undefined ? doRes.t1s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
-                                    <span>-</span>
-                                    <input type="number" id="t2s1_${doMatchId}" value="${doRes.t2s1 !== undefined ? doRes.t2s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
-                                </div>
-                                <div class="set-input-box">
-                                    <input type="number" id="t1s2_${doMatchId}" value="${doRes.t1s2 !== undefined ? doRes.t1s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
-                                    <span>-</span>
-                                    <input type="number" id="t2s2_${doMatchId}" value="${doRes.t2s2 !== undefined ? doRes.t2s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
-                                </div>
-                                <div class="set-input-box" style="justify-content: space-between;">
-                                    <div style="display: flex; align-items: center; gap: 4px;">
-                                        <input type="number" id="t1s3_${doMatchId}" value="${doRes.t1s3 !== undefined ? doRes.t1s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                <div class="set-column-wrapper">
+                                    <div class="set-column-title">Set 1</div>
+                                    <div class="set-input-box">
+                                        <input type="number" id="t1s1_${doMatchId}" value="${doRes.t1s1 !== undefined ? doRes.t1s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s3_${doMatchId}" value="${doRes.t2s3 !== undefined ? doRes.t2s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s1_${doMatchId}" value="${doRes.t2s1 !== undefined ? doRes.t2s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
-                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${doMatchId}', '${donderdagPlayers[0]}', '${donderdagPlayers[1]}', '${donderdagPlayers[2]}', '${donderdagPlayers[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
+                                </div>
+                                <div class="set-column-wrapper">
+                                    <div class="set-column-title">Set 2</div>
+                                    <div class="set-input-box">
+                                        <input type="number" id="t1s2_${doMatchId}" value="${doRes.t1s2 !== undefined ? doRes.t1s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <span>-</span>
+                                        <input type="number" id="t2s2_${doMatchId}" value="${doRes.t2s2 !== undefined ? doRes.t2s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                    </div>
+                                </div>
+                                <div class="set-column-wrapper">
+                                    <div class="set-column-title">Set 3</div>
+                                    <div class="set-input-box" style="justify-content: space-between;">
+                                        <div style="display: flex; align-items: center; gap: 4px;">
+                                            <input type="number" id="t1s3_${doMatchId}" value="${doRes.t1s3 !== undefined ? doRes.t1s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                            <span>-</span>
+                                            <input type="number" id="t2s3_${doMatchId}" value="${doRes.t2s3 !== undefined ? doRes.t2s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        </div>
+                                        <button class="btn-edit" onclick="saveMatchScore3Sets('${doMatchId}', '${donderdagPlayers[0]}', '${donderdagPlayers[1]}', '${donderdagPlayers[2]}', '${donderdagPlayers[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
