@@ -14,12 +14,12 @@ if (!admin.apps.length) {
 const db = admin.database();
 
 const defaultTemplate = [
-  { dinsdag: ["Mark", "Robert", "Ronald", "Sander"], donderdag: ["Marcel", "Robert", "Sander", "Dennis"] },
-  { dinsdag: ["Marcel", "Mark", "Ronald", "Robert"], donderdag: ["Mark", "Sander", "Ronald", "Dennis"] },
-  { dinsdag: ["Marcel", "Robert", "Mark", "Dennis"], donderdag: ["Marcel", "Ronald", "Sander", "Robert"] },
-  { dinsdag: ["Marcel", "Sander", "Mark", "Dennis"], donderdag: ["Mark", "Ronald", "Dennis", "Robert"] },
-  { dinsdag: ["Marcel", "Dennis", "Ronald", "Sander"], donderdag: ["Marcel", "Sander", "Mark", "Robert"] },
-  { dinsdag: ["Ronald", "Robert", "Sander", "Dennis"], donderdag: ["Marcel", "Dennis", "Mark", "Ronald"] }
+        { dinsdag: ["Mark", "Robert", "Ronald", "Sander"], donderdag: ["Marcel", "Robert", "Sander", "Dennis"] },
+        { dinsdag: ["Marcel", "Mark", "Ronald", "Robert"], donderdag: ["Mark", "Sander", "Ronald", "Dennis"] },
+        { dinsdag: ["Marcel", "Robert", "Mark", "Dennis"], donderdag: ["Marcel", "Ronald", "Sander", "Robert"] },
+        { dinsdag: ["Marcel", "Sander", "Mark", "Dennis"], donderdag: ["Mark", "Ronald", "Dennis", "Robert"] },
+        { dinsdag: ["Marcel", "Dennis", "Ronald", "Sander"], donderdag: ["Marcel", "Sander", "Mark", "Robert"] },
+        { dinsdag: ["Ronald", "Robert", "Sander", "Dennis"], donderdag: ["Marcel", "Dennis", "Mark", "Ronald"] }
 ];
 
 
