@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ status: 'Geen tokens gevonden om te notificeren.' });
     }
 
-    const result = await sendToTokens(tokens, { title, body: text });
+    const result = await sendToTokens(tokens, { title, body: text, tag: key });
 
     // Dit verschijnt in het Vercel-logboek (Logs, klik op de regel, onder "Messages")
     console.log('NOTIFY resultaat', JSON.stringify({
