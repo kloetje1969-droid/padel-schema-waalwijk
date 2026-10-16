@@ -1,7 +1,5 @@
 import { db, getTokensByPlayer, sendToTokens } from '../lib/padel.js';
 
-const BASE_PLAYERS = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
-
 // De app roept dit aan nadat er een chatbericht of systeembericht (afmelding, schemawijziging,
 // baanboeking) is opgeslagen. De server leest dat bericht zelf uit de database en stuurt een
 // pushmelding naar de anderen. Er gaat nooit meer dan 1 melding per bericht uit.
@@ -15,7 +13,7 @@ export default async function handler(req, res) {
     if (typeof body === 'string') {
       try { body = JSON.parse(body); } catch (e) { body = {}; }
     }
-    const { key, by } = body;
+    const { key } = body;
 
     if (!key || typeof key !== 'string' || /[.#$\[\]\/]/.test(key)) {
       return res.status(400).json({ error: 'Ongeldige sleutel.' });
@@ -39,7 +37,6 @@ export default async function handler(req, res) {
     }
 
     const isSystem = (m.type === 'system' || m.author === 'Systeem');
-    const exclude = isSystem ? (BASE_PLAYERS.includes(by) ? by : null) : m.author;
 
     let title;
     let text;
@@ -59,11 +56,12 @@ export default async function handler(req, res) {
     if (text.length > 120) text = text.slice(0, 117) + '...';
 
     const tokensData = await getTokensByPlayer();
-    const recipients = Object.keys(tokensData).filter(player => player !== exclude);
+    // Iedereen krijgt de melding, ook degene die het bericht of de wijziging zelf deed
+    const recipients = Object.keys(tokensData);
     const tokens = recipients.flatMap(player => Object.keys(tokensData[player] || {}));
 
     if (tokens.length === 0) {
-      console.log('NOTIFY: geen tokens gevonden', JSON.stringify({ key, exclude, spelersMetToken: Object.keys(tokensData) }));
+      console.log('NOTIFY: geen tokens gevonden', JSON.stringify({ key, spelersMetToken: Object.keys(tokensData) }));
       await db.ref(`padelData/notified/${key}`).remove();
       return res.status(200).json({ status: 'Geen tokens gevonden om te notificeren.' });
     }
@@ -74,7 +72,6 @@ export default async function handler(req, res) {
     console.log('NOTIFY resultaat', JSON.stringify({
       soort: isSystem ? 'systeem' : 'chat',
       titel: title,
-      nietNaar: exclude,
       naarSpelers: recipients,
       tokens: tokens.length,
       gelukt: result.successCount,
