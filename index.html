@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v6.6)</title>
+    <title>Padelschema - Rooster & Chat (v6.7)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padel Icon -->
     <link rel="manifest" href="manifest.json">
@@ -1292,7 +1292,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "6.6";
+    const APP_VERSION = "6.7";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1442,6 +1442,18 @@
     }
 
     // Slaat het FCM-token op waar de server het zoekt: padelData/tokens/<naam>/<token>
+    // Vraagt de server om een pushmelding te sturen voor een zojuist geplaatst bericht
+    function notifyServer(messageKey) {
+        try {
+            fetch('/api/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: messageKey, by: currentUserName }),
+                keepalive: true
+            }).catch(() => {});
+        } catch (e) {}
+    }
+
     async function registerPushToken() {
         if (!messaging || !currentUserName) return;
         if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
@@ -1619,7 +1631,9 @@
             try {
                 messaging.onMessage((payload) => {
                     const n = payload.notification || payload.data || {};
-                    showToast(n.title || 'Padel', n.body || '');
+                    const t = n.title || '';
+                    if (t.startsWith('💬') || t.startsWith('🔔')) return;
+                    showToast(t || 'Padel', n.body || '');
                 });
             } catch (e) {}
         }
@@ -2432,13 +2446,15 @@
         const isDuplicate = messages.slice(-3).some(m => m.text === msgText && (now - (m.timestamp || 0) < 3000));
         if (isDuplicate) return;
 
-        await db.ref('padelData/messages').push({
+        const sysRef = db.ref('padelData/messages').push();
+        await sysRef.set({
             author: "Systeem",
             text: msgText,
             timestamp: firebase.database.ServerValue.TIMESTAMP,
             tijd: timeStr,
             type: "system"
         });
+        notifyServer(sysRef.key);
     }
 
     async function confirmReplacement() {
@@ -2608,7 +2624,9 @@
         }
 
         try {
-            await db.ref('padelData/messages').push(messageData);
+            const newMsgRef = db.ref('padelData/messages').push();
+            await newMsgRef.set(messageData);
+            notifyServer(newMsgRef.key);
             console.log("Bericht succesvol opgeslagen in Firebase.");
         } catch (error) {
             console.error("Fout bij opslaan in Firebase:", error);
