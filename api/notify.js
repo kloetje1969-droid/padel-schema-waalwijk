@@ -59,16 +59,29 @@ export default async function handler(req, res) {
     if (text.length > 120) text = text.slice(0, 117) + '...';
 
     const tokensData = await getTokensByPlayer();
-    const tokens = Object.keys(tokensData)
-      .filter(player => player !== exclude)
-      .flatMap(player => Object.keys(tokensData[player] || {}));
+    const recipients = Object.keys(tokensData).filter(player => player !== exclude);
+    const tokens = recipients.flatMap(player => Object.keys(tokensData[player] || {}));
 
     if (tokens.length === 0) {
+      console.log('NOTIFY: geen tokens gevonden', JSON.stringify({ key, exclude, spelersMetToken: Object.keys(tokensData) }));
       await db.ref(`padelData/notified/${key}`).remove();
       return res.status(200).json({ status: 'Geen tokens gevonden om te notificeren.' });
     }
 
     const result = await sendToTokens(tokens, { title, body: text });
+
+    // Dit verschijnt in het Vercel-logboek (Logs, klik op de regel, onder "Messages")
+    console.log('NOTIFY resultaat', JSON.stringify({
+      soort: isSystem ? 'systeem' : 'chat',
+      titel: title,
+      nietNaar: exclude,
+      naarSpelers: recipients,
+      tokens: tokens.length,
+      gelukt: result.successCount,
+      mislukt: result.failureCount,
+      foutcodes: result.errorCodes
+    }));
+
     return res.status(200).json({ success: result.successCount > 0, ...result });
   } catch (error) {
     console.error('Fout bij versturen berichtmelding:', error);
