@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v6.8)</title>
+    <title>Padelschema - Rooster & Chat (v6.9)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padel Icon -->
     <link rel="manifest" href="manifest.json">
@@ -1292,7 +1292,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "6.8";
+    const APP_VERSION = "6.9";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1628,23 +1628,6 @@
         registerPushToken();
 
         // Meldingen die binnenkomen terwijl de app open staat tonen als banner
-        if (messaging) {
-            try {
-                // Staat de app open, dan toont Firebase zelf niets. Toon dan toch de melding op de telefoon.
-                messaging.onMessage(async (payload) => {
-                    const n = payload.notification || payload.data || {};
-                    try {
-                        const reg = await navigator.serviceWorker.ready;
-                        await reg.showNotification(n.title || 'Padel', {
-                            body: n.body || '',
-                            icon: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3d3.png',
-                            tag: payload.fcmMessageId || undefined
-                        });
-                    } catch (e) {}
-                });
-            } catch (e) {}
-        }
-
         db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
             liveOverrides = snapshot.val() || {};
             renderAll();
