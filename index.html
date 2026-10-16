@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v6.7)</title>
+    <title>Padelschema - Rooster & Chat (v6.8)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padel Icon -->
     <link rel="manifest" href="manifest.json">
@@ -1292,7 +1292,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "6.7";
+    const APP_VERSION = "6.8";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1466,10 +1466,11 @@
             const prevUser = localStorage.getItem('padel_fcm_user');
             const prevToken = localStorage.getItem('padel_fcm_token');
             const updates = {};
-            if (prevUser && prevToken && (prevUser !== currentUserName || prevToken !== token)) {
+            if (prevUser && prevToken && prevUser !== currentUserName) {
                 updates[`padelData/tokens/${prevUser}/${prevToken}`] = null;
             }
-            updates[`padelData/tokens/${currentUserName}/${token}`] = true;
+            // Eén apparaat per speler: het laatst geopende apparaat/de laatst geopende app krijgt de meldingen.
+            updates[`padelData/tokens/${currentUserName}`] = { [token]: true };
             await db.ref().update(updates);
 
             localStorage.setItem('padel_fcm_user', currentUserName);
@@ -1629,11 +1630,17 @@
         // Meldingen die binnenkomen terwijl de app open staat tonen als banner
         if (messaging) {
             try {
-                messaging.onMessage((payload) => {
+                // Staat de app open, dan toont Firebase zelf niets. Toon dan toch de melding op de telefoon.
+                messaging.onMessage(async (payload) => {
                     const n = payload.notification || payload.data || {};
-                    const t = n.title || '';
-                    if (t.startsWith('💬') || t.startsWith('🔔')) return;
-                    showToast(t || 'Padel', n.body || '');
+                    try {
+                        const reg = await navigator.serviceWorker.ready;
+                        await reg.showNotification(n.title || 'Padel', {
+                            body: n.body || '',
+                            icon: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3d3.png',
+                            tag: payload.fcmMessageId || undefined
+                        });
+                    } catch (e) {}
                 });
             } catch (e) {}
         }
@@ -1668,13 +1675,6 @@
         db.ref('padelData/messages').on('value', (snapshot) => {
             const rawMessages = snapshot.val() ? Object.values(snapshot.val()) : [];
             
-            if (!isInitialMessageLoad && rawMessages.length > messages.length) {
-                const latestMsg = rawMessages[rawMessages.length - 1];
-                if (latestMsg) {
-                    showToast(latestMsg.author === 'Systeem' ? 'Systeemmelding' : `Bericht van ${latestMsg.author}`, latestMsg.text || 'Nieuwe update');
-                }
-            }
-
             messages = rawMessages;
             isInitialMessageLoad = false;
 
