@@ -2345,6 +2345,35 @@
         return !!absences[playerName][`${uniqueWeekKey}_${day}`];
     }
 
+    function isMatchCancelled(uniqueWeekKey, day) {
+        let overrideData = liveOverrides[uniqueWeekKey] || {};
+        let dayOverride = overrideData[day];
+        return dayOverride === null || (Array.isArray(dayOverride) && dayOverride.length === 0);
+    }
+
+    async function toggleAfgelast(uniqueWeekKey, day, weekNum) {
+        if (!currentUserName) {
+            alert("Kies eerst je naam bovenin de app!");
+            return;
+        }
+
+        let currentlyCancelled = isMatchCancelled(uniqueWeekKey, day);
+        let confirmText = currentlyCancelled ? `Wedstrijd voor week ${weekNum} (${day}) weer herstellen?` : `Weet je zeker dat je de wedstrijd voor week ${weekNum} (${day}) wilt afgelasten?`;
+        
+        if (confirm(confirmText)) {
+            let path = `padelData/scheduleOverrides/${uniqueWeekKey}/${day}`;
+            if (currentlyCancelled) {
+                // Herstel naar default template
+                await db.ref(path).remove();
+                await addSystemMessageIfUnique(`✅ Wedstrijd voor week ${weekNum} (${day}) is weer geopend.`);
+            } else {
+                // Sla lege array op om aan te geven dat deze is afgelast
+                await db.ref(path).set([]);
+                await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${weekNum} (${day}) is AFGELAST.`);
+            }
+        }
+    }
+
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
         let currentMonday = getAdjustedBaseDate();
@@ -2371,8 +2400,12 @@
 
             let tpl = defaultTemplate[templateIndex];
             let overrideData = liveOverrides[uniqueWeekKey] || {};
-            let dinsdagPlayers = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
-            let donderdagPlayers = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
+            
+            let diCancelled = isMatchCancelled(uniqueWeekKey, 'dinsdag');
+            let doCancelled = isMatchCancelled(uniqueWeekKey, 'donderdag');
+
+            let dinsdagPlayers = diCancelled ? [] : (overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag);
+            let donderdagPlayers = doCancelled ? [] : (overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag);
 
             let dinsdagFormatted = dinsdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
             let donderdagFormatted = donderdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
@@ -2383,10 +2416,10 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            let dinsdagRainAlert = (dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) 
+            let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) 
                 ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${dinsdagWeatherObj.rain}%)!</div>` : '';
             
-            let donderdagRainAlert = (donderdagWeatherObj && donderdagWeatherObj.rain > 60) 
+            let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && donderdagWeatherObj.rain > 60) 
                 ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${donderdagWeatherObj.rain}%)!</div>` : '';
 
             let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
@@ -2397,6 +2430,14 @@
             let diRes = matchResults[diMatchId] || { t1s1:'', t2s1:'', t1s2:'', t2s2:'', t1s3:'', t2s3:'' };
             let doRes = matchResults[doMatchId] || { t1s1:'', t2s1:'', t1s2:'', t2s2:'', t1s3:'', t2s3:'' };
 
+            let dinsdagBodyHtml = diCancelled ? 
+                `<div style="color: var(--danger); font-size: 0.8rem; font-weight: bold; padding: 6px 0;">🚫 Wedstrijd is afgelast (telt niet mee voor statistieken)</div>` :
+                `<div class="players-container">${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag')}</div>`;
+
+            let donderdagBodyHtml = doCancelled ? 
+                `<div style="color: var(--danger); font-size: 0.8rem; font-weight: bold; padding: 6px 0;">🚫 Wedstrijd is afgelast (telt niet mee voor statistieken)</div>` :
+                `<div class="players-container">${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag')}</div>`;
+
             let matchesContent = `
                 <div class="match-row-wrapper">
                     <div class="match-row">
@@ -2406,14 +2447,16 @@
                                     <span class="day-name">Dinsdag</span> <span class="match-date">${dinsdagFormatted}</span>
                                     ${dinsdagWeather}
                                 </div>
-                                <div class="players-container">
-                                    ${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag')}
-                                </div>
+                                ${dinsdagBodyHtml}
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig</button>
+                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})" ${diCancelled ? 'disabled' : ''}>✏️ Wijzig</button>
+                                <button class="btn-edit" onclick="toggleAfgelast('${uniqueWeekKey}', 'dinsdag', ${currentWeekNum})" style="background: ${diCancelled ? 'rgba(52, 211, 153, 0.2)' : 'var(--danger-bg)'}; color: ${diCancelled ? 'var(--accent-green)' : 'var(--danger)'}; border-color: ${diCancelled ? 'var(--accent-green)' : 'var(--danger)'};">
+                                    ${diCancelled ? '✓ Herstel' : '🚫 Afgelast'}
+                                </button>
                             </div>
                         </div>
+                        ${!diCancelled ? `
                         <div class="match-score-section">
                             <div class="sets-inputs-grid">
                                 <div class="set-column-wrapper">
@@ -2445,10 +2488,10 @@
                                     <button class="btn-edit" onclick="saveMatchScore3Sets('${diMatchId}', '${dinsdagPlayers[0]}', '${dinsdagPlayers[1]}', '${dinsdagPlayers[2]}', '${dinsdagPlayers[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
                                 </div>
                             </div>
-                        </div>
+                        </div>` : ''}
                     </div>
                     ${dinsdagRainAlert}
-                    ${dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
+                    ${!diCancelled && dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
                 </div>
 
                 <div class="match-row-wrapper">
@@ -2459,14 +2502,16 @@
                                     <span class="day-name">Donderdag</span> <span class="match-date">${donderdagFormatted}</span>
                                     ${donderdagWeather}
                                 </div>
-                                <div class="players-container">
-                                    ${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag')}
-                                </div>
+                                ${donderdagBodyHtml}
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig</button>
+                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})" ${doCancelled ? 'disabled' : ''}>✏️ Wijzig</button>
+                                <button class="btn-edit" onclick="toggleAfgelast('${uniqueWeekKey}', 'donderdag', ${currentWeekNum})" style="background: ${doCancelled ? 'rgba(52, 211, 153, 0.2)' : 'var(--danger-bg)'}; color: ${doCancelled ? 'var(--accent-green)' : 'var(--danger)'}; border-color: ${doCancelled ? 'var(--accent-green)' : 'var(--danger)'};">
+                                    ${doCancelled ? '✓ Herstel' : '🚫 Afgelast'}
+                                </button>
                             </div>
                         </div>
+                        ${!doCancelled ? `
                         <div class="match-score-section">
                             <div class="sets-inputs-grid">
                                 <div class="set-column-wrapper">
@@ -2498,10 +2543,10 @@
                                     <button class="btn-edit" onclick="saveMatchScore3Sets('${doMatchId}', '${donderdagPlayers[0]}', '${donderdagPlayers[1]}', '${donderdagPlayers[2]}', '${donderdagPlayers[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
                                 </div>
                             </div>
-                        </div>
+                        </div>` : ''}
                     </div>
                     ${donderdagRainAlert}
-                    ${donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
+                    ${!doCancelled && donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
                 </div>
             `;
 
@@ -2572,8 +2617,12 @@
 
             let tpl = defaultTemplate[templateIndex];
             let overrideData = liveOverrides[uniqueWeekKey] || {};
-            let dinsdagPlayers = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
-            let donderdagPlayers = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
+            
+            let diCancelled = isMatchCancelled(uniqueWeekKey, 'dinsdag');
+            let doCancelled = isMatchCancelled(uniqueWeekKey, 'donderdag');
+
+            let dinsdagPlayers = diCancelled ? [] : (overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag);
+            let donderdagPlayers = doCancelled ? [] : (overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag);
 
             dinsdagPlayers.forEach(p => {
                 if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
@@ -2635,9 +2684,11 @@
             ['dinsdag', 'donderdag'].forEach(day => {
                 let overrideData = liveOverrides[uniqueWeekKey] || {};
                 let players = overrideData[day] !== undefined ? overrideData[day] : tpl[day];
-                players.forEach(p => {
-                    if (!basePlayers.includes(p)) activeSubs.add(p);
-                });
+                if (Array.isArray(players)) {
+                    players.forEach(p => {
+                        if (!basePlayers.includes(p)) activeSubs.add(p);
+                    });
+                }
             });
         }
         let allTablePlayers = [...basePlayers, ...Array.from(activeSubs)];
@@ -2668,16 +2719,21 @@
                 let uniqueWeekKey = `${yr}_w${wn}`;
 
                 ['dinsdag', 'donderdag'].forEach(day => {
-                    const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, day);
-                    const isDisabled = (!isSub && !isMe);
+                    const isCancelled = isMatchCancelled(uniqueWeekKey, day);
+                    if (isCancelled) {
+                        rowHtml += `<td style="color: var(--text-muted); font-size: 0.65rem;">--</td>`;
+                    } else {
+                        const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, day);
+                        const isDisabled = (!isSub && !isMe);
 
-                    rowHtml += `
-                        <td>
-                            <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uniqueWeekKey}', '${day}', ${wn})">
-                                ${isAbsent ? 'Afwezig' : 'Aanwezig'}
-                            </button>
-                        </td>
-                    `;
+                        rowHtml += `
+                            <td>
+                                <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uniqueWeekKey}', '${day}', ${wn})">
+                                    ${isAbsent ? 'Afwezig' : 'Aanwezig'}
+                                </button>
+                            </td>
+                        `;
+                    }
                 });
             }
             return `<tr class="${isMe ? 'highlight-row' : ''}">${rowHtml}</tr>`;
