@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v7.1)</title>
+    <title>Padelschema - Rooster & Chat (v7.2)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padel Icon -->
     <link rel="manifest" href="manifest.json">
@@ -37,7 +37,7 @@
             --accent-blue: #38bdf8;
             --accent-orange: #fb923c;
             --accent-green: #34d399;
-            --accent-green-bg: rgba(52, 211, 153, 0.12);
+            --accent-green-bg: rgba(52, 211, 153, 0.15);
             --danger: #f87171;
             --danger-bg: rgba(248, 113, 113, 0.15);
             --main-glow: 0 16px 60px rgba(56, 189, 248, 0.22), 0 0 40px rgba(56, 189, 248, 0.12);
@@ -1333,7 +1333,7 @@
 
     <!-- Versienummer onderaan -->
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v7.1
+        Padelschema v7.2
     </div>
 </div>
 
@@ -1383,7 +1383,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "7.1";
+    const APP_VERSION = "7.2";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1601,7 +1601,6 @@
             const dateStr = now.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
             const timeStr = now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             
-            // Haalt automatisch de juiste tijdzone (CET of CEST) op voor Amsterdam
             const tzParts = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Amsterdam', timeZoneName: 'short' }).formatToParts(now);
             const tzName = tzParts.find(p => p.type === 'timeZoneName')?.value || '';
 
@@ -2371,7 +2370,7 @@
     function isMatchCancelled(uniqueWeekKey, day) {
         let overrideData = liveOverrides[uniqueWeekKey] || {};
         let dayOverride = overrideData[day];
-        return dayOverride === null || (Array.isArray(dayOverride) && dayOverride.length === 0);
+        return dayOverride === null || (typeof dayOverride === 'object' && dayOverride !== null && dayOverride.cancelled === true);
     }
 
     function renderSchedule() {
@@ -2404,8 +2403,8 @@
             let diCancelled = isMatchCancelled(uniqueWeekKey, 'dinsdag');
             let doCancelled = isMatchCancelled(uniqueWeekKey, 'donderdag');
 
-            let dinsdagPlayers = (overrideData.dinsdag !== undefined && overrideData.dinsdag !== null && overrideData.dinsdag.length > 0) ? overrideData.dinsdag : tpl.dinsdag;
-            let donderdagPlayers = (overrideData.donderdag !== undefined && overrideData.donderdag !== null && overrideData.donderdag.length > 0) ? overrideData.donderdag : tpl.donderdag;
+            let dinsdagPlayers = (overrideData.dinsdag !== undefined && overrideData.dinsdag !== null && overrideData.dinsdag.players) ? overrideData.dinsdag.players : (Array.isArray(overrideData.dinsdag) ? overrideData.dinsdag : tpl.dinsdag);
+            let donderdagPlayers = (overrideData.donderdag !== undefined && overrideData.donderdag !== null && overrideData.donderdag.players) ? overrideData.donderdag.players : (Array.isArray(overrideData.donderdag) ? overrideData.donderdag : tpl.donderdag);
 
             let dinsdagFormatted = dinsdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
             let donderdagFormatted = donderdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
@@ -2617,7 +2616,7 @@
             let doCancelled = isMatchCancelled(uniqueWeekKey, 'donderdag');
 
             if (!diCancelled) {
-                let dinsdagPlayers = (overrideData.dinsdag !== undefined && overrideData.dinsdag !== null && overrideData.dinsdag.length > 0) ? overrideData.dinsdag : tpl.dinsdag;
+                let dinsdagPlayers = (overrideData.dinsdag !== undefined && overrideData.dinsdag !== null && overrideData.dinsdag.players) ? overrideData.dinsdag.players : (Array.isArray(overrideData.dinsdag) ? overrideData.dinsdag : tpl.dinsdag);
                 dinsdagPlayers.forEach(p => {
                     if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                     if (!checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag')) {
@@ -2628,7 +2627,7 @@
             }
 
             if (!doCancelled) {
-                let donderdagPlayers = (overrideData.donderdag !== undefined && overrideData.donderdag !== null && overrideData.donderdag.length > 0) ? overrideData.donderdag : tpl.donderdag;
+                let donderdagPlayers = (overrideData.donderdag !== undefined && overrideData.donderdag !== null && overrideData.donderdag.players) ? overrideData.donderdag.players : (Array.isArray(overrideData.donderdag) ? overrideData.donderdag : tpl.donderdag);
                 donderdagPlayers.forEach(p => {
                     if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                     if (!checkPlayerAbsent(p, uniqueWeekKey, 'donderdag')) {
@@ -2681,7 +2680,7 @@
             let tpl = defaultTemplate[templateIndex];
             ['dinsdag', 'donderdag'].forEach(day => {
                 let overrideData = liveOverrides[uniqueWeekKey] || {};
-                let players = (overrideData[day] !== undefined && overrideData[day] !== null && overrideData[day].length > 0) ? overrideData[day] : tpl[day];
+                let players = (overrideData[day] !== undefined && overrideData[day] !== null && overrideData[day].players) ? overrideData[day].players : (Array.isArray(overrideData[day]) ? overrideData[day] : tpl[day]);
                 if (Array.isArray(players)) {
                     players.forEach(p => {
                         if (!basePlayers.includes(p)) activeSubs.add(p);
@@ -2778,7 +2777,7 @@
 
             let tpl = defaultTemplate[templateIndex];
             let overrideData = liveOverrides[uniqueWeekKey] || {};
-            let currentPlayers = (overrideData[day] !== undefined && overrideData[day] !== null && overrideData[day].length > 0) ? overrideData[day] : tpl[day];
+            let currentPlayers = (overrideData[day] !== undefined && overrideData[day] !== null && overrideData[day].players) ? overrideData[day].players : (Array.isArray(overrideData[day]) ? overrideData[day] : tpl[day]);
 
             for (let i = 0; i < 4; i++) {
                 let sel = document.getElementById(`p${i}Select`);
@@ -2811,12 +2810,19 @@
         let currentlyCancelled = isMatchCancelled(activeModalUniqueKey, activeModalDay);
         let path = `padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`;
 
+        let tpl = defaultTemplate[activeTemplateIndex];
+        let overrideData = liveOverrides[activeModalUniqueKey] || {};
+        let currentPlayers = (overrideData[activeModalDay] !== undefined && overrideData[activeModalDay] !== null && overrideData[activeModalDay].players) ? overrideData[activeModalDay].players : (Array.isArray(overrideData[activeModalDay]) ? overrideData[activeModalDay] : tpl[activeModalDay]);
+
         if (currentlyCancelled) {
-            await db.ref(path).remove();
+            await db.ref(path).set(currentPlayers);
             await addSystemMessageIfUnique(`✅ Wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) is weer geopend.`);
         } else {
             if (confirm(`Weet je zeker dat je de wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) wilt afgelasten?`)) {
-                await db.ref(path).set([]);
+                await db.ref(path).set({
+                    cancelled: true,
+                    players: currentPlayers
+                });
                 await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) is AFGELAST.`);
             } else {
                 return;
@@ -2865,7 +2871,9 @@
             if (currentUserName !== "Robert") {
                 let tpl = defaultTemplate[activeTemplateIndex];
                 let overrideData = liveOverrides[activeModalUniqueKey] || {};
-                let originalVal = (overrideData[activeModalDay] !== undefined && overrideData[activeModalDay] !== null && overrideData[activeModalDay].length > 0 ? overrideData[activeModalDay] : tpl[activeModalDay])[i];
+                let dayData = overrideData[activeModalDay];
+                let originalPlayers = (dayData !== undefined && dayData !== null && dayData.players) ? dayData.players : (Array.isArray(dayData) ? dayData : tpl[activeModalDay]);
+                let originalVal = originalPlayers[i];
 
                 if (chosenVal !== currentUserName && chosenVal !== originalVal && !inp.value.trim()) {
                     alert("Je mag alleen je eigen naam invullen op een vrije of afgewezen plek!");
@@ -2875,9 +2883,16 @@
             newPlayers.push(chosenVal);
         }
 
-        db.ref(`padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`).set(newPlayers);
+        let path = `padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`;
+        let currentlyCancelled = isMatchCancelled(activeModalUniqueKey, activeModalDay);
+
+        if (currentlyCancelled) {
+            await db.ref(path).set({ cancelled: true, players: newPlayers });
+        } else {
+            await db.ref(path).set(newPlayers);
+        }
+
         let msgText = `🔄 Schema gewijzigd voor week ${activeModalWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
-        
         await addSystemMessageIfUnique(msgText);
         closeModal();
     }
