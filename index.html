@@ -1185,7 +1185,7 @@
                 <div style="display: flex; gap: 8px; align-items: center; justify-content: center; width: 100%;">
                     <div id="liveClockBadge" class="live-clock-badge" style="width: 100%; justify-content: center;">
                         <span>📅 <span id="clockDate">--</span></span>
-                        <span>⏰ <span id="clockTime" class="clock-time">--:--:--</span></span>
+                        <span>⏰ <span id="clockTime" class="clock-time">--:--:--</span> <span id="clockTz" style="color: var(--text-muted); font-weight: normal; margin-left: 3px;">--</span></span>
                     </div>
                 </div>
             </div>
@@ -1578,10 +1578,16 @@
             const dateStr = now.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
             const timeStr = now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             
+            // Haalt automatisch de juiste tijdzone (CET of CEST) op voor Amsterdam
+            const tzParts = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Amsterdam', timeZoneName: 'short' }).formatToParts(now);
+            const tzName = tzParts.find(p => p.type === 'timeZoneName')?.value || '';
+
             const dateEl = document.getElementById('clockDate');
             const timeEl = document.getElementById('clockTime');
+            const tzEl = document.getElementById('clockTz');
             if (dateEl) dateEl.innerText = dateStr;
             if (timeEl) timeEl.innerText = timeStr;
+            if (tzEl) tzEl.innerText = tzName;
         };
         updateClock();
         setInterval(updateClock, 1000);
@@ -1807,8 +1813,6 @@
         let winner = sorted[0];
         let maxGames = gameCounts[winner] || 0;
 
-        // Atomair "claimen": alleen het eerste apparaat dat dit doet slaat de winnaar op
-        // en plaatst het bericht. Alle anderen (ook bij herstarten van de app) doen niets.
         cyclusClaimInFlight[prevCyclusIdx] = true;
         try {
             const claim = await db.ref(`padelData/cyclusWinnaars/${prevCyclusIdx}`).transaction(cur => {
@@ -2307,8 +2311,6 @@
         return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
 
-    // ISO-jaar van een datum (het jaar waar de donderdag van die week in valt).
-    // Rond de jaarwisseling kan dit afwijken van getFullYear().
     function getISOYear(d) {
         let date = new Date(d.getTime());
         date.setHours(0, 0, 0, 0);
@@ -2316,11 +2318,9 @@
         return date.getFullYear();
     }
 
-    // Maandag van ISO-week `week` in ISO-jaar `year` (4 januari valt altijd in week 1).
-    // Rekent met setDate in plaats van milliseconden, zodat zomer-/wintertijd geen invloed heeft.
     function isoWeekToMonday(year, week) {
         let d = new Date(year, 0, 4);
-        let dagVanWeek = (d.getDay() + 6) % 7; // 0 = maandag
+        let dagVanWeek = (d.getDay() + 6) % 7;
         d.setDate(d.getDate() - dagVanWeek + (week - 1) * 7);
         d.setHours(0, 0, 0, 0);
         return d;
