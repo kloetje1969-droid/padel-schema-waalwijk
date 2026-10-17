@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v7.0)</title>
+    <title>Padelschema - Rooster & Chat (v7.1)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padel Icon -->
     <link rel="manifest" href="manifest.json">
@@ -1317,7 +1317,7 @@
 
     <!-- Versienummer onderaan -->
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v7.0
+        Padelschema v7.1
     </div>
 </div>
 
@@ -1360,7 +1360,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "7.0";
+    const APP_VERSION = "7.1";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1759,12 +1759,15 @@
         return Math.floor(diffWeeks / 6);
     }
 
-    function checkAndStoreCyclusWinner() {
+    let cyclusClaimInFlight = {};
+
+    async function checkAndStoreCyclusWinner() {
         let cyclusIdx = getActiveCyclusIndex();
         if (cyclusIdx <= 0) return; 
 
         let prevCyclusIdx = cyclusIdx - 1;
         if (cyclusWinnaars[prevCyclusIdx]) return; 
+        if (cyclusClaimInFlight[prevCyclusIdx]) return;
 
         let referenceMonday = new Date(2026, 8, 21);
         let cyclusStartWeek = prevCyclusIdx * 6;
@@ -1804,13 +1807,23 @@
         let winner = sorted[0];
         let maxGames = gameCounts[winner] || 0;
 
-        db.ref(`padelData/cyclusWinnaars/${prevCyclusIdx}`).set({
-            winner: winner,
-            games: maxGames,
-            timestamp: Date.now()
-        });
+        // Atomair "claimen": alleen het eerste apparaat dat dit doet slaat de winnaar op
+        // en plaatst het bericht. Alle anderen (ook bij herstarten van de app) doen niets.
+        cyclusClaimInFlight[prevCyclusIdx] = true;
+        try {
+            const claim = await db.ref(`padelData/cyclusWinnaars/${prevCyclusIdx}`).transaction(cur => {
+                if (cur) return undefined;
+                return { winner: winner, games: maxGames, timestamp: Date.now() };
+            });
 
-        addSystemMessageIfUnique(`🏆 Cyclus van 6 weken is afgerond! De winnaar van cyclus ${prevCyclusIdx + 1} is **${winner}** met ${maxGames} gewonnen games! De telling is opnieuw begonnen.`);
+            if (claim.committed) {
+                await addSystemMessageIfUnique(`🏆 Cyclus van 6 weken is afgerond! De winnaar van cyclus ${prevCyclusIdx + 1} is ${winner} met ${maxGames} gewonnen games! De telling is opnieuw begonnen.`);
+            }
+        } catch (err) {
+            console.error("Fout bij opslaan cyclus-winnaar:", err);
+        } finally {
+            cyclusClaimInFlight[prevCyclusIdx] = false;
+        }
     }
 
     function renderSetsRanking() {
