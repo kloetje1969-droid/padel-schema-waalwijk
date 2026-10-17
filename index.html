@@ -713,6 +713,16 @@
             font-weight: bold;
         }
 
+        .player-chip.cancelled-player {
+            background: var(--danger-bg) !important;
+            border-color: var(--danger) !important;
+            color: var(--danger) !important;
+            text-decoration: line-through !important;
+            text-decoration-color: #f87171 !important;
+            text-decoration-thickness: 2px !important;
+            opacity: 0.85;
+        }
+
         .vs-text {
             color: var(--text-muted);
             font-size: 0.75rem;
@@ -1355,7 +1365,7 @@
         </div>
 
         <div class="modal-buttons">
-            <button class="btn-edit" id="modalToggleCancelBtn" onclick="handleModalToggleAfgelast()" style="background: var(--danger-bg); color: var(--danger); border-color: var(--danger); font-size: 0.8rem; padding: 7px 10px;">
+            <button class="btn-edit" id="modalToggleCancelBtn" onclick="handleModalToggleAfgelast()" style="font-size: 0.8rem; padding: 7px 10px;">
                 🚫 Afgelasten
             </button>
             <div class="modal-buttons-right">
@@ -2394,8 +2404,8 @@
             let diCancelled = isMatchCancelled(uniqueWeekKey, 'dinsdag');
             let doCancelled = isMatchCancelled(uniqueWeekKey, 'donderdag');
 
-            let dinsdagPlayers = diCancelled ? [] : (overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag);
-            let donderdagPlayers = doCancelled ? [] : (overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag);
+            let dinsdagPlayers = (overrideData.dinsdag !== undefined && overrideData.dinsdag !== null && overrideData.dinsdag.length > 0) ? overrideData.dinsdag : tpl.dinsdag;
+            let donderdagPlayers = (overrideData.donderdag !== undefined && overrideData.donderdag !== null && overrideData.donderdag.length > 0) ? overrideData.donderdag : tpl.donderdag;
 
             let dinsdagFormatted = dinsdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
             let donderdagFormatted = donderdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
@@ -2412,21 +2422,16 @@
             let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && donderdagWeatherObj.rain > 60) 
                 ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${donderdagWeatherObj.rain}%)!</div>` : '';
 
-            let dinsdagAbsentees = dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
-            let donderdagAbsentees = donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
+            let dinsdagAbsentees = diCancelled ? [] : dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
+            let donderdagAbsentees = doCancelled ? [] : donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
 
             let diMatchId = `${uniqueWeekKey}_dinsdag`;
             let doMatchId = `${uniqueWeekKey}_donderdag`;
             let diRes = matchResults[diMatchId] || { t1s1:'', t2s1:'', t1s2:'', t2s2:'', t1s3:'', t2s3:'' };
             let doRes = matchResults[doMatchId] || { t1s1:'', t2s1:'', t1s2:'', t2s2:'', t1s3:'', t2s3:'' };
 
-            let dinsdagBodyHtml = diCancelled ? 
-                `<div style="color: var(--danger); font-size: 0.8rem; font-weight: bold; padding: 6px 0;">🚫 Wedstrijd is afgelast (telt niet mee voor statistieken)</div>` :
-                `<div class="players-container">${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag')}</div>`;
-
-            let donderdagBodyHtml = doCancelled ? 
-                `<div style="color: var(--danger); font-size: 0.8rem; font-weight: bold; padding: 6px 0;">🚫 Wedstrijd is afgelast (telt niet mee voor statistieken)</div>` :
-                `<div class="players-container">${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag')}</div>`;
+            let dinsdagBodyHtml = `<div class="players-container">${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag', diCancelled)}</div>`;
+            let donderdagBodyHtml = `<div class="players-container">${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag', doCancelled)}</div>`;
 
             let matchesContent = `
                 <div class="match-row-wrapper">
@@ -2436,6 +2441,7 @@
                                 <div class="match-title dinsdag-title">
                                     <span class="day-name">Dinsdag</span> <span class="match-date">${dinsdagFormatted}</span>
                                     ${dinsdagWeather}
+                                    ${diCancelled ? '<span style="color: var(--danger); font-size: 0.7rem; font-weight: bold; margin-left: 4px;">(AFGELAST)</span>' : ''}
                                 </div>
                                 ${dinsdagBodyHtml}
                             </div>
@@ -2488,6 +2494,7 @@
                                 <div class="match-title donderdag-title">
                                     <span class="day-name">Donderdag</span> <span class="match-date">${donderdagFormatted}</span>
                                     ${donderdagWeather}
+                                    ${doCancelled ? '<span style="color: var(--danger); font-size: 0.7rem; font-weight: bold; margin-left: 4px;">(AFGELAST)</span>' : ''}
                                 </div>
                                 ${donderdagBodyHtml}
                             </div>
@@ -2560,7 +2567,7 @@
         container.innerHTML = html;
     }
 
-    function renderPlayerChips(players, uniqueWeekKey, day) {
+    function renderPlayerChips(players, uniqueWeekKey, day, isCancelled) {
         if (!players || players.length < 4) return '';
 
         const createChip = (p) => {
@@ -2569,9 +2576,13 @@
             const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, day);
 
             let cls = "player-chip";
-            if (isMe) cls += " me";
-            else if (isSub) cls += " sub";
-            if (isAbsent) cls += " absent-player";
+            if (isCancelled) {
+                cls += " cancelled-player";
+            } else {
+                if (isMe) cls += " me";
+                else if (isSub) cls += " sub";
+                if (isAbsent) cls += " absent-player";
+            }
 
             return `<span class="${cls}">${p}</span>`;
         };
@@ -2605,9 +2616,8 @@
             let diCancelled = isMatchCancelled(uniqueWeekKey, 'dinsdag');
             let doCancelled = isMatchCancelled(uniqueWeekKey, 'donderdag');
 
-            // Als een wedstrijd is afgelast, tellen we de spelers op die avond níet mee
             if (!diCancelled) {
-                let dinsdagPlayers = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
+                let dinsdagPlayers = (overrideData.dinsdag !== undefined && overrideData.dinsdag !== null && overrideData.dinsdag.length > 0) ? overrideData.dinsdag : tpl.dinsdag;
                 dinsdagPlayers.forEach(p => {
                     if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                     if (!checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag')) {
@@ -2618,7 +2628,7 @@
             }
 
             if (!doCancelled) {
-                let donderdagPlayers = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
+                let donderdagPlayers = (overrideData.donderdag !== undefined && overrideData.donderdag !== null && overrideData.donderdag.length > 0) ? overrideData.donderdag : tpl.donderdag;
                 donderdagPlayers.forEach(p => {
                     if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
                     if (!checkPlayerAbsent(p, uniqueWeekKey, 'donderdag')) {
@@ -2671,7 +2681,7 @@
             let tpl = defaultTemplate[templateIndex];
             ['dinsdag', 'donderdag'].forEach(day => {
                 let overrideData = liveOverrides[uniqueWeekKey] || {};
-                let players = overrideData[day] !== undefined ? overrideData[day] : tpl[day];
+                let players = (overrideData[day] !== undefined && overrideData[day] !== null && overrideData[day].length > 0) ? overrideData[day] : tpl[day];
                 if (Array.isArray(players)) {
                     players.forEach(p => {
                         if (!basePlayers.includes(p)) activeSubs.add(p);
@@ -2768,7 +2778,7 @@
 
             let tpl = defaultTemplate[templateIndex];
             let overrideData = liveOverrides[uniqueWeekKey] || {};
-            let currentPlayers = overrideData[day] !== undefined ? overrideData[day] : tpl[day];
+            let currentPlayers = (overrideData[day] !== undefined && overrideData[day] !== null && overrideData[day].length > 0) ? overrideData[day] : tpl[day];
 
             for (let i = 0; i < 4; i++) {
                 let sel = document.getElementById(`p${i}Select`);
@@ -2855,7 +2865,7 @@
             if (currentUserName !== "Robert") {
                 let tpl = defaultTemplate[activeTemplateIndex];
                 let overrideData = liveOverrides[activeModalUniqueKey] || {};
-                let originalVal = (overrideData[activeModalDay] !== undefined ? overrideData[activeModalDay] : tpl[activeModalDay])[i];
+                let originalVal = (overrideData[activeModalDay] !== undefined && overrideData[activeModalDay] !== null && overrideData[activeModalDay].length > 0 ? overrideData[activeModalDay] : tpl[activeModalDay])[i];
 
                 if (chosenVal !== currentUserName && chosenVal !== originalVal && !inp.value.trim()) {
                     alert("Je mag alleen je eigen naam invullen op een vrije of afgewezen plek!");
