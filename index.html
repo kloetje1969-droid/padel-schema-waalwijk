@@ -1789,66 +1789,85 @@
 
     let cyclusClaimInFlight = {};
 
-    async function checkAndStoreCyclusWinner() {
-        let cyclusIdx = getActiveCyclusIndex();
-        if (cyclusIdx <= 0) return; 
-
-        let prevCyclusIdx = cyclusIdx - 1;
-        if (cyclusWinnaars[prevCyclusIdx]) return; 
-        if (cyclusClaimInFlight[prevCyclusIdx]) return;
-
-        let referenceMonday = new Date(2026, 8, 21);
-        let cyclusStartWeek = prevCyclusIdx * 6;
-        let cyclusEndWeek = cyclusStartWeek + 5;
-
-        let gameCounts = {};
+    // Tel alle ingevulde games mee. Een wedstrijd met slechts 1 of 2 gespeelde
+    // sets telt dus gewoon mee; niet-ingevulde sets leveren vanzelf 0 games op.
+    function getGameCountsForCyclus(cyclusIndex) {
+        const referenceMonday = new Date(2026, 8, 21);
+        const gameCounts = {};
         basePlayers.forEach(p => gameCounts[p] = 0);
 
-        for (let matchId in matchResults) {
-            let parts = matchId.split('_');
-            if (parts.length >= 2) {
-                let yrStr = parts[0];
-                let wStr = parts[1].replace('w', '');
-                let matchWeekNum = parseInt(wStr);
+        for (const matchId in matchResults) {
+            const parts = matchId.split('_');
+            if (parts.length < 2) continue;
 
-                let matchWeekStart = isoWeekToMonday(parseInt(yrStr), matchWeekNum);
-                let diffTime = matchWeekStart.getTime() - referenceMonday.getTime();
-                let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
-                let matchCyclus = Math.floor(diffWeeks / 6);
+            const year = parseInt(parts[0], 10);
+            const week = parseInt(parts[1].replace('w', ''), 10);
+            if (!Number.isFinite(year) || !Number.isFinite(week)) continue;
 
-                if (matchCyclus === prevCyclusIdx) {
-                    let res = matchResults[matchId];
-                    if (res && res.players && res.players.length === 4) {
-                        let t1Games = (Number(res.t1s1) || 0) + (Number(res.t1s2) || 0) + (Number(res.t1s3) || 0);
-                        let t2Games = (Number(res.t2s1) || 0) + (Number(res.t2s2) || 0) + (Number(res.t2s3) || 0);
+            const matchWeekStart = isoWeekToMonday(year, week);
+            const diffWeeks = Math.round((matchWeekStart.getTime() - referenceMonday.getTime()) / (1000 * 60 * 60 * 24 * 7));
+            const matchCyclus = Math.floor(diffWeeks / 6);
+            if (matchCyclus !== cyclusIndex) continue;
 
-                        gameCounts[res.players[0]] = (gameCounts[res.players[0]] || 0) + t1Games;
-                        gameCounts[res.players[1]] = (gameCounts[res.players[1]] || 0) + t1Games;
-                        gameCounts[res.players[2]] = (gameCounts[res.players[2]] || 0) + t2Games;
-                        gameCounts[res.players[3]] = (gameCounts[res.players[3]] || 0) + t2Games;
-                    }
-                }
-            }
+            const res = matchResults[matchId];
+            if (!res || !Array.isArray(res.players) || res.players.length !== 4) continue;
+
+            const t1Games = (Number(res.t1s1) || 0) + (Number(res.t1s2) || 0) + (Number(res.t1s3) || 0);
+            const t2Games = (Number(res.t2s1) || 0) + (Number(res.t2s2) || 0) + (Number(res.t2s3) || 0);
+
+            gameCounts[res.players[0]] = (gameCounts[res.players[0]] || 0) + t1Games;
+            gameCounts[res.players[1]] = (gameCounts[res.players[1]] || 0) + t1Games;
+            gameCounts[res.players[2]] = (gameCounts[res.players[2]] || 0) + t2Games;
+            gameCounts[res.players[3]] = (gameCounts[res.players[3]] || 0) + t2Games;
         }
 
-        let sorted = [...basePlayers].sort((a, b) => (gameCounts[b] || 0) - (gameCounts[a] || 0));
-        let winner = sorted[0];
-        let maxGames = gameCounts[winner] || 0;
+        return gameCounts;
+    }
 
-        cyclusClaimInFlight[prevCyclusIdx] = true;
-        try {
-            const claim = await db.ref(`padelData/cyclusWinnaars/${prevCyclusIdx}`).transaction(cur => {
-                if (cur) return undefined;
-                return { winner: winner, games: maxGames, timestamp: Date.now() };
-            });
+    function getCycleWinnerSummary(gameCounts) {
+        const maxGames = Math.max(0, ...basePlayers.map(p => gameCounts[p] || 0));
+        if (maxGames === 0) return { winner: 'Nog geen uitslagen', games: 0 };
+        const leaders = basePlayers.filter(p => (gameCounts[p] || 0) === maxGames);
+        return {
+            winner: leaders.length > 1 ? `Gelijkspel: ${leaders.join(' / ')}` : leaders[0],
+            games: maxGames
+        };
+    }
 
-            if (claim.committed) {
-                await addSystemMessageIfUnique(`🏆 Cyclus van 6 weken is afgerond! De winnaar van cyclus ${prevCyclusIdx + 1} is ${winner} met ${maxGames} gewonnen games! De telling is opnieuw begonnen.`);
+    async function checkAndStoreCyclusWinner() {
+        const activeCyclusIdx = getActiveCyclusIndex();
+        if (activeCyclusIdx <= 0) return;
+
+        // Bereken alle afgesloten cycli opnieuw. Zo worden correcties aan oude
+        // uitslagen ook verwerkt in de winnaar die al in Firebase is opgeslagen.
+        for (let cyclusIdx = 0; cyclusIdx < activeCyclusIdx; cyclusIdx++) {
+            if (cyclusClaimInFlight[cyclusIdx]) continue;
+            cyclusClaimInFlight[cyclusIdx] = true;
+
+            try {
+                const summary = getCycleWinnerSummary(getGameCountsForCyclus(cyclusIdx));
+                const ref = db.ref(`padelData/cyclusWinnaars/${cyclusIdx}`);
+                let wasAlreadyStored = Boolean(cyclusWinnaars && cyclusWinnaars[cyclusIdx]);
+                const result = await ref.transaction(current => {
+                    if (current && current.winner === summary.winner && Number(current.games) === summary.games) {
+                        return; // Geen wijziging nodig.
+                    }
+                    return {
+                        winner: summary.winner,
+                        games: summary.games,
+                        timestamp: current && current.timestamp ? current.timestamp : Date.now(),
+                        updatedAt: current ? Date.now() : null
+                    };
+                });
+
+                if (result.committed && !wasAlreadyStored && summary.games > 0) {
+                    await addSystemMessageIfUnique(`🏆 Cyclus van 6 weken is afgerond! ${summary.winner.startsWith('Gelijkspel:') ? 'Gelijkspel' : 'De winnaar'} van cyclus ${cyclusIdx + 1}: ${summary.winner}, met ${summary.games} gewonnen games. De telling is opnieuw begonnen.`);
+                }
+            } catch (err) {
+                console.error(`Fout bij bijwerken winnaar cyclus ${cyclusIdx + 1}:`, err);
+            } finally {
+                cyclusClaimInFlight[cyclusIdx] = false;
             }
-        } catch (err) {
-            console.error("Fout bij opslaan cyclus-winnaar:", err);
-        } finally {
-            cyclusClaimInFlight[prevCyclusIdx] = false;
         }
     }
 
@@ -1856,53 +1875,24 @@
         const container = document.getElementById('setsRankingContainer');
         if (!container) return;
 
-        let activeCyclusIdx = getActiveCyclusIndex();
-        let referenceMonday = new Date(2026, 8, 21);
-
-        let gameCounts = {};
-        basePlayers.forEach(p => gameCounts[p] = 0);
-
-        for (let matchId in matchResults) {
-            let parts = matchId.split('_');
-            if (parts.length >= 2) {
-                let yrStr = parts[0];
-                let wStr = parts[1].replace('w', '');
-                let matchWeekNum = parseInt(wStr);
-
-                let matchWeekStart = isoWeekToMonday(parseInt(yrStr), matchWeekNum);
-                let diffTime = matchWeekStart.getTime() - referenceMonday.getTime();
-                let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
-                let matchCyclus = Math.floor(diffWeeks / 6);
-
-                if (matchCyclus === activeCyclusIdx) {
-                    let res = matchResults[matchId];
-                    if (res && res.players && res.players.length === 4) {
-                        let t1Games = (Number(res.t1s1) || 0) + (Number(res.t1s2) || 0) + (Number(res.t1s3) || 0);
-                        let t2Games = (Number(res.t2s1) || 0) + (Number(res.t2s2) || 0) + (Number(res.t2s3) || 0);
-
-                        gameCounts[res.players[0]] = (gameCounts[res.players[0]] || 0) + t1Games;
-                        gameCounts[res.players[1]] = (gameCounts[res.players[1]] || 0) + t1Games;
-                        gameCounts[res.players[2]] = (gameCounts[res.players[2]] || 0) + t2Games;
-                        gameCounts[res.players[3]] = (gameCounts[res.players[3]] || 0) + t2Games;
-                    }
-                }
-            }
-        }
-
-        let sortedPlayers = [...basePlayers].sort((a, b) => (gameCounts[b] || 0) - (gameCounts[a] || 0));
+        const activeCyclusIdx = getActiveCyclusIndex();
+        const gameCounts = getGameCountsForCyclus(activeCyclusIdx);
+        const sortedPlayers = [...basePlayers].sort((a, b) => (gameCounts[b] || 0) - (gameCounts[a] || 0));
 
         let previousWinnersHtml = '';
         if (cyclusWinnaars && Object.keys(cyclusWinnaars).length > 0) {
             previousWinnersHtml = `<div style="font-size: 0.72rem; color: var(--accent-orange); font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid var(--card-border); padding-bottom: 4px;">Vorige Cyclus Winnaars:</div>` +
-                Object.keys(cyclusWinnaars).map(idx => {
-                    let wData = cyclusWinnaars[idx];
-                    return `<div style="font-size: 0.7rem; color: var(--text-muted); display: flex; justify-content: space-between;"><span>Cyclus ${parseInt(idx) + 1}:</span> <strong>${wData.winner} (${wData.games} games)</strong></div>`;
+                Object.keys(cyclusWinnaars).sort((a, b) => Number(a) - Number(b)).map(idx => {
+                    const wData = cyclusWinnaars[idx];
+                    return `<div style="font-size: 0.7rem; color: var(--text-muted); display: flex; justify-content: space-between; gap: 8px;"><span>Cyclus ${parseInt(idx, 10) + 1}:</span> <strong>${wData.winner} (${wData.games} games)</strong></div>`;
                 }).join('') + `<div style="margin: 6px 0; border-bottom: 1px solid var(--card-border);"></div>`;
         }
 
         container.innerHTML = previousWinnersHtml + sortedPlayers.map((p, index) => {
-            let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-            let isMe = (p === currentUserName);
+            const tiedWithPrevious = index > 0 && (gameCounts[p] || 0) === (gameCounts[sortedPlayers[index - 1]] || 0);
+            const rank = tiedWithPrevious ? (gameCounts[sortedPlayers[index - 1]] === gameCounts[p] ? (sortedPlayers.slice(0, index).findIndex(prev => gameCounts[prev] === gameCounts[p]) + 1) : index + 1) : index + 1;
+            const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+            const isMe = (p === currentUserName);
             return `
                 <div style="display: flex; justify-content: space-between; align-items: center; background: ${isMe ? 'rgba(56, 189, 248, 0.15)' : 'var(--bg-color)'}; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
                     <span style="font-weight: ${isMe ? 'bold' : '500'}; color: ${isMe ? '#7dd3fc' : 'var(--text-main)'};">${medal} ${p}</span>
