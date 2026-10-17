@@ -2605,24 +2605,28 @@
             let diCancelled = isMatchCancelled(uniqueWeekKey, 'dinsdag');
             let doCancelled = isMatchCancelled(uniqueWeekKey, 'donderdag');
 
-            let dinsdagPlayers = diCancelled ? [] : (overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag);
-            let donderdagPlayers = doCancelled ? [] : (overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag);
+            // Als een wedstrijd is afgelast, tellen we de spelers op die avond níet mee
+            if (!diCancelled) {
+                let dinsdagPlayers = overrideData.dinsdag !== undefined ? overrideData.dinsdag : tpl.dinsdag;
+                dinsdagPlayers.forEach(p => {
+                    if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
+                    if (!checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag')) {
+                        counts[p].dinsdag++;
+                        counts[p].totaal++;
+                    }
+                });
+            }
 
-            dinsdagPlayers.forEach(p => {
-                if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
-                if (!checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag')) {
-                    counts[p].dinsdag++;
-                    counts[p].totaal++;
-                }
-            });
-
-            donderdagPlayers.forEach(p => {
-                if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
-                if (!checkPlayerAbsent(p, uniqueWeekKey, 'donderdag')) {
-                    counts[p].donderdag++;
-                    counts[p].totaal++;
-                }
-            });
+            if (!doCancelled) {
+                let donderdagPlayers = overrideData.donderdag !== undefined ? overrideData.donderdag : tpl.donderdag;
+                donderdagPlayers.forEach(p => {
+                    if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
+                    if (!checkPlayerAbsent(p, uniqueWeekKey, 'donderdag')) {
+                        counts[p].donderdag++;
+                        counts[p].totaal++;
+                    }
+                });
+            }
         }
 
         let allKeys = Object.keys(counts);
