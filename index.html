@@ -986,9 +986,15 @@
         
         .modal-buttons { 
             display: flex; 
-            justify-content: flex-end; 
+            justify-content: space-between; 
+            align-items: center; 
             gap: 8px; 
             margin-top: 14px; 
+        }
+
+        .modal-buttons-right {
+            display: flex;
+            gap: 8px;
         }
         
         .btn-cancel { 
@@ -1325,30 +1331,37 @@
     <div class="modal-content">
         <h3 id="modalSubTitle">Wijzig</h3>
         
-        <div class="player-select-group">
-            <label>Speler 1</label>
-            <select id="p0Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p0Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
-        </div>
-        <div class="player-select-group">
-            <label>Speler 2</label>
-            <select id="p1Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p1Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
-        </div>
-        <div class="player-select-group">
-            <label>Speler 3</label>
-            <select id="p2Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p2Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
-        </div>
-        <div class="player-select-group">
-            <label>Speler 4</label>
-            <select id="p3Select" onchange="checkCustomInputs()"></select>
-            <input type="text" id="p3Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+        <div id="modalPlayerSelects">
+            <div class="player-select-group">
+                <label>Speler 1</label>
+                <select id="p0Select" onchange="checkCustomInputs()"></select>
+                <input type="text" id="p0Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+            </div>
+            <div class="player-select-group">
+                <label>Speler 2</label>
+                <select id="p1Select" onchange="checkCustomInputs()"></select>
+                <input type="text" id="p1Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+            </div>
+            <div class="player-select-group">
+                <label>Speler 3</label>
+                <select id="p2Select" onchange="checkCustomInputs()"></select>
+                <input type="text" id="p2Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+            </div>
+            <div class="player-select-group">
+                <label>Speler 4</label>
+                <select id="p3Select" onchange="checkCustomInputs()"></select>
+                <input type="text" id="p3Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+            </div>
         </div>
 
         <div class="modal-buttons">
-            <button class="btn-cancel" onclick="closeModal()">Annuleren</button>
-            <button class="btn-primary" onclick="confirmReplacement()">Opslaan</button>
+            <button class="btn-edit" id="modalToggleCancelBtn" onclick="handleModalToggleAfgelast()" style="background: var(--danger-bg); color: var(--danger); border-color: var(--danger); font-size: 0.8rem; padding: 7px 10px;">
+                🚫 Afgelasten
+            </button>
+            <div class="modal-buttons-right">
+                <button class="btn-cancel" onclick="closeModal()">Annuleren</button>
+                <button class="btn-primary" id="modalSaveBtn" onclick="confirmReplacement()">Opslaan</button>
+            </div>
         </div>
     </div>
 </div>
@@ -2351,29 +2364,6 @@
         return dayOverride === null || (Array.isArray(dayOverride) && dayOverride.length === 0);
     }
 
-    async function toggleAfgelast(uniqueWeekKey, day, weekNum) {
-        if (!currentUserName) {
-            alert("Kies eerst je naam bovenin de app!");
-            return;
-        }
-
-        let currentlyCancelled = isMatchCancelled(uniqueWeekKey, day);
-        let confirmText = currentlyCancelled ? `Wedstrijd voor week ${weekNum} (${day}) weer herstellen?` : `Weet je zeker dat je de wedstrijd voor week ${weekNum} (${day}) wilt afgelasten?`;
-        
-        if (confirm(confirmText)) {
-            let path = `padelData/scheduleOverrides/${uniqueWeekKey}/${day}`;
-            if (currentlyCancelled) {
-                // Herstel naar default template
-                await db.ref(path).remove();
-                await addSystemMessageIfUnique(`✅ Wedstrijd voor week ${weekNum} (${day}) is weer geopend.`);
-            } else {
-                // Sla lege array op om aan te geven dat deze is afgelast
-                await db.ref(path).set([]);
-                await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${weekNum} (${day}) is AFGELAST.`);
-            }
-        }
-    }
-
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
         let currentMonday = getAdjustedBaseDate();
@@ -2450,10 +2440,7 @@
                                 ${dinsdagBodyHtml}
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})" ${diCancelled ? 'disabled' : ''}>✏️ Wijzig</button>
-                                <button class="btn-edit" onclick="toggleAfgelast('${uniqueWeekKey}', 'dinsdag', ${currentWeekNum})" style="background: ${diCancelled ? 'rgba(52, 211, 153, 0.2)' : 'var(--danger-bg)'}; color: ${diCancelled ? 'var(--accent-green)' : 'var(--danger)'}; border-color: ${diCancelled ? 'var(--accent-green)' : 'var(--danger)'};">
-                                    ${diCancelled ? '✓ Herstel' : '🚫 Afgelast'}
-                                </button>
+                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig</button>
                             </div>
                         </div>
                         ${!diCancelled ? `
@@ -2505,10 +2492,7 @@
                                 ${donderdagBodyHtml}
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})" ${doCancelled ? 'disabled' : ''}>✏️ Wijzig</button>
-                                <button class="btn-edit" onclick="toggleAfgelast('${uniqueWeekKey}', 'donderdag', ${currentWeekNum})" style="background: ${doCancelled ? 'rgba(52, 211, 153, 0.2)' : 'var(--danger-bg)'}; color: ${doCancelled ? 'var(--accent-green)' : 'var(--danger)'}; border-color: ${doCancelled ? 'var(--accent-green)' : 'var(--danger)'};">
-                                    ${doCancelled ? '✓ Herstel' : '🚫 Afgelast'}
-                                </button>
+                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig</button>
                             </div>
                         </div>
                         ${!doCancelled ? `
@@ -2758,33 +2742,73 @@
         
         document.getElementById('modalSubTitle').innerText = `Wijzig Week ${weekNum} (${day})`;
 
-        let tpl = defaultTemplate[templateIndex];
-        let overrideData = liveOverrides[uniqueWeekKey] || {};
-        let currentPlayers = overrideData[day] !== undefined ? overrideData[day] : tpl[day];
+        let currentlyCancelled = isMatchCancelled(uniqueWeekKey, day);
+        const toggleBtn = document.getElementById('modalToggleCancelBtn');
+        const selectsDiv = document.getElementById('modalPlayerSelects');
+        const saveBtn = document.getElementById('modalSaveBtn');
 
-        for (let i = 0; i < 4; i++) {
-            let sel = document.getElementById(`p${i}Select`);
-            let inp = document.getElementById(`p${i}Custom`);
-            
-            let availableOpts = (currentUserName === "Robert") ? [...basePlayers, "Extern / Invaller"] : [currentUserName, "Extern / Invaller"];
-            sel.innerHTML = availableOpts.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+        if (currentlyCancelled) {
+            toggleBtn.innerHTML = "✅ Herstellen";
+            toggleBtn.style.background = "rgba(52, 211, 153, 0.2)";
+            toggleBtn.style.borderColor = "var(--accent-green)";
+            toggleBtn.style.color = "var(--accent-green)";
+            selectsDiv.style.display = "none";
+            saveBtn.style.display = "none";
+        } else {
+            toggleBtn.innerHTML = "🚫 Afgelasten";
+            toggleBtn.style.background = "var(--danger-bg)";
+            toggleBtn.style.borderColor = "var(--danger)";
+            toggleBtn.style.color = "var(--danger)";
+            selectsDiv.style.display = "block";
+            saveBtn.style.display = "inline-block";
 
-            let pVal = currentPlayers[i] || basePlayers[i];
-            if (currentUserName !== "Robert" && !availableOpts.includes(pVal)) {
-                sel.innerHTML = `<option value="${pVal}">${pVal}</option>` + sel.innerHTML;
-            }
+            let tpl = defaultTemplate[templateIndex];
+            let overrideData = liveOverrides[uniqueWeekKey] || {};
+            let currentPlayers = overrideData[day] !== undefined ? overrideData[day] : tpl[day];
 
-            if (basePlayers.includes(pVal) || (currentUserName !== "Robert" && pVal === currentUserName)) {
-                sel.value = pVal;
-                inp.style.display = "none";
-                inp.value = "";
-            } else {
-                sel.value = "Extern / Invaller";
-                inp.style.display = "block";
-                inp.value = pVal;
+            for (let i = 0; i < 4; i++) {
+                let sel = document.getElementById(`p${i}Select`);
+                let inp = document.getElementById(`p${i}Custom`);
+                
+                let availableOpts = (currentUserName === "Robert") ? [...basePlayers, "Extern / Invaller"] : [currentUserName, "Extern / Invaller"];
+                sel.innerHTML = availableOpts.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+
+                let pVal = (currentPlayers && currentPlayers[i]) ? currentPlayers[i] : basePlayers[i];
+                if (currentUserName !== "Robert" && !availableOpts.includes(pVal)) {
+                    sel.innerHTML = `<option value="${pVal}">${pVal}</option>` + sel.innerHTML;
+                }
+
+                if (basePlayers.includes(pVal) || (currentUserName !== "Robert" && pVal === currentUserName)) {
+                    sel.value = pVal;
+                    inp.style.display = "none";
+                    inp.value = "";
+                } else {
+                    sel.value = "Extern / Invaller";
+                    inp.style.display = "block";
+                    inp.value = pVal;
+                }
             }
         }
+
         document.getElementById('replaceModal').style.display = 'flex';
+    }
+
+    async function handleModalToggleAfgelast() {
+        let currentlyCancelled = isMatchCancelled(activeModalUniqueKey, activeModalDay);
+        let path = `padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`;
+
+        if (currentlyCancelled) {
+            await db.ref(path).remove();
+            await addSystemMessageIfUnique(`✅ Wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) is weer geopend.`);
+        } else {
+            if (confirm(`Weet je zeker dat je de wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) wilt afgelasten?`)) {
+                await db.ref(path).set([]);
+                await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) is AFGELAST.`);
+            } else {
+                return;
+            }
+        }
+        closeModal();
     }
 
     function checkCustomInputs() {
