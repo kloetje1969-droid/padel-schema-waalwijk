@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Padelschema - Rooster & Chat (v6.9)</title>
+    <title>Padelschema - Rooster & Chat (v7.0)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padel Icon -->
     <link rel="manifest" href="manifest.json">
@@ -1317,7 +1317,7 @@
 
     <!-- Versienummer onderaan -->
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v6.9
+        Padelschema v7.0
     </div>
 </div>
 
@@ -1360,7 +1360,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "6.9";
+    const APP_VERSION = "7.0";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1755,7 +1755,7 @@
         let currentMonday = getAdjustedBaseDate();
         let referenceMonday = new Date(2026, 8, 21);
         let diffTime = currentMonday.getTime() - referenceMonday.getTime();
-        let diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+        let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
         return Math.floor(diffWeeks / 6);
     }
 
@@ -1780,8 +1780,7 @@
                 let wStr = parts[1].replace('w', '');
                 let matchWeekNum = parseInt(wStr);
 
-                let testDate = new Date(parseInt(yrStr), 0, 4);
-                let matchWeekStart = new Date(testDate.getTime() + (matchWeekNum - 1) * 7 * 86400000);
+                let matchWeekStart = isoWeekToMonday(parseInt(yrStr), matchWeekNum);
                 let diffTime = matchWeekStart.getTime() - referenceMonday.getTime();
                 let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
                 let matchCyclus = Math.floor(diffWeeks / 6);
@@ -1831,8 +1830,7 @@
                 let wStr = parts[1].replace('w', '');
                 let matchWeekNum = parseInt(wStr);
 
-                let testDate = new Date(parseInt(yrStr), 0, 4);
-                let matchWeekStart = new Date(testDate.getTime() + (matchWeekNum - 1) * 7 * 86400000);
+                let matchWeekStart = isoWeekToMonday(parseInt(yrStr), matchWeekNum);
                 let diffTime = matchWeekStart.getTime() - referenceMonday.getTime();
                 let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
                 let matchCyclus = Math.floor(diffWeeks / 6);
@@ -2296,6 +2294,25 @@
         return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
 
+    // ISO-jaar van een datum (het jaar waar de donderdag van die week in valt).
+    // Rond de jaarwisseling kan dit afwijken van getFullYear().
+    function getISOYear(d) {
+        let date = new Date(d.getTime());
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+        return date.getFullYear();
+    }
+
+    // Maandag van ISO-week `week` in ISO-jaar `year` (4 januari valt altijd in week 1).
+    // Rekent met setDate in plaats van milliseconden, zodat zomer-/wintertijd geen invloed heeft.
+    function isoWeekToMonday(year, week) {
+        let d = new Date(year, 0, 4);
+        let dagVanWeek = (d.getDay() + 6) % 7; // 0 = maandag
+        d.setDate(d.getDate() - dagVanWeek + (week - 1) * 7);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+
     function getAdjustedBaseDate() {
         let now = new Date();
         let currentMonday = getMonday(now);
@@ -2327,7 +2344,7 @@
             weekStart.setDate(currentMonday.getDate() + (i * 7));
 
             let currentWeekNum = getISOWeekNumber(weekStart);
-            let currentYear = weekStart.getFullYear();
+            let currentYear = getISOYear(weekStart);
             let uniqueWeekKey = `${currentYear}_w${currentWeekNum}`;
 
             let diffTime = weekStart.getTime() - referenceMonday.getTime();
@@ -2532,7 +2549,7 @@
             let weekStart = new Date(currentMonday);
             weekStart.setDate(currentMonday.getDate() + (i * 7));
             let wn = getISOWeekNumber(weekStart);
-            let yr = weekStart.getFullYear();
+            let yr = getISOYear(weekStart);
             let uniqueWeekKey = `${yr}_w${wn}`;
 
             let referenceMonday = new Date(2026, 8, 21);
@@ -2593,7 +2610,7 @@
             let weekStart = new Date(currentMonday);
             weekStart.setDate(currentMonday.getDate() + (i * 7));
             let wn = getISOWeekNumber(weekStart);
-            let yr = weekStart.getFullYear();
+            let yr = getISOYear(weekStart);
             let uniqueWeekKey = `${yr}_w${wn}`;
 
             let referenceMonday = new Date(2026, 8, 21);
@@ -2634,7 +2651,7 @@
                 let weekStart = new Date(currentMonday);
                 weekStart.setDate(currentMonday.getDate() + (i * 7));
                 let wn = getISOWeekNumber(weekStart);
-                let yr = weekStart.getFullYear();
+                let yr = getISOYear(weekStart);
                 let uniqueWeekKey = `${yr}_w${wn}`;
 
                 ['dinsdag', 'donderdag'].forEach(day => {
