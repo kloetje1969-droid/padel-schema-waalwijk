@@ -6,7 +6,7 @@
     <!-- Cache control headers -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
     <title>Padelschema - Rooster & Chat (v7.2)</title>
     
     <!-- PWA / Apple & Android Meta Tags & Padel Icon -->
@@ -911,6 +911,18 @@
             margin-top: 4px; 
             align-items: flex-end; 
         }
+
+        .push-btn {
+            background: var(--btn-bg);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .push-btn:hover {
+            background: var(--btn-hover);
+        }
         
         .chat-input-row textarea { 
             flex-grow: 1; 
@@ -1426,7 +1438,7 @@
 
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
     let currentUserName = localStorage.getItem('padel_current_user') || "";
-    const myOriginalUserName = currentUserName;
+    let myOriginalUserName = currentUserName;
 
     let selectedFileBase64 = null;
     let selectedFileName = null;
@@ -1762,9 +1774,8 @@
         });
 
         db.ref('padelData/messages').on('value', (snapshot) => {
-            const rawMessages = snapshot.val() ? Object.values(snapshot.val()) : [];
-            
-            messages = rawMessages;
+            const val = snapshot.val() || {};
+            messages = Object.keys(val).map(key => ({ key, ...val[key] }));
             isInitialMessageLoad = false;
 
             if (lastSeenMessageCount > messages.length) {
@@ -1789,8 +1800,6 @@
 
     let cyclusClaimInFlight = {};
 
-    // Tel alle ingevulde games mee. Een wedstrijd met slechts 1 of 2 gespeelde
-    // sets telt dus gewoon mee; niet-ingevulde sets leveren vanzelf 0 games op.
     function getGameCountsForCyclus(cyclusIndex) {
         const referenceMonday = new Date(2026, 8, 21);
         const gameCounts = {};
@@ -1838,8 +1847,6 @@
         const activeCyclusIdx = getActiveCyclusIndex();
         if (activeCyclusIdx <= 0) return;
 
-        // Bereken alle afgesloten cycli opnieuw. Zo worden correcties aan oude
-        // uitslagen ook verwerkt in de winnaar die al in Firebase is opgeslagen.
         for (let cyclusIdx = 0; cyclusIdx < activeCyclusIdx; cyclusIdx++) {
             if (cyclusClaimInFlight[cyclusIdx]) continue;
             cyclusClaimInFlight[cyclusIdx] = true;
@@ -1850,7 +1857,7 @@
                 let wasAlreadyStored = Boolean(cyclusWinnaars && cyclusWinnaars[cyclusIdx]);
                 const result = await ref.transaction(current => {
                     if (current && current.winner === summary.winner && Number(current.games) === summary.games) {
-                        return; // Geen wijziging nodig.
+                        return;
                     }
                     return {
                         winner: summary.winner,
@@ -2141,6 +2148,7 @@
     function completeUserChange(gekozenNaam) {
         saveCurrentSessionLastSeen();
         currentUserName = gekozenNaam;
+        myOriginalUserName = gekozenNaam;
         localStorage.setItem('padel_current_user', currentUserName);
         sessionStartTime = Date.now();
 
@@ -2153,7 +2161,7 @@
 
     function saveCurrentSessionLastSeen() {
         if (!currentUserName) return;
-        const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
+        const myRealName = myOriginalUserName || currentUserName;
         db.ref(`padelData/lastSeen/${myRealName}`).set(Date.now());
     }
 
@@ -2168,7 +2176,7 @@
             presenceHeartbeat = null;
         }
 
-        const myRealName = window.myOriginalUserName || myOriginalUserName || currentUserName;
+        const myRealName = myOriginalUserName || currentUserName;
         if (!sessionStartTime) sessionStartTime = Date.now();
 
         presenceRef = db.ref(`padelData/presence/${myRealName}_${userSessionId}`);
@@ -2948,14 +2956,14 @@
 
     function renderChat() {
         const windowDiv = document.getElementById('chatWindow');
-        windowDiv.innerHTML = messages.map((m, index) => {
+        windowDiv.innerHTML = messages.map(m => {
             const isSelf = (m.author === currentUserName);
             const isSystem = (m.type === "system" || m.author === "Systeem" || m.author === "Padel Weerbericht");
             const formattedTime = formatMessageTime(m.timestamp, m.tijd);
             const tijdWeergave = formattedTime ? `<span style="font-size: 0.65rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${formattedTime}</span>` : '';
 
             let canDelete = (currentUserName === "Robert" || isSelf || (isSystem && currentUserName === "Robert"));
-            let deleteBtnHtml = canDelete ? `<button class="delete-msg-btn" onclick="deleteMessage(${index})" title="Verwijder bericht">✕</button>` : '';
+            let deleteBtnHtml = canDelete ? `<button class="delete-msg-btn" onclick="deleteMessage('${m.key}')" title="Verwijder bericht">✕</button>` : '';
 
             if (isSystem) {
                 return `
@@ -3051,17 +3059,13 @@
         }
     }
 
-    function deleteMessage(index) {
-        db.ref('padelData/messages').once('value', snapshot => {
-            let val = snapshot.val();
-            if (val) {
-                let keys = Object.keys(val);
-                if (keys[index]) db.ref(`padelData/messages/${keys[index]}`).remove();
-            }
-        });
+    function deleteMessage(key) {
+        if (key) {
+            db.ref(`padelData/messages/${key}`).remove();
+        }
     }
 
-    clearAllChat = function() {
+    function clearAllChat() {
         if (currentUserName === "Robert" && confirm("Weet je zeker dat je alle chatberichten wilt wissen?")) {
             db.ref('padelData/messages').remove();
         }
