@@ -1935,9 +1935,27 @@
             select.value = currentVal;
         }
 
+        const activeCyclusIdx = getActiveCyclusIndex();
+        const referenceMonday = new Date(2026, 8, 21);
+
+        const currentCyclusBoekingen = baanBoekingenList.filter(b => {
+            if (!b.dateTime) return false;
+            let bookingDate = new Date(b.dateTime);
+            if (isNaN(bookingDate.getTime())) return false;
+            
+            let day = bookingDate.getDay();
+            let diff = bookingDate.getDate() - day + (day === 0 ? -6 : 1);
+            let bookingMonday = new Date(bookingDate.setDate(diff));
+            bookingMonday.setHours(0, 0, 0, 0);
+
+            let diffTime = bookingMonday.getTime() - referenceMonday.getTime();
+            let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+            return Math.floor(diffWeeks / 6) === activeCyclusIdx;
+        });
+
         let counts = {};
         basePlayers.forEach(p => counts[p] = 0);
-        baanBoekingenList.forEach(b => {
+        currentCyclusBoekingen.forEach(b => {
             if (b.player) {
                 counts[b.player] = (counts[b.player] || 0) + 1;
             }
@@ -1946,24 +1964,24 @@
         const standenContainer = document.getElementById('baanBoekingStanden');
         if (standenContainer) {
             standenContainer.innerHTML = basePlayers.map(p => {
-                const count = counts[p] || 0;
+                let count = counts[p] || 0;
                 return `<span style="background: var(--bg-color); border: 1px solid var(--card-border); padding: 3px 8px; border-radius: 4px;">${p}: <strong>${count}</strong></span>`;
             }).join('');
         }
 
         const lijstContainer = document.getElementById('baanBoekingLijst');
         if (lijstContainer) {
-            if (baanBoekingenList.length === 0) {
-                lijstContainer.innerHTML = `<span style="color: var(--text-muted); font-size: 0.7rem;">Nog geen banen geboekt.</span>`;
+            if (currentCyclusBoekingen.length === 0) {
+                lijstContainer.innerHTML = `<span style="color: var(--text-muted); font-size: 0.7rem;">Nog geen banen geboekt in deze cyclus.</span>`;
                 return;
             }
 
-            lijstContainer.innerHTML = `<div style="font-size: 0.72rem; color: var(--accent-blue); font-weight: 600; margin-bottom: 2px;">Geboekte momenten:</div>` +
-                baanBoekingenList.map(b => {
-                    const formattedDt = formatExactDateTime(new Date(b.dateTime).getTime());
-                    const baanInfo = b.baan ? ` op <strong>${b.baan}</strong>` : '';
-                    const canDelete = (currentUserName === "Robert" || b.player === currentUserName);
-                    const deleteBtn = canDelete ? `<button onclick="deleteBaanBoeking('${b.id}')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
+            lijstContainer.innerHTML = `<div style="font-size: 0.72rem; color: var(--accent-blue); font-weight: 600; margin-bottom: 2px;">Geboekte momenten (deze cyclus):</div>` +
+                currentCyclusBoekingen.map(b => {
+                    let formattedDt = formatExactDateTime(new Date(b.dateTime).getTime());
+                    let baanInfo = b.baan ? ` op <strong>${b.baan}</strong>` : '';
+                    let canDelete = (currentUserName === "Robert" || b.player === currentUserName);
+                    let deleteBtn = canDelete ? `<button onclick="deleteBaanBoeking('${b.id}')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
                     return `<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--card-border);">
                         <span>${emojiIconHtml} <strong>${b.player}</strong>${baanInfo}: ${formattedDt}</span>
                         ${deleteBtn}
@@ -2314,6 +2332,7 @@
         renderStats();
         renderAbsenceTable();
         renderSetsRanking();
+        renderBaanBoekingen();
     }
 
     function getMonday(d) {
