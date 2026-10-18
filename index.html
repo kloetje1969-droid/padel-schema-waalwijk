@@ -1316,7 +1316,7 @@
         </div>
     </div>
 
-    <!-- Klassement gewonnen games -->
+    <!-- Klassement gewonnen games & Historie -->
     <div class="card">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
@@ -1801,11 +1801,9 @@
             const nu = Date.now();
             const zesWekenMs = 6 * 7 * 24 * 60 * 60 * 1000;
 
-            // Als er geen starttijd bekend is of de 6 weken zijn verstreken:
             if (!data || !data.startTijd || (nu - data.startTijd > zesWekenMs)) {
                 console.log("Nieuwe cyclus gedetecteerd. Baanboekingen worden automatisch gereset.");
 
-                // Baanboekingen automatisch leegmaken in Firebase
                 db.ref('padelData/baanBoekingenList').remove()
                     .then(() => {
                         console.log("Baanboekingen succesvol opgeschoond voor de nieuwe cyclus.");
@@ -1814,7 +1812,6 @@
                         console.error("Fout bij opschonen van baanboekingen:", error);
                     });
 
-                // Sla de nieuwe starttijd op
                 cyclusRef.set({
                     startTijd: nu
                 });
@@ -1920,8 +1917,9 @@
 
         let previousWinnersHtml = '';
         if (cyclusWinnaars && Object.keys(cyclusWinnaars).length > 0) {
-            previousWinnersHtml = `<div style="font-size: 0.72rem; color: var(--accent-orange); font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid var(--card-border); padding-bottom: 4px;">Vorige Cyclus Winnaars:</div>` +
-                Object.keys(cyclusWinnaars).sort((a, b) => Number(a) - Number(b)).map(idx => {
+            previousWinnersHtml = `
+                <div style="font-size: 0.72rem; color: var(--accent-orange); font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid var(--card-border); padding-bottom: 4px;">Vorige Cyclus Winnaars:</div>
+                ` + Object.keys(cyclusWinnaars).sort((a, b) => Number(a) - Number(b)).map(idx => {
                     const wData = cyclusWinnaars[idx];
                     return `<div style="font-size: 0.7rem; color: var(--text-muted); display: flex; justify-content: space-between; gap: 8px;"><span>Cyclus ${parseInt(idx, 10) + 1}:</span> <strong>${wData.winner} (${wData.games} games)</strong></div>`;
                 }).join('') + `<div style="margin: 6px 0; border-bottom: 1px solid var(--card-border);"></div>`;
