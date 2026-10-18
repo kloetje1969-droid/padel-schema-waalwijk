@@ -1316,7 +1316,7 @@
         </div>
     </div>
 
-    <!-- Klassement gewonnen games & Historie -->
+    <!-- Klassement gewonnen games -->
     <div class="card">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
@@ -1325,6 +1325,19 @@
             </summary>
             <div class="collapsible-body" id="setsRankingContainer" style="display: flex; flex-direction: column; gap: 6px;">
                 <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Games berekenen...</div>
+            </div>
+        </details>
+    </div>
+
+    <!-- Aparte Blok: Historische uitslagen -->
+    <div class="card">
+        <details ontoggle="updateCollapseArrow(this)">
+            <summary class="card-header collapsible-header" style="list-style: none;">
+                <div class="section-title" style="font-size: 0.95rem;">🏆 Historische uitslagen</div>
+                <span class="collapse-arrow">▼ Open</span>
+            </summary>
+            <div class="collapsible-body" id="historischeUitslagenContainer" style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Historie laden...</div>
             </div>
         </details>
     </div>
@@ -1734,7 +1747,6 @@
         updatePushPermissionButtonUI();
         registerPushToken();
         
-        // Automatische cyclus & baanboeking reset check uitvoeren bij opstarten
         checkEnStartNieuweCyclus();
 
         db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
@@ -1793,7 +1805,6 @@
         setInterval(renderStatuses, 5000);
     }
 
-    // Automatische cyclus- en baanboeking reset logica (6 weken cyclus)
     function checkEnStartNieuweCyclus() {
         const cyclusRef = db.ref('padelData/cyclusMeta');
         cyclusRef.once('value', (snapshot) => {
@@ -1802,19 +1813,8 @@
             const zesWekenMs = 6 * 7 * 24 * 60 * 60 * 1000;
 
             if (!data || !data.startTijd || (nu - data.startTijd > zesWekenMs)) {
-                console.log("Nieuwe cyclus gedetecteerd. Baanboekingen worden automatisch gereset.");
-
-                db.ref('padelData/baanBoekingenList').remove()
-                    .then(() => {
-                        console.log("Baanboekingen succesvol opgeschoond voor de nieuwe cyclus.");
-                    })
-                    .catch((error) => {
-                        console.error("Fout bij opschonen van baanboekingen:", error);
-                    });
-
-                cyclusRef.set({
-                    startTijd: nu
-                });
+                db.ref('padelData/baanBoekingenList').remove().catch(() => {});
+                cyclusRef.set({ startTijd: nu });
             }
         });
     }
@@ -1909,34 +1909,42 @@
 
     function renderSetsRanking() {
         const container = document.getElementById('setsRankingContainer');
-        if (!container) return;
+        if (container) {
+            const activeCyclusIdx = getActiveCyclusIndex();
+            const gameCounts = getGameCountsForCyclus(activeCyclusIdx);
+            const sortedPlayers = [...basePlayers].sort((a, b) => (gameCounts[b] || 0) - (gameCounts[a] || 0));
 
-        const activeCyclusIdx = getActiveCyclusIndex();
-        const gameCounts = getGameCountsForCyclus(activeCyclusIdx);
-        const sortedPlayers = [...basePlayers].sort((a, b) => (gameCounts[b] || 0) - (gameCounts[a] || 0));
-
-        let previousWinnersHtml = '';
-        if (cyclusWinnaars && Object.keys(cyclusWinnaars).length > 0) {
-            previousWinnersHtml = `
-                <div style="font-size: 0.72rem; color: var(--accent-orange); font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid var(--card-border); padding-bottom: 4px;">Vorige Cyclus Winnaars:</div>
-                ` + Object.keys(cyclusWinnaars).sort((a, b) => Number(a) - Number(b)).map(idx => {
-                    const wData = cyclusWinnaars[idx];
-                    return `<div style="font-size: 0.7rem; color: var(--text-muted); display: flex; justify-content: space-between; gap: 8px;"><span>Cyclus ${parseInt(idx, 10) + 1}:</span> <strong>${wData.winner} (${wData.games} games)</strong></div>`;
-                }).join('') + `<div style="margin: 6px 0; border-bottom: 1px solid var(--card-border);"></div>`;
+            container.innerHTML = sortedPlayers.map((p, index) => {
+                const tiedWithPrevious = index > 0 && (gameCounts[p] || 0) === (gameCounts[sortedPlayers[index - 1]] || 0);
+                const rank = tiedWithPrevious ? (gameCounts[sortedPlayers[index - 1]] === gameCounts[p] ? (sortedPlayers.slice(0, index).findIndex(prev => gameCounts[prev] === gameCounts[p]) + 1) : index + 1) : index + 1;
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+                const isMe = (p === currentUserName);
+                return `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: ${isMe ? 'rgba(56, 189, 248, 0.15)' : 'var(--bg-color)'}; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
+                        <span style="font-weight: ${isMe ? 'bold' : '500'}; color: ${isMe ? '#7dd3fc' : 'var(--text-main)'};">${medal} ${p}</span>
+                        <span style="color: var(--accent-blue); font-weight: bold;">${gameCounts[p] || 0} gewonnen games</span>
+                    </div>
+                `;
+            }).join('');
         }
 
-        container.innerHTML = previousWinnersHtml + sortedPlayers.map((p, index) => {
-            const tiedWithPrevious = index > 0 && (gameCounts[p] || 0) === (gameCounts[sortedPlayers[index - 1]] || 0);
-            const rank = tiedWithPrevious ? (gameCounts[sortedPlayers[index - 1]] === gameCounts[p] ? (sortedPlayers.slice(0, index).findIndex(prev => gameCounts[prev] === gameCounts[p]) + 1) : index + 1) : index + 1;
-            const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
-            const isMe = (p === currentUserName);
-            return `
-                <div style="display: flex; justify-content: space-between; align-items: center; background: ${isMe ? 'rgba(56, 189, 248, 0.15)' : 'var(--bg-color)'}; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
-                    <span style="font-weight: ${isMe ? 'bold' : '500'}; color: ${isMe ? '#7dd3fc' : 'var(--text-main)'};">${medal} ${p}</span>
-                    <span style="color: var(--accent-blue); font-weight: bold;">${gameCounts[p] || 0} gewonnen games</span>
-                </div>
-            `;
-        }).join('');
+        const histContainer = document.getElementById('historischeUitslagenContainer');
+        if (histContainer) {
+            if (!cyclusWinnaars || Object.keys(cyclusWinnaars).length === 0) {
+                histContainer.innerHTML = `<div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Nog geen afgeronde cycli beschikbaar.</div>`;
+                return;
+            }
+
+            histContainer.innerHTML = Object.keys(cyclusWinnaars).sort((a, b) => Number(a) - Number(b)).map(idx => {
+                const wData = cyclusWinnaars[idx];
+                return `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
+                        <span style="font-weight: 600; color: var(--accent-orange);">Cyclus ${parseInt(idx, 10) + 1}</span>
+                        <span style="color: var(--text-main);">🏆 <strong>${wData.winner}</strong> (${wData.games} games)</span>
+                    </div>
+                `;
+            }).join('');
+        }
     }
 
     async function saveMatchScore3Sets(matchId, p1, p2, p3, p4) {
@@ -3087,7 +3095,6 @@
             const newMsgRef = db.ref('padelData/messages').push();
             await newMsgRef.set(messageData);
             notifyServer(newMsgRef.key);
-            console.log("Bericht succesvol opgeslagen in Firebase.");
         } catch (error) {
             console.error("Fout bij opslaan in Firebase:", error);
         }
