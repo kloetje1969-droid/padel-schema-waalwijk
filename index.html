@@ -1329,19 +1329,6 @@
         </details>
     </div>
 
-    <!-- Historische Uitslagen Blok (verplaatst naar direct onder Stand Gewonnen Games) -->
-    <div class="card">
-        <details ontoggle="updateCollapseArrow(this)">
-            <summary class="card-header collapsible-header" style="list-style: none;">
-                <div class="section-title" style="font-size: 0.95rem;">📜 Historische Uitslagen</div>
-                <span class="collapse-arrow">▼ Open</span>
-            </summary>
-            <div class="collapsible-body" id="cyclusHistorieContainer" style="display: flex; flex-direction: column; gap: 8px;">
-                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Historie laden...</div>
-            </div>
-        </details>
-    </div>
-
     <div class="card" id="chatCardSection">
         <div class="card-header">
             <div class="section-title" style="font-size: 0.95rem;">💬 Team Chat</div>
@@ -1459,7 +1446,6 @@
     let baanBoekingenList = [];
     let matchResults = {}; 
     let cyclusWinnaars = {};
-    let cyclusGeschiedenis = {};
 
     const defaultTemplate = [
         { dinsdag: ["Mark", "Robert", "Ronald", "Sander"], donderdag: ["Marcel", "Robert", "Sander", "Dennis"] },
@@ -1747,6 +1733,9 @@
         fetchWaalwijkWeather();
         updatePushPermissionButtonUI();
         registerPushToken();
+        
+        // Automatische cyclus & baanboeking reset check uitvoeren bij opstarten
+        checkEnStartNieuweCyclus();
 
         db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
             liveOverrides = snapshot.val() || {};
@@ -1763,11 +1752,6 @@
         db.ref('padelData/cyclusWinnaars').on('value', (snapshot) => {
             cyclusWinnaars = snapshot.val() || {};
             renderSetsRanking();
-        });
-
-        db.ref('padelData/cyclusGeschiedenis').on('value', (snapshot) => {
-            cyclusGeschiedenis = snapshot.val() || {};
-            renderCyclusHistorie();
         });
 
         db.ref('padelData/presence').on('value', (snapshot) => {
@@ -1807,6 +1791,35 @@
 
         setupOnlinePresence();
         setInterval(renderStatuses, 5000);
+    }
+
+    // Automatische cyclus- en baanboeking reset logica (6 weken cyclus)
+    function checkEnStartNieuweCyclus() {
+        const cyclusRef = db.ref('padelData/cyclusMeta');
+        cyclusRef.once('value', (snapshot) => {
+            const data = snapshot.val();
+            const nu = Date.now();
+            const zesWekenMs = 6 * 7 * 24 * 60 * 60 * 1000;
+
+            // Als er geen starttijd bekend is of de 6 weken zijn verstreken:
+            if (!data || !data.startTijd || (nu - data.startTijd > zesWekenMs)) {
+                console.log("Nieuwe cyclus gedetecteerd. Baanboekingen worden automatisch gereset.");
+
+                // Baanboekingen automatisch leegmaken in Firebase
+                db.ref('padelData/baanBoekingenList').remove()
+                    .then(() => {
+                        console.log("Baanboekingen succesvol opgeschoond voor de nieuwe cyclus.");
+                    })
+                    .catch((error) => {
+                        console.error("Fout bij opschonen van baanboekingen:", error);
+                    });
+
+                // Sla de nieuwe starttijd op
+                cyclusRef.set({
+                    startTijd: nu
+                });
+            }
+        });
     }
 
     function getActiveCyclusIndex() {
@@ -1871,17 +1884,7 @@
             cyclusClaimInFlight[cyclusIdx] = true;
 
             try {
-                const gameCounts = getGameCountsForCyclus(cyclusIdx);
-                const summary = getCycleWinnerSummary(gameCounts);
-                
-                const historyRef = db.ref(`padelData/cyclusGeschiedenis/${cyclusIdx}`);
-                await historyRef.set({
-                    winner: summary.winner,
-                    games: summary.games,
-                    standings: gameCounts,
-                    timestamp: Date.now()
-                });
-
+                const summary = getCycleWinnerSummary(getGameCountsForCyclus(cyclusIdx));
                 const ref = db.ref(`padelData/cyclusWinnaars/${cyclusIdx}`);
                 let wasAlreadyStored = Boolean(cyclusWinnaars && cyclusWinnaars[cyclusIdx]);
                 const result = await ref.transaction(current => {
@@ -1897,7 +1900,7 @@
                 });
 
                 if (result.committed && !wasAlreadyStored && summary.games > 0) {
-                    await addSystemMessageIfUnique(`🏆 Cyclus van 6 weken is afgerond! ${summary.winner.startsWith('Gelijkspel:') ? 'Gelijkspel' : 'De winnaar'} van cyclus ${cyclusIdx + 1}: ${summary.winner}, met ${summary.games} gewonnen games. De uitslagen zijn gearchiveerd en de telling is opnieuw begonnen.`);
+                    await addSystemMessageIfUnique(`🏆 Cyclus van 6 weken is afgerond! ${summary.winner.startsWith('Gelijkspel:') ? 'Gelijkspel' : 'De winnaar'} van cyclus ${cyclusIdx + 1}: ${summary.winner}, met ${summary.games} gewonnen games. De telling is opnieuw begonnen.`);
                 }
             } catch (err) {
                 console.error(`Fout bij bijwerken winnaar cyclus ${cyclusIdx + 1}:`, err);
@@ -1905,42 +1908,6 @@
                 cyclusClaimInFlight[cyclusIdx] = false;
             }
         }
-    }
-
-    function renderCyclusHistorie() {
-        const container = document.getElementById('cyclusHistorieContainer');
-        if (!container) return;
-
-        if (!cyclusGeschiedenis || Object.keys(cyclusGeschiedenis).length === 0) {
-            container.innerHTML = `<div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Nog geen afgeronde cycli in het verleden.</div>`;
-            return;
-        }
-
-        container.innerHTML = Object.keys(cyclusGeschiedenis).sort((a, b) => Number(b) - Number(a)).map(idx => {
-            const data = cyclusGeschiedenis[idx];
-            const cyclusNummer = parseInt(idx, 10) + 1;
-            const standings = data.standings || {};
-            const sortedPlayers = [...basePlayers].sort((a, b) => (standings[b] || 0) - (standings[a] || 0));
-
-            const standingsHtml = sortedPlayers.map(p => {
-                return `<div style="display: flex; justify-content: space-between; font-size: 0.73rem; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
-                    <span>${p}</span>
-                    <strong style="color: var(--accent-blue);">${standings[p] || 0} games</strong>
-                </div>`;
-            }).join('');
-
-            return `
-                <div style="background: var(--bg-color); border: 1px solid var(--card-border); padding: 10px; border-radius: 8px; margin-bottom: 6px;">
-                    <div style="font-weight: bold; color: var(--accent-orange); font-size: 0.8rem; margin-bottom: 4px; display: flex; justify-content: space-between;">
-                        <span>Cyclus ${cyclusNummer}</span>
-                        <span>Winnaar: ${data.winner}</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 2px; margin-top: 4px;">
-                        ${standingsHtml}
-                    </div>
-                </div>
-            `;
-        }).join('');
     }
 
     function renderSetsRanking() {
@@ -2397,7 +2364,6 @@
         renderStats();
         renderAbsenceTable();
         renderSetsRanking();
-        renderCyclusHistorie();
         renderBaanBoekingen();
     }
 
