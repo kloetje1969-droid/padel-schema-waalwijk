@@ -482,6 +482,7 @@
             padding: 3px 8px;
             border-radius: 6px;
             border: 1px solid rgba(56, 189, 248, 0.2);
+            flex-shrink: 0;
         }
 
         #baanBoekingenBody {
@@ -527,26 +528,45 @@
 
         .week-header {
             background: rgba(255, 255, 255, 0.02);
-            padding: 12px 14px;
+            padding: 10px 12px;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.82rem;
             color: #e5e7eb;
             border-bottom: 1px solid var(--card-border);
             text-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 6px;
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .week-title-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex-grow: 1;
+        }
+
+        .week-header-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
         }
 
         .schema-week-tag {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 700;
             color: var(--accent-blue);
             background: rgba(56, 189, 248, 0.1);
             border: 1px solid rgba(56, 189, 248, 0.25);
-            padding: 2px 8px;
+            padding: 2px 6px;
             border-radius: 6px;
             letter-spacing: 0.02em;
+            white-space: nowrap;
         }
 
         .match-row-wrapper {
@@ -1100,8 +1120,8 @@
             }
 
             .week-header {
-                padding: 10px 12px;
-                font-size: 0.85rem;
+                padding: 9px 10px;
+                font-size: 0.78rem;
             }
 
             .match-row {
@@ -2471,7 +2491,7 @@
             let dinsdagPlayers = (overrideData.dinsdag !== undefined && overrideData.dinsdag !== null && overrideData.dinsdag.players) ? overrideData.dinsdag.players : (Array.isArray(overrideData.dinsdag) ? overrideData.dinsdag : tpl.dinsdag);
             let donderdagPlayers = (overrideData.donderdag !== undefined && overrideData.donderdag !== null && overrideData.donderdag.players) ? overrideData.donderdag.players : (Array.isArray(overrideData.donderdag) ? overrideData.donderdag : tpl.donderdag);
 
-            let dinsdagFormatted = dinsdagDateLocale = dinsdagDate = new Date(weekStart);
+            let dinsdagDate = new Date(weekStart);
             dinsdagDate.setDate(weekStart.getDate() + 1);
             let donderdagDate = new Date(weekStart);
             donderdagDate.setDate(weekStart.getDate() + 3);
@@ -2614,8 +2634,10 @@
                 html += `
                     <div class="week-card">
                         <div class="week-header">
-                            <span>Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}) - Huidige week</span>
-                            <span class="schema-week-tag">Schema: Week ${schemaWeekNum}</span>
+                            <span class="week-title-text">Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}) - Huidige week</span>
+                            <div class="week-header-right">
+                                <span class="schema-week-tag">Week ${schemaWeekNum}</span>
+                            </div>
                         </div>
                         ${matchesContent}
                     </div>
@@ -2625,9 +2647,9 @@
                     <div class="week-card">
                         <details ontoggle="updateCollapseArrow(this)">
                             <summary class="week-header collapsible-header" style="list-style: none;">
-                                <span>Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</span>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span class="schema-week-tag">Schema: Week ${schemaWeekNum}</span>
+                                <span class="week-title-text">Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</span>
+                                <div class="week-header-right">
+                                    <span class="schema-week-tag">Week ${schemaWeekNum}</span>
                                     <span class="collapse-arrow">▼ Open</span>
                                 </div>
                             </summary>
