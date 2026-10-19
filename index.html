@@ -1848,6 +1848,7 @@
 
             if (!data || !data.startTijd || (nu - data.startTijd > zesWekenMs)) {
                 db.ref('padelData/baanBoekingenList').remove().catch(() => {});
+                db.ref('padelData/scheduleOverrides').remove().catch(() => {});
                 cyclusRef.set({ startTijd: nu });
             }
         });
