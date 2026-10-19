@@ -533,6 +533,20 @@
             color: #e5e7eb;
             border-bottom: 1px solid var(--card-border);
             text-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .schema-week-tag {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 2px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.02em;
         }
 
         .match-row-wrapper {
@@ -2446,11 +2460,7 @@
             let diffTime = weekStart.getTime() - referenceMonday.getTime();
             let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
             let templateIndex = ((diffWeeks % 6) + 6) % 6;
-
-            let dinsdagDate = new Date(weekStart);
-            dinsdagDate.setDate(weekStart.getDate() + 1);
-            let donderdagDate = new Date(weekStart);
-            donderdagDate.setDate(weekStart.getDate() + 3);
+            let schemaWeekNum = templateIndex + 1;
 
             let tpl = defaultTemplate[templateIndex];
             let overrideData = liveOverrides[uniqueWeekKey] || {};
@@ -2461,8 +2471,13 @@
             let dinsdagPlayers = (overrideData.dinsdag !== undefined && overrideData.dinsdag !== null && overrideData.dinsdag.players) ? overrideData.dinsdag.players : (Array.isArray(overrideData.dinsdag) ? overrideData.dinsdag : tpl.dinsdag);
             let donderdagPlayers = (overrideData.donderdag !== undefined && overrideData.donderdag !== null && overrideData.donderdag.players) ? overrideData.donderdag.players : (Array.isArray(overrideData.donderdag) ? overrideData.donderdag : tpl.donderdag);
 
-            let dinsdagFormatted = dinsdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
-            let donderdagFormatted = donderdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+            let dinsdagFormatted = dinsdagDateLocale = dinsdagDate = new Date(weekStart);
+            dinsdagDate.setDate(weekStart.getDate() + 1);
+            let donderdagDate = new Date(weekStart);
+            donderdagDate.setDate(weekStart.getDate() + 3);
+
+            let dinsdagFormattedStr = dinsdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+            let donderdagFormattedStr = donderdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
 
             let dinsdagWeatherObj = getWeatherObject(dinsdagDate);
             let donderdagWeatherObj = getWeatherObject(donderdagDate);
@@ -2493,7 +2508,7 @@
                         <div class="match-main-line">
                             <div class="match-info">
                                 <div class="match-title dinsdag-title">
-                                    <span class="day-name">Dinsdag</span> <span class="match-date">${dinsdagFormatted}</span>
+                                    <span class="day-name">Dinsdag</span> <span class="match-date">${dinsdagFormattedStr}</span>
                                     ${dinsdagWeather}
                                     ${diCancelled ? '<span style="color: var(--danger); font-size: 0.7rem; font-weight: bold; margin-left: 4px;">(AFGELAST)</span>' : ''}
                                 </div>
@@ -2546,7 +2561,7 @@
                         <div class="match-main-line">
                             <div class="match-info">
                                 <div class="match-title donderdag-title">
-                                    <span class="day-name">Donderdag</span> <span class="match-date">${donderdagFormatted}</span>
+                                    <span class="day-name">Donderdag</span> <span class="match-date">${donderdagFormattedStr}</span>
                                     ${donderdagWeather}
                                     ${doCancelled ? '<span style="color: var(--danger); font-size: 0.7rem; font-weight: bold; margin-left: 4px;">(AFGELAST)</span>' : ''}
                                 </div>
@@ -2598,7 +2613,10 @@
             if (i === 0) {
                 html += `
                     <div class="week-card">
-                        <div class="week-header">Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}) - Huidige week</div>
+                        <div class="week-header">
+                            <span>Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}) - Huidige week</span>
+                            <span class="schema-week-tag">Schema: Week ${schemaWeekNum}</span>
+                        </div>
                         ${matchesContent}
                     </div>
                 `;
@@ -2606,9 +2624,12 @@
                 html += `
                     <div class="week-card">
                         <details ontoggle="updateCollapseArrow(this)">
-                            <summary class="week-header collapsible-header" style="list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                            <summary class="week-header collapsible-header" style="list-style: none;">
                                 <span>Week ${currentWeekNum} (start ${weekStart.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })})</span>
-                                <span class="collapse-arrow">▼ Open</span>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="schema-week-tag">Schema: Week ${schemaWeekNum}</span>
+                                    <span class="collapse-arrow">▼ Open</span>
+                                </div>
                             </summary>
                             <div class="collapsible-body" style="margin-top: 0;">
                                 ${matchesContent}
