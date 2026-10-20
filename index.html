@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v7.8)</title>
+    <title>Padelschema - Rooster & Chat (v7.9)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -648,14 +648,8 @@
             margin-bottom: 6px;
             display: flex;
             align-items: center;
-            flex-wrap: nowrap;
-            gap: 6px;
-            white-space: nowrap;
-            overflow-x: auto;
-        }
-
-        .match-title::-webkit-scrollbar {
-            display: none;
+            flex-wrap: wrap;
+            gap: 4px 6px;
         }
 
         .match-date {
@@ -667,12 +661,13 @@
             background: var(--bg-color);
             color: var(--accent-blue);
             border: 1px solid var(--card-border);
-            padding: 2px 6px;
+            padding: 2px 4px;
             border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 700;
             outline: none;
             cursor: pointer;
+            max-width: 110px;
         }
 
         .weather-badge {
@@ -1314,7 +1309,7 @@
 
     <!-- Versienummer onderaan -->
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v7.8
+        Padelschema v7.9
     </div>
 </div>
 
@@ -1364,7 +1359,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "7.8";
+    const APP_VERSION = "7.9";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -2471,7 +2466,7 @@
                     <div class="match-row">
                         <div class="match-main-line">
                             <div class="match-info">
-                                <div class="match-title dinsdag-title">
+                                <div class="match-title">
                                     ${makeDaySelect(activeDinsdag, 'dinsdag')} <span class="match-date">${dinsdagFormattedStr}</span>
                                     ${dinsdagWeather}
                                     ${diCancelled ? '<span style="color: var(--danger); font-size: 0.7rem; font-weight: bold; margin-left: 4px;">(AFGELAST)</span>' : ''}
@@ -2524,7 +2519,7 @@
                     <div class="match-row">
                         <div class="match-main-line">
                             <div class="match-info">
-                                <div class="match-title donderdag-title">
+                                <div class="match-title">
                                     ${makeDaySelect(activeDonderdag, 'donderdag')} <span class="match-date">${donderdagFormattedStr}</span>
                                     ${donderdagWeather}
                                     ${doCancelled ? '<span style="color: var(--danger); font-size: 0.7rem; font-weight: bold; margin-left: 4px;">(AFGELAST)</span>' : ''}
