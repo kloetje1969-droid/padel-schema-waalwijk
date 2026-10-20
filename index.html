@@ -844,7 +844,7 @@
             border-bottom: 1px solid var(--card-border); 
         }
         
-        .stats-table th, .absence-table th { 
+        .stats-table th, .stats-table td { 
             color: var(--text-muted); 
             font-weight: 600; 
             background: rgba(0, 0, 0, 0.2); 
@@ -1236,7 +1236,7 @@
         <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
             <div class="section-title" style="font-size: 0.95rem;">
                 <span class="emoji-icon">🥎</span>
-                Baan Boeken & Stand
+                Baan Boeken
             </div>
             <span id="collapseArrow" class="collapse-arrow">▼ Open</span>
         </div>
@@ -1261,7 +1261,6 @@
                 <input type="datetime-local" id="boekingDateTime" class="booking-input-soft" style="padding: 7px; border-radius: 6px; font-size: 0.8rem; outline: none; color-scheme: dark; flex-grow: 1;">
                 <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
             </div>
-            <div id="baanBoekingStanden" style="font-size: 0.75rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;"></div>
             <div id="baanBoekingLijst" style="font-size: 0.75rem; color: var(--text-main); margin-top: 4px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--card-border); padding-top: 6px;"></div>
         </div>
     </div>
@@ -1941,22 +1940,6 @@
             let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
             return Math.floor(diffWeeks / 6) === activeCyclusIdx;
         });
-
-        let counts = {};
-        basePlayers.forEach(p => counts[p] = 0);
-        currentCyclusBoekingen.forEach(b => {
-            if (b.player) {
-                counts[b.player] = (counts[b.player] || 0) + 1;
-            }
-        });
-
-        const standenContainer = document.getElementById('baanBoekingStanden');
-        if (standenContainer) {
-            standenContainer.innerHTML = basePlayers.map(p => {
-                let count = counts[p] || 0;
-                return `<span style="background: var(--bg-color); border: 1px solid var(--card-border); padding: 3px 8px; border-radius: 4px;">${p}: <strong>${count}</strong></span>`;
-            }).join('');
-        }
 
         const lijstContainer = document.getElementById('baanBoekingLijst');
         if (lijstContainer) {
