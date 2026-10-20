@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, interactive-widget=resizes-content">
-    <!-- Cache control headers -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v7.6)</title>
+    <title>Padelschema - Rooster & Chat (v7.8)</title>
     
-    <!-- PWA / Apple & Android Meta Tags & Padel Icon -->
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,11 +16,8 @@
     
     <meta name="theme-color" content="#0b0f19">
 
-    <!-- Firebase App (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <!-- Firebase Realtime Database (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <!-- Firebase Messaging (compat) voor echte pushnotificaties -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
     
     <style>
@@ -663,18 +658,21 @@
             display: none;
         }
 
-        .match-title.dag1-title .day-name {
-            color: var(--accent-blue);
-            text-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
-        }
-
-        .match-title.dag2-title .day-name {
-            color: var(--accent-orange);
-        }
-
         .match-date {
             color: var(--text-muted);
             opacity: 0.9;
+        }
+
+        .day-select-inline {
+            background: var(--bg-color);
+            color: var(--accent-blue);
+            border: 1px solid var(--card-border);
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            outline: none;
+            cursor: pointer;
         }
 
         .weather-badge {
@@ -1009,6 +1007,8 @@
             width: 100%; 
             max-width: 380px; 
             box-shadow: 0 0 25px rgba(56, 189, 248, 0.3);
+            max-height: 90vh;
+            overflow-y: auto;
         }
         
         .modal-content h3 { 
@@ -1113,84 +1113,6 @@
             gap: 6px;
             align-items: center;
         }
-
-        @media (max-width: 600px) {
-            .week-card {
-                border-radius: 11px;
-            }
-
-            .week-header {
-                padding: 9px 10px;
-                font-size: 0.78rem;
-            }
-
-            .match-row {
-                padding: 12px;
-                gap: 7px;
-            }
-
-            .match-title {
-                gap: 4px;
-                font-size: 0.66rem;
-                margin-bottom: 5px;
-                overflow-x: auto;
-                scrollbar-width: none;
-            }
-
-            .match-title::-webkit-scrollbar {
-                display: none;
-            }
-
-            .player-chip {
-                padding: 3px 6px;
-                font-size: 0.8rem;
-            }
-
-            .vs-text {
-                font-size: 0.7rem;
-                margin: 0 2px;
-            }
-
-            .match-action-container .btn-edit {
-                padding: 5px 7px;
-                font-size: 0.72rem;
-                white-space: nowrap;
-            }
-
-            .absence-alert {
-                font-size: 0.72rem;
-            }
-        }
-
-        @media (max-width: 390px) {
-            .match-row {
-                padding: 10px;
-                gap: 5px;
-            }
-
-            .player-chip {
-                padding: 3px 5px;
-                font-size: 0.75rem;
-            }
-
-            .vs-text {
-                font-size: 0.65rem;
-            }
-
-            .match-action-container .btn-edit {
-                padding: 4px 6px;
-                font-size: 0.68rem;
-            }
-        }
-
-        #connectionIndicator.is-offline .status-dot.offline {
-            background: #f87171;
-            animation: none;
-        }
-
-        #connectionIndicator.is-offline .connection-text {
-            color: #f87171;
-        }
     </style>
 </head>
 <body>
@@ -1262,37 +1184,6 @@
         </button>
     </header>
 
-    <!-- Speeldagen Kiezen (Dropdown menu's) -->
-    <div class="card">
-        <div class="section-title" style="font-size: 0.95rem;">⚙️ Speeldagen Instellen</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px;">
-            <div>
-                <label for="dagSelect1" style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Dag 1 (standaard Dinsdag)</label>
-                <select id="dagSelect1" onchange="updateSpeeldagSettings()" class="booking-input-soft" style="width: 100%; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none;">
-                    <option value="maandag">Maandag</option>
-                    <option value="dinsdag" selected>Dinsdag</option>
-                    <option value="woensdag">Woensdag</option>
-                    <option value="donderdag">Donderdag</option>
-                    <option value="vrijdag">Vrijdag</option>
-                    <option value="zaterdag">Zaterdag</option>
-                    <option value="zondag">Zondag</option>
-                </select>
-            </div>
-            <div>
-                <label for="dagSelect2" style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Dag 2 (standaard Donderdag)</label>
-                <select id="dagSelect2" onchange="updateSpeeldagSettings()" class="booking-input-soft" style="width: 100%; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none;">
-                    <option value="maandag">Maandag</option>
-                    <option value="dinsdag">Dinsdag</option>
-                    <option value="woensdag">Woensdag</option>
-                    <option value="donderdag" selected>Donderdag</option>
-                    <option value="vrijdag">Vrijdag</option>
-                    <option value="zaterdag">Zaterdag</option>
-                    <option value="zondag">Zondag</option>
-                </select>
-            </div>
-        </div>
-    </div>
-
     <button class="chat-btn" id="globalChatAlertBtn" onclick="scrollToChat()">
         <span id="chatBtnText">💬 Team Chat bekijken</span>
         <span class="alert-badge-count" id="alertBadgeCount">0</span>
@@ -1313,8 +1204,8 @@
                         <thead>
                             <tr>
                                 <th style="text-align: left;">Speler</th>
-                                <th id="statsHeader1" style="color: var(--accent-blue);">Dag 1</th>
-                                <th id="statsHeader2" style="color: var(--accent-orange);">Dag 2</th>
+                                <th style="color: var(--accent-blue);">Dinsdag</th>
+                                <th style="color: var(--accent-orange);">Donderdag</th>
                                 <th>Totaal</th>
                             </tr>
                         </thead>
@@ -1423,7 +1314,7 @@
 
     <!-- Versienummer onderaan -->
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v7.6
+        Padelschema v7.8
     </div>
 </div>
 
@@ -1473,14 +1364,10 @@
 </div>
 
 <script>
-    const APP_VERSION = "7.6";
+    const APP_VERSION = "7.8";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
-
-    // Configureerbare dagen (worden gesynchroniseerd met Firebase)
-    let speeldag1Naam = "dinsdag";
-    let speeldag2Naam = "donderdag";
 
     async function checkAppVersion() {
         try {
@@ -1530,12 +1417,12 @@
     let cyclusWinnaars = {};
 
     const defaultTemplate = [
-        { dag1: ["Mark", "Robert", "Ronald", "Sander"], dag2: ["Sander", "Robert", "Marcel", "Dennis"] },
-        { dag1: ["Marcel", "Mark", "Ronald", "Robert"], dag2: ["Mark", "Sander", "Ronald", "Dennis"] },
-        { dag1: ["Marcel", "Robert", "Mark", "Dennis"], dag2: ["Marcel", "Ronald", "Sander", "Robert"] },
-        { dag1: ["Marcel", "Sander", "Mark", "Dennis"], dag2: ["Mark", "Ronald", "Dennis", "Robert"] },
-        { dag1: ["Marcel", "Dennis", "Ronald", "Sander"], dag2: ["Marcel", "Sander", "Mark", "Robert"] },
-        { dag1: ["Dennis","Robert", "Sander", "Ronald"], dag2: ["Marcel", "Dennis", "Mark", "Ronald"] }
+        { dinsdag: ["Mark", "Robert", "Ronald", "Sander"], donderdag: ["Sander", "Robert", "Marcel", "Dennis"] },
+        { dinsdag: ["Marcel", "Mark", "Ronald", "Robert"], donderdag: ["Mark", "Sander", "Ronald", "Dennis"] },
+        { dinsdag: ["Marcel", "Robert", "Mark", "Dennis"], donderdag: ["Marcel", "Ronald", "Sander", "Robert"] },
+        { dinsdag: ["Marcel", "Sander", "Mark", "Dennis"], donderdag: ["Mark", "Ronald", "Dennis", "Robert"] },
+        { dinsdag: ["Marcel", "Dennis", "Ronald", "Sander"], donderdag: ["Marcel", "Sander", "Mark", "Robert"] },
+        { dinsdag: ["Dennis","Robert", "Sander", "Ronald"], donderdag: ["Marcel", "Dennis", "Mark", "Ronald"] }
     ];
 
     let liveOverrides = {};
@@ -1818,26 +1705,6 @@
         
         checkEnStartNieuweCyclus();
 
-        // Luister naar instellingen voor speeldagen
-        db.ref('padelData/settings/speeldagen').on('value', (snapshot) => {
-            const val = snapshot.val();
-            if (val) {
-                if (val.dag1) speeldag1Naam = val.dag1;
-                if (val.dag2) speeldag2Naam = val.dag2;
-                
-                const s1 = document.getElementById('dagSelect1');
-                const s2 = document.getElementById('dagSelect2');
-                if (s1) s1.value = speeldag1Naam;
-                if (s2) s2.value = speeldag2Naam;
-
-                const h1 = document.getElementById('statsHeader1');
-                const h2 = document.getElementById('statsHeader2');
-                if (h1) h1.innerText = speeldag1Naam.charAt(0).toUpperCase() + speeldag1Naam.slice(1);
-                if (h2) h2.innerText = speeldag2Naam.charAt(0).toUpperCase() + speeldag2Naam.slice(1);
-            }
-            renderAll();
-        });
-
         db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
             liveOverrides = snapshot.val() || {};
             renderAll();
@@ -1892,20 +1759,6 @@
 
         setupOnlinePresence();
         setInterval(renderStatuses, 5000);
-    }
-
-    async function updateSpeeldagSettings() {
-        const s1 = document.getElementById('dagSelect1').value;
-        const s2 = document.getElementById('dagSelect2').value;
-        
-        speeldag1Naam = s1;
-        speeldag2Naam = s2;
-
-        await db.ref('padelData/settings/speeldagen').set({
-            dag1: s1,
-            dag2: s2
-        });
-        await addSystemMessageIfUnique(`⚙️ Speeldagen zijn aangepast naar: ${s1} en ${s2}`);
     }
 
     function checkEnStartNieuweCyclus() {
@@ -2521,20 +2374,20 @@
         return target;
     }
 
-    function getDayIndexFromName(name) {
-        const mapping = { maandag: 1, dinsdag: 2, woensdag: 3, donderdag: 4, vrijdag: 5, zaterdag: 6, zondag: 0 };
-        return mapping[name] !== undefined ? mapping[name] : 2;
-    }
-
-    function checkPlayerAbsent(playerName, uniqueWeekKey, dayKey) {
+    function checkPlayerAbsent(playerName, uniqueWeekKey, day) {
         if (!absences[playerName]) return false;
-        return !!absences[playerName][`${uniqueWeekKey}_${dayKey}`];
+        return !!absences[playerName][`${uniqueWeekKey}_${day}`];
     }
 
-    function isMatchCancelled(uniqueWeekKey, dayKey) {
+    function isMatchCancelled(uniqueWeekKey, day) {
         let overrideData = liveOverrides[uniqueWeekKey] || {};
-        let dayOverride = overrideData[dayKey];
+        let dayOverride = overrideData[day];
         return dayOverride === null || (typeof dayOverride === 'object' && dayOverride !== null && dayOverride.cancelled === true);
+    }
+
+    function getDayIndexFromName(dayName) {
+        const map = { maandag: 1, dinsdag: 2, woensdag: 3, donderdag: 4, vrijdag: 5, zaterdag: 6, zondag: 0 };
+        return map[dayName] !== undefined ? map[dayName] : 2;
     }
 
     function renderSchedule() {
@@ -2560,66 +2413,73 @@
             let tpl = defaultTemplate[templateIndex];
             let overrideData = liveOverrides[uniqueWeekKey] || {};
             
-            let diCancelled = isMatchCancelled(uniqueWeekKey, 'dag1');
-            let doCancelled = isMatchCancelled(uniqueWeekKey, 'dag2');
+            let diCancelled = isMatchCancelled(uniqueWeekKey, 'dinsdag');
+            let doCancelled = isMatchCancelled(uniqueWeekKey, 'donderdag');
 
-            let dag1Players = (overrideData.dag1 !== undefined && overrideData.dag1 !== null && overrideData.dag1.players) ? overrideData.dag1.players : (Array.isArray(overrideData.dag1) ? overrideData.dag1 : tpl.dag1);
-            let dag2Players = (overrideData.dag2 !== undefined && overrideData.dag2 !== null && overrideData.dag2.players) ? overrideData.dag2.players : (Array.isArray(overrideData.dag2) ? overrideData.dag2 : tpl.dag2);
+            let activeDinsdag = (overrideData.customDinsdag) ? overrideData.customDinsdag : "dinsdag";
+            let activeDonderdag = (overrideData.customDonderdag) ? overrideData.customDonderdag : "donderdag";
 
-            let d1Index = getDayIndexFromName(speeldag1Naam);
-            let d2Index = getDayIndexFromName(speeldag2Naam);
+            let dinsdagPlayers = (overrideData.dinsdag !== undefined && overrideData.dinsdag !== null && overrideData.dinsdag.players) ? overrideData.dinsdag.players : (Array.isArray(overrideData.dinsdag) ? overrideData.dinsdag : tpl.dinsdag);
+            let donderdagPlayers = (overrideData.donderdag !== undefined && overrideData.donderdag !== null && overrideData.donderdag.players) ? overrideData.donderdag.players : (Array.isArray(overrideData.donderdag) ? overrideData.donderdag : tpl.donderdag);
 
-            let dag1Date = new Date(weekStart);
-            let dayOffset1 = (d1Index === 0 ? 7 : d1Index) - 1;
-            dag1Date.setDate(weekStart.getDate() + dayOffset1);
+            let diDayIdx = getDayIndexFromName(activeDinsdag);
+            let doDayIdx = getDayIndexFromName(activeDonderdag);
 
-            let dag2Date = new Date(weekStart);
-            let dayOffset2 = (d2Index === 0 ? 7 : d2Index) - 1;
-            dag2Date.setDate(weekStart.getDate() + dayOffset2);
+            let dinsdagDate = new Date(weekStart);
+            let offsetDi = (diDayIdx === 0 ? 7 : diDayIdx) - 1;
+            dinsdagDate.setDate(weekStart.getDate() + offsetDi);
 
-            let dag1FormattedStr = dag1Date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
-            let dag2FormattedStr = dag2Date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+            let donderdagDate = new Date(weekStart);
+            let offsetDo = (doDayIdx === 0 ? 7 : doDayIdx) - 1;
+            donderdagDate.setDate(weekStart.getDate() + offsetDo);
 
-            let dag1WeatherObj = getWeatherObject(dag1Date);
-            let dag2WeatherObj = getWeatherObject(dag2Date);
+            let dinsdagFormattedStr = dinsdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+            let donderdagFormattedStr = donderdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
 
-            let dag1Weather = formatWeatherBadge(dag1WeatherObj);
-            let dag2Weather = formatWeatherBadge(dag2WeatherObj);
+            let dinsdagWeatherObj = getWeatherObject(dinsdagDate);
+            let donderdagWeatherObj = getWeatherObject(donderdagDate);
 
-            let dag1RainAlert = (!diCancelled && dag1WeatherObj && dag1WeatherObj.rain > 60) 
-                ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${dag1WeatherObj.rain}%)!</div>` : '';
+            let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
+            let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
+
+            let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) 
+                ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${dinsdagWeatherObj.rain}%)!</div>` : '';
             
-            let dag2RainAlert = (!doCancelled && dag2WeatherObj && dag2WeatherObj.rain > 60) 
-                ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${dag2WeatherObj.rain}%)!</div>` : '';
+            let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && donderdagWeatherObj.rain > 60) 
+                ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${donderdagWeatherObj.rain}%)!</div>` : '';
 
-            let dag1Absentees = diCancelled ? [] : dag1Players.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dag1'));
-            let dag2Absentees = doCancelled ? [] : dag2Players.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dag2'));
+            let dinsdagAbsentees = diCancelled ? [] : dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
+            let donderdagAbsentees = doCancelled ? [] : donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
 
-            let dag1MatchId = `${uniqueWeekKey}_dag1`;
-            let dag2MatchId = `${uniqueWeekKey}_dag2`;
-            let diRes = matchResults[dag1MatchId] || { t1s1:'', t2s1:'', t1s2:'', t2s2:'', t1s3:'', t2s3:'' };
-            let doRes = matchResults[dag2MatchId] || { t1s1:'', t2s1:'', t1s2:'', t2s2:'', t1s3:'', t2s3:'' };
+            let diMatchId = `${uniqueWeekKey}_dinsdag`;
+            let doMatchId = `${uniqueWeekKey}_donderdag`;
+            let diRes = matchResults[diMatchId] || { t1s1:'', t2s1:'', t1s2:'', t2s2:'', t1s3:'', t2s3:'' };
+            let doRes = matchResults[doMatchId] || { t1s1:'', t2s1:'', t1s2:'', t2s2:'', t1s3:'', t2s3:'' };
 
-            let dag1NameCapitalized = speeldag1Naam.charAt(0).toUpperCase() + speeldag1Naam.slice(1);
-            let dag2NameCapitalized = speeldag2Naam.charAt(0).toUpperCase() + speeldag2Naam.slice(1);
+            let dinsdagBodyHtml = `<div class="players-container">${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag', diCancelled)}</div>`;
+            let donderdagBodyHtml = `<div class="players-container">${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag', doCancelled)}</div>`;
 
-            let dag1BodyHtml = `<div class="players-container">${renderPlayerChips(dag1Players, uniqueWeekKey, 'dag1', diCancelled)}</div>`;
-            let dag2BodyHtml = `<div class="players-container">${renderPlayerChips(dag2Players, uniqueWeekKey, 'dag2', doCancelled)}</div>`;
+            let dayOptions = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+            let makeDaySelect = (currentVal, slotKey) => {
+                return `<select class="day-select-inline" onchange="updateWeekDay('${uniqueWeekKey}', '${slotKey}', this.value)">` +
+                    dayOptions.map(d => `<option value="${d}" ${d === currentVal ? 'selected' : ''}>${d.charAt(0).toUpperCase() + d.slice(1)}</option>`).join('') +
+                    `</select>`;
+            };
 
             let matchesContent = `
                 <div class="match-row-wrapper">
                     <div class="match-row">
                         <div class="match-main-line">
                             <div class="match-info">
-                                <div class="match-title dag1-title">
-                                    <span class="day-name">${dag1NameCapitalized}</span> <span class="match-date">${dag1FormattedStr}</span>
-                                    ${dag1Weather}
+                                <div class="match-title dinsdag-title">
+                                    ${makeDaySelect(activeDinsdag, 'dinsdag')} <span class="match-date">${dinsdagFormattedStr}</span>
+                                    ${dinsdagWeather}
                                     ${diCancelled ? '<span style="color: var(--danger); font-size: 0.7rem; font-weight: bold; margin-left: 4px;">(AFGELAST)</span>' : ''}
                                 </div>
-                                ${dag1BodyHtml}
+                                ${dinsdagBodyHtml}
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dag1', ${currentWeekNum})">✏️ Wijzig</button>
+                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig</button>
                             </div>
                         </div>
                         ${!diCancelled ? `
@@ -2628,51 +2488,51 @@
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 1</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s1_${dag1MatchId}" value="${diRes.t1s1 !== undefined ? diRes.t1s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t1s1_${diMatchId}" value="${diRes.t1s1 !== undefined ? diRes.t1s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s1_${dag1MatchId}" value="${diRes.t2s1 !== undefined ? diRes.t2s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s1_${diMatchId}" value="${diRes.t2s1 !== undefined ? diRes.t2s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 2</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s2_${dag1MatchId}" value="${diRes.t1s2 !== undefined ? diRes.t1s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t1s2_${diMatchId}" value="${diRes.t1s2 !== undefined ? diRes.t1s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s2_${dag1MatchId}" value="${diRes.t2s2 !== undefined ? diRes.t2s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s2_${diMatchId}" value="${diRes.t2s2 !== undefined ? diRes.t2s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 3</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s3_${dag1MatchId}" value="${diRes.t1s3 !== undefined ? diRes.t1s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t1s3_${diMatchId}" value="${diRes.t1s3 !== undefined ? diRes.t1s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s3_${dag1MatchId}" value="${diRes.t2s3 !== undefined ? diRes.t2s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s3_${diMatchId}" value="${diRes.t2s3 !== undefined ? diRes.t2s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper" style="flex: 0 0 auto;">
                                     <div class="set-column-title">&nbsp;</div>
-                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${dag1MatchId}', '${dag1Players[0]}', '${dag1Players[1]}', '${dag1Players[2]}', '${dag1Players[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
+                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${diMatchId}', '${dinsdagPlayers[0]}', '${dinsdagPlayers[1]}', '${dinsdagPlayers[2]}', '${dinsdagPlayers[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
                                 </div>
                             </div>
                         </div>` : ''}
                     </div>
-                    ${dag1RainAlert}
-                    ${!diCancelled && dag1Absentees.length > 0 ? `<div class="absence-alert">⚠ Afwezig: ${dag1Absentees.join(', ')}</div>` : ''}
+                    ${dinsdagRainAlert}
+                    ${!diCancelled && dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
                 </div>
 
                 <div class="match-row-wrapper">
                     <div class="match-row">
                         <div class="match-main-line">
                             <div class="match-info">
-                                <div class="match-title dag2-title">
-                                    <span class="day-name">${dag2NameCapitalized}</span> <span class="match-date">${dag2FormattedStr}</span>
-                                    ${dag2Weather}
+                                <div class="match-title donderdag-title">
+                                    ${makeDaySelect(activeDonderdag, 'donderdag')} <span class="match-date">${donderdagFormattedStr}</span>
+                                    ${donderdagWeather}
                                     ${doCancelled ? '<span style="color: var(--danger); font-size: 0.7rem; font-weight: bold; margin-left: 4px;">(AFGELAST)</span>' : ''}
                                 </div>
-                                ${dag2BodyHtml}
+                                ${donderdagBodyHtml}
                             </div>
                             <div class="match-action-container">
-                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dag2', ${currentWeekNum})">✏️ Wijzig</button>
+                                <button class="btn-edit" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig</button>
                             </div>
                         </div>
                         ${!doCancelled ? `
@@ -2681,36 +2541,36 @@
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 1</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s1_${dag2MatchId}" value="${doRes.t1s1 !== undefined ? doRes.t1s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t1s1_${doMatchId}" value="${doRes.t1s1 !== undefined ? doRes.t1s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s1_${dag2MatchId}" value="${doRes.t2s1 !== undefined ? doRes.t2s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s1_${doMatchId}" value="${doRes.t2s1 !== undefined ? doRes.t2s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 2</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s2_${dag2MatchId}" value="${doRes.t1s2 !== undefined ? doRes.t1s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t1s2_${doMatchId}" value="${doRes.t1s2 !== undefined ? doRes.t1s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s2_${dag2MatchId}" value="${doRes.t2s2 !== undefined ? doRes.t2s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s2_${doMatchId}" value="${doRes.t2s2 !== undefined ? doRes.t2s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 3</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s3_${dag2MatchId}" value="${doRes.t1s3 !== undefined ? doRes.t1s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t1s3_${doMatchId}" value="${doRes.t1s3 !== undefined ? doRes.t1s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s3_${dag2MatchId}" value="${doRes.t2s3 !== undefined ? doRes.t2s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s3_${doMatchId}" value="${doRes.t2s3 !== undefined ? doRes.t2s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper" style="flex: 0 0 auto;">
                                     <div class="set-column-title">&nbsp;</div>
-                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${dag2MatchId}', '${dag2Players[0]}', '${dag2Players[1]}', '${dag2Players[2]}', '${dag2Players[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
+                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${doMatchId}', '${donderdagPlayers[0]}', '${donderdagPlayers[1]}', '${donderdagPlayers[2]}', '${donderdagPlayers[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
                                 </div>
                             </div>
                         </div>` : ''}
                     </div>
-                    ${dag2RainAlert}
-                    ${!doCancelled && dag2Absentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${dag2Absentees.join(', ')}</div>` : ''}
+                    ${donderdagRainAlert}
+                    ${!doCancelled && donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
                 </div>
             `;
 
@@ -2748,13 +2608,19 @@
         container.innerHTML = html;
     }
 
-    function renderPlayerChips(players, uniqueWeekKey, dayKey, isCancelled) {
+    async function updateWeekDay(uniqueWeekKey, slotKey, newDay) {
+        let path = `padelData/scheduleOverrides/${uniqueWeekKey}/custom${slotKey.charAt(0).toUpperCase() + slotKey.slice(1)}`;
+        await db.ref(path).set(newDay);
+        await addSystemMessageIfUnique(`📅 Een speeldag in week ${uniqueWeekKey.split('_w')[1]} is gewijzigd naar ${newDay}.`);
+    }
+
+    function renderPlayerChips(players, uniqueWeekKey, day, isCancelled) {
         if (!players || players.length < 4) return '';
 
         const createChip = (p) => {
             const isMe = (p === currentUserName);
             const isSub = !basePlayers.includes(p);
-            const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, dayKey);
+            const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, day);
 
             let cls = "player-chip";
             if (isCancelled) {
@@ -2776,7 +2642,7 @@
     function renderStats() {
         const tbody = document.getElementById('statsTableBody');
         let counts = {};
-        basePlayers.forEach(p => counts[p] = { dag1: 0, dag2: 0, totaal: 0, isSub: false });
+        basePlayers.forEach(p => counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: false });
 
         let currentMonday = getAdjustedBaseDate();
         for (let i = 0; i < 6; i++) {
@@ -2794,26 +2660,26 @@
             let tpl = defaultTemplate[templateIndex];
             let overrideData = liveOverrides[uniqueWeekKey] || {};
             
-            let diCancelled = isMatchCancelled(uniqueWeekKey, 'dag1');
-            let doCancelled = isMatchCancelled(uniqueWeekKey, 'dag2');
+            let diCancelled = isMatchCancelled(uniqueWeekKey, 'dinsdag');
+            let doCancelled = isMatchCancelled(uniqueWeekKey, 'donderdag');
 
             if (!diCancelled) {
-                let dag1Players = (overrideData.dag1 !== undefined && overrideData.dag1 !== null && overrideData.dag1.players) ? overrideData.dag1.players : (Array.isArray(overrideData.dag1) ? overrideData.dag1 : tpl.dag1);
-                dag1Players.forEach(p => {
-                    if (!counts[p]) counts[p] = { dag1: 0, dag2: 0, totaal: 0, isSub: true };
-                    if (!checkPlayerAbsent(p, uniqueWeekKey, 'dag1')) {
-                        counts[p].dag1++;
+                let dinsdagPlayers = (overrideData.dinsdag !== undefined && overrideData.dinsdag !== null && overrideData.dinsdag.players) ? overrideData.dinsdag.players : (Array.isArray(overrideData.dinsdag) ? overrideData.dinsdag : tpl.dinsdag);
+                dinsdagPlayers.forEach(p => {
+                    if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
+                    if (!checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag')) {
+                        counts[p].dinsdag++;
                         counts[p].totaal++;
                     }
                 });
             }
 
             if (!doCancelled) {
-                let dag2Players = (overrideData.dag2 !== undefined && overrideData.dag2 !== null && overrideData.dag2.players) ? overrideData.dag2.players : (Array.isArray(overrideData.dag2) ? overrideData.dag2 : tpl.dag2);
-                dag2Players.forEach(p => {
-                    if (!counts[p]) counts[p] = { dag1: 0, dag2: 0, totaal: 0, isSub: true };
-                    if (!checkPlayerAbsent(p, uniqueWeekKey, 'dag2')) {
-                        counts[p].dag2++;
+                let donderdagPlayers = (overrideData.donderdag !== undefined && overrideData.donderdag !== null && overrideData.donderdag.players) ? overrideData.donderdag.players : (Array.isArray(overrideData.donderdag) ? overrideData.donderdag : tpl.donderdag);
+                donderdagPlayers.forEach(p => {
+                    if (!counts[p]) counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: true };
+                    if (!checkPlayerAbsent(p, uniqueWeekKey, 'donderdag')) {
+                        counts[p].donderdag++;
                         counts[p].totaal++;
                     }
                 });
@@ -2833,8 +2699,8 @@
             return `
                 <tr class="${isMe ? 'highlight-row' : ''}">
                     <td style="text-align: left; font-weight: 600;">${displayName}</td>
-                    <td>${data.dag1}</td>
-                    <td>${data.dag2}</td>
+                    <td>${data.dinsdag}</td>
+                    <td>${data.donderdag}</td>
                     <td style="font-weight: bold;">${data.totaal}</td>
                 </tr>
             `;
@@ -2860,9 +2726,9 @@
             let templateIndex = ((diffWeeks % 6) + 6) % 6;
 
             let tpl = defaultTemplate[templateIndex];
-            ['dag1', 'dag2'].forEach(dayKey => {
+            ['dinsdag', 'donderdag'].forEach(day => {
                 let overrideData = liveOverrides[uniqueWeekKey] || {};
-                let players = (overrideData[dayKey] !== undefined && overrideData[dayKey] !== null && overrideData[dayKey].players) ? overrideData[dayKey].players : (Array.isArray(overrideData[dayKey]) ? overrideData[dayKey] : tpl[dayKey]);
+                let players = (overrideData[day] !== undefined && overrideData[day] !== null && overrideData[day].players) ? overrideData[day].players : (Array.isArray(overrideData[day]) ? overrideData[day] : tpl[day]);
                 if (Array.isArray(players)) {
                     players.forEach(p => {
                         if (!basePlayers.includes(p)) activeSubs.add(p);
@@ -2877,7 +2743,7 @@
             let weekStart = new Date(currentMonday);
             weekStart.setDate(currentMonday.getDate() + (i * 7));
             let wn = getISOWeekNumber(weekStart);
-            headersHtml += `<th>W${wn} ${speeldag1Naam.slice(0,2).toUpperCase()}</th><th>W${wn} ${speeldag2Naam.slice(0,2).toUpperCase()}</th>`;
+            headersHtml += `<th>W${wn} Di</th><th>W${wn} Do</th>`;
         }
         headerRow.innerHTML = headersHtml;
 
@@ -2897,17 +2763,17 @@
                 let yr = getISOYear(weekStart);
                 let uniqueWeekKey = `${yr}_w${wn}`;
 
-                ['dag1', 'dag2'].forEach(dayKey => {
-                    const isCancelled = isMatchCancelled(uniqueWeekKey, dayKey);
+                ['dinsdag', 'donderdag'].forEach(day => {
+                    const isCancelled = isMatchCancelled(uniqueWeekKey, day);
                     if (isCancelled) {
                         rowHtml += `<td style="color: var(--text-muted); font-size: 0.65rem;">--</td>`;
                     } else {
-                        const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, dayKey);
+                        const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, day);
                         const isDisabled = (!isSub && !isMe);
 
                         rowHtml += `
                             <td>
-                                <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uniqueWeekKey}', '${dayKey}', ${wn})">
+                                <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uniqueWeekKey}', '${day}', ${wn})">
                                     ${isAbsent ? 'Afwezig' : 'Aanwezig'}
                                 </button>
                             </td>
@@ -2920,25 +2786,26 @@
     }
 
     let activeModalUniqueKey = '';
-    let activeModalDayKey = '';
+    let activeModalDay = '';
     let activeModalWeekNum = 0;
     let activeTemplateIndex = 0;
 
-    function openModal(uniqueWeekKey, templateIndex, dayKey, weekNum) {
+    function openModal(uniqueWeekKey, templateIndex, day, weekNum) {
         if (!currentUserName) {
             alert("Kies eerst je naam bovenin de app!");
             return;
         }
 
         activeModalUniqueKey = uniqueWeekKey;
-        activeModalDayKey = dayKey;
+        activeModalDay = day;
         activeModalWeekNum = weekNum;
         activeTemplateIndex = templateIndex;
         
-        let dayName = dayKey === 'dag1' ? speeldag1Naam : speeldag2Naam;
-        document.getElementById('modalSubTitle').innerText = `Wijzig Week ${weekNum} (${dayName})`;
+        let overrideData = liveOverrides[uniqueWeekKey] || {};
+        let activeDayName = day === 'dinsdag' ? (overrideData.customDinsdag || 'dinsdag') : (overrideData.customDonderdag || 'donderdag');
+        document.getElementById('modalSubTitle').innerText = `Wijzig Week ${weekNum} (${activeDayName.charAt(0).toUpperCase() + activeDayName.slice(1)})`;
 
-        let currentlyCancelled = isMatchCancelled(uniqueWeekKey, dayKey);
+        let currentlyCancelled = isMatchCancelled(uniqueWeekKey, day);
         const toggleBtn = document.getElementById('modalToggleCancelBtn');
         const selectsDiv = document.getElementById('modalPlayerSelects');
         const saveBtn = document.getElementById('modalSaveBtn');
@@ -2959,8 +2826,7 @@
             saveBtn.style.display = "inline-block";
 
             let tpl = defaultTemplate[templateIndex];
-            let overrideData = liveOverrides[uniqueWeekKey] || {};
-            let currentPlayers = (overrideData[dayKey] !== undefined && overrideData[dayKey] !== null && overrideData[dayKey].players) ? overrideData[dayKey].players : (Array.isArray(overrideData[dayKey]) ? overrideData[dayKey] : tpl[dayKey]);
+            let currentPlayers = (overrideData[day] !== undefined && overrideData[day] !== null && overrideData[day].players) ? overrideData[day].players : (Array.isArray(overrideData[day]) ? overrideData[day] : tpl[day]);
 
             for (let i = 0; i < 4; i++) {
                 let sel = document.getElementById(`p${i}Select`);
@@ -2990,25 +2856,23 @@
     }
 
     async function handleModalToggleAfgelast() {
-        let currentlyCancelled = isMatchCancelled(activeModalUniqueKey, activeModalDayKey);
-        let path = `padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDayKey}`;
+        let currentlyCancelled = isMatchCancelled(activeModalUniqueKey, activeModalDay);
+        let path = `padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`;
 
         let tpl = defaultTemplate[activeTemplateIndex];
         let overrideData = liveOverrides[activeModalUniqueKey] || {};
-        let currentPlayers = (overrideData[activeModalDayKey] !== undefined && overrideData[activeModalDayKey] !== null && overrideData[activeModalDayKey].players) ? overrideData[activeModalDayKey].players : (Array.isArray(overrideData[activeModalDayKey]) ? overrideData[activeModalDayKey] : tpl[activeModalDayKey]);
-
-        let dayName = activeModalDayKey === 'dag1' ? speeldag1Naam : speeldag2Naam;
+        let currentPlayers = (overrideData[activeModalDay] !== undefined && overrideData[activeModalDay] !== null && overrideData[activeModalDay].players) ? overrideData[activeModalDay].players : (Array.isArray(overrideData[activeModalDay]) ? overrideData[activeModalDay] : tpl[activeModalDay]);
 
         if (currentlyCancelled) {
             await db.ref(path).set(currentPlayers);
-            await addSystemMessageIfUnique(`✅ Wedstrijd voor week ${activeModalWeekNum} (${dayName}) is weer geopend.`);
+            await addSystemMessageIfUnique(`✅ Wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) is weer geopend.`);
         } else {
-            if (confirm(`Weet je zeker dat je de wedstrijd voor week ${activeModalWeekNum} (${dayName}) wilt afgelasten?`)) {
+            if (confirm(`Weet je zeker dat je de wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) wilt afgelasten?`)) {
                 await db.ref(path).set({
                     cancelled: true,
                     players: currentPlayers
                 });
-                await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${activeModalWeekNum} (${dayName}) is AFGELAST.`);
+                await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) is AFGELAST.`);
             } else {
                 return;
             }
@@ -3056,8 +2920,8 @@
             if (currentUserName !== "Robert") {
                 let tpl = defaultTemplate[activeTemplateIndex];
                 let overrideData = liveOverrides[activeModalUniqueKey] || {};
-                let dayData = overrideData[activeModalDayKey];
-                let originalPlayers = (dayData !== undefined && dayData !== null && dayData.players) ? dayData.players : (Array.isArray(dayData) ? dayData : tpl[activeModalDayKey]);
+                let dayData = overrideData[activeModalDay];
+                let originalPlayers = (dayData !== undefined && dayData !== null && dayData.players) ? dayData.players : (Array.isArray(dayData) ? dayData : tpl[activeModalDay]);
                 let originalVal = originalPlayers[i];
 
                 if (chosenVal !== currentUserName && chosenVal !== originalVal && !inp.value.trim()) {
@@ -3068,8 +2932,8 @@
             newPlayers.push(chosenVal);
         }
 
-        let path = `padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDayKey}`;
-        let currentlyCancelled = isMatchCancelled(activeModalUniqueKey, activeModalDayKey);
+        let path = `padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`;
+        let currentlyCancelled = isMatchCancelled(activeModalUniqueKey, activeModalDay);
 
         if (currentlyCancelled) {
             await db.ref(path).set({ cancelled: true, players: newPlayers });
@@ -3077,13 +2941,12 @@
             await db.ref(path).set(newPlayers);
         }
 
-        let dayName = activeModalDayKey === 'dag1' ? speeldag1Naam : speeldag2Naam;
-        let msgText = `🔄 Schema gewijzigd voor week ${activeModalWeekNum} (${dayName}): ${newPlayers.join(', ')}`;
+        let msgText = `🔄 Schema gewijzigd voor week ${activeModalWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
         await addSystemMessageIfUnique(msgText);
         closeModal();
     }
 
-    async function toggleAbsence(playerName, uniqueWeekKey, dayKey, weekNum) {
+    async function toggleAbsence(playerName, uniqueWeekKey, day, weekNum) {
         if (!currentUserName) {
             alert("Kies eerst je naam bovenin de app!");
             return;
@@ -3092,13 +2955,12 @@
         const isSub = !basePlayers.includes(playerName);
         if (!isSub && playerName !== currentUserName) return;
         
-        let dayName = dayKey === 'dag1' ? speeldag1Naam : speeldag2Naam;
-        const path = `padelData/absence/${playerName}/${uniqueWeekKey}_${dayKey}`;
+        const path = `padelData/absence/${playerName}/${uniqueWeekKey}_${day}`;
         db.ref(path).once('value', async snapshot => {
             const newVal = !(snapshot.val() || false);
             await db.ref(path).set(newVal);
 
-            let msgText = `📅 ${playerName} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${dayName}) (door ${currentUserName})`;
+            let msgText = `📅 ${playerName} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${day}) (door ${currentUserName})`;
             await addSystemMessageIfUnique(msgText);
         });
     }
