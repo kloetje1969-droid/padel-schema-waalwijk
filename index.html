@@ -18,6 +18,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
     
     <style>
@@ -1391,6 +1392,16 @@
         firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.database();
+    
+    // Automatisch inloggen als beheerder op de achtergrond
+    firebase.auth().signInWithEmailAndPassword("kloetje1969@gmail.com", "Kloetje1969!")
+      .then((userCredential) => {
+          console.log("Beheerder succesvol ingelogd:", userCredential.user.uid);
+      })
+      .catch((error) => {
+          console.error("Inlogfout beheerder:", error.message);
+      });
+
     let messaging = null;
     try {
         if (firebase.messaging.isSupported()) {
