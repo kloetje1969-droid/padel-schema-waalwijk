@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.1)</title>
+    <title>Padelschema - Rooster & Chat (v8.2)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1308,7 +1308,7 @@
 
     <!-- Versienummer onderaan -->
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v8.1
+        Padelschema v8.2
     </div>
 </div>
 
@@ -1358,10 +1358,28 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.1";
+    const APP_VERSION = "8.2";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
+
+    // Automatische time-out logica (15 minuten inactiviteit)
+    let inactivityTimer;
+    const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minuten
+
+    function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+            sessionStorage.removeItem('padel_unlocked');
+            document.getElementById('pinInput').value = '';
+            document.getElementById('pinOverlay').style.display = 'flex';
+            document.getElementById('pinInput').focus();
+        }, INACTIVITY_TIMEOUT_MS);
+    }
+
+    ['click', 'touchstart', 'mousemove', 'keypress'].forEach(eventType => {
+        document.addEventListener(eventType, resetInactivityTimer, { passive: true });
+    });
 
     async function checkAppVersion() {
         try {
@@ -1393,7 +1411,6 @@
     }
     const db = firebase.database();
     
-    // Automatisch inloggen als beheerder op de achtergrond
     firebase.auth().signInWithEmailAndPassword("kloetje1969@gmail.com", "Kloetje1969!")
       .then((userCredential) => {
           console.log("Beheerder succesvol ingelogd:", userCredential.user.uid);
@@ -1458,6 +1475,7 @@
         if (sessionStorage.getItem('padel_unlocked') === 'true') {
             document.getElementById('pinOverlay').style.display = 'none';
             initApp();
+            resetInactivityTimer();
         } else {
             document.getElementById('pinInput').focus();
         }
@@ -1539,13 +1557,8 @@
             const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
             if (!token) return;
 
-            const prevUser = localStorage.getItem('padel_fcm_user');
-            const prevToken = localStorage.getItem('padel_fcm_token');
             const updates = {};
-            if (prevUser && prevToken && prevUser !== currentUserName) {
-                updates[`padelData/tokens/${prevUser}/${prevToken}`] = null;
-            }
-            updates[`padelData/tokens/${currentUserName}`] = { [token]: true };
+            updates[`padelData/tokens/${currentUserName}/${token}`] = true;
             await db.ref().update(updates);
 
             localStorage.setItem('padel_fcm_user', currentUserName);
@@ -1685,6 +1698,7 @@
             sessionStorage.setItem('padel_unlocked', 'true');
             document.getElementById('pinOverlay').style.display = 'none';
             initApp();
+            resetInactivityTimer();
         } else {
             errDiv.style.display = 'block';
             document.getElementById('pinInput').value = '';
