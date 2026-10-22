@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.3)</title>
+    <title>Padelschema - Rooster & Chat (v8.4)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1308,7 +1308,7 @@
 
     <!-- Versienummer onderaan -->
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v8.3
+        Padelschema v8.4
     </div>
 </div>
 
@@ -1358,7 +1358,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.3";
+    const APP_VERSION = "8.4";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1957,8 +1957,21 @@
             players: [p1, p2, p3, p4]
         };
 
+        const prevResult = matchResults[matchId];
+        const resultChanged = !prevResult || ['t1s1','t2s1','t1s2','t2s2','t1s3','t2s3'].some(k => Number(prevResult[k] || 0) !== matchData[k]);
+
         await db.ref(`padelData/matchResults/${matchId}`).set(matchData);
         showToast("Uitslagen opgeslagen", `Set 1: ${t1s1}-${t2s1} | Set 2: ${t1s2}-${t2s2} | Set 3: ${t1s3}-${t2s3}`);
+
+        // Chatbericht + pushmelding, alleen als de uitslag nieuw of gewijzigd is
+        if (resultChanged) {
+            const idParts = matchId.split('_');
+            const weekNr = (idParts[1] || '').replace('w', '');
+            const dagNaam = idParts[2] || '';
+            let sets = `${t1s1}-${t2s1}, ${t1s2}-${t2s2}`;
+            if (t1s3 || t2s3) sets += `, ${t1s3}-${t2s3}`;
+            await addSystemMessageIfUnique(`🏆 Uitslag week ${weekNr} (${dagNaam}): ${p1} & ${p2} tegen ${p3} & ${p4}: ${sets}`);
+        }
     }
 
     function renderBaanBoekingen() {
