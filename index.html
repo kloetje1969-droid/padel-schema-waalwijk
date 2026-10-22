@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.4)</title>
+    <title>Padelschema - Rooster & Chat (v8.5)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1308,7 +1308,7 @@
 
     <!-- Versienummer onderaan -->
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v8.4
+        Padelschema v8.5
     </div>
 </div>
 
@@ -1358,7 +1358,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.4";
+    const APP_VERSION = "8.5";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1922,6 +1922,11 @@
     }
 
     async function saveMatchScore3Sets(matchId, p1, p2, p3, p4) {
+        if (!currentUserName) {
+            alert("Kies eerst je naam bovenin de app!");
+            return;
+        }
+
         let t1s1 = parseInt(document.getElementById(`t1s1_${matchId}`).value) || 0;
         let t2s1 = parseInt(document.getElementById(`t2s1_${matchId}`).value) || 0;
         let t1s2 = parseInt(document.getElementById(`t1s2_${matchId}`).value) || 0;
@@ -1936,6 +1941,9 @@
 
         await db.ref(`padelData/matchResults/${matchId}`).set(matchData);
         showToast("Uitslagen opgeslagen", `Set 1: ${t1s1}-${t2s1} | Set 2: ${t1s2}-${t2s2} | Set 3: ${t1s3}-${t2s3}`);
+
+        const uitslagTekst = `🎾 Uitslag ingevoerd door ${currentUserName}: Set 1 (${t1s1}-${t2s1}), Set 2 (${t1s2}-${t2s2}), Set 3 (${t1s3}-${t2s3})`;
+        await addSystemMessageIfUnique(uitslagTekst);
     }
 
     function renderBaanBoekingen() {
@@ -2038,8 +2046,7 @@
     }
 
     function fetchWaalwijkWeather() {
-        // Gebruikt KNMI Harmonie model (models=knmi_seamless) en haalt de neerslag op in mm (precipitation)
-        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation,weathercode,wind_speed_10m&models=knmi_seamless&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
+        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation_probability,weathercode,wind_speed_10m&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
         
         fetch(weatherUrl)
             .then(res => res.json())
@@ -2047,16 +2054,14 @@
                 if (data && data.hourly) {
                     const times = data.hourly.time;
                     const temps = data.hourly.temperature_2m;
-                    const rainMm = data.hourly.precipitation;
+                    const rain = data.hourly.precipitation_probability;
                     const codes = data.hourly.weathercode;
                     const winds = data.hourly.wind_speed_10m;
 
                     times.forEach((timeStr, index) => {
-                        let precip = rainMm ? rainMm[index] : 0;
-
                         weatherCache[timeStr] = {
                             temp: temps[index],
-                            rainMm: precip,
+                            rain: rain ? rain[index] : 0,
                             code: codes[index],
                             wind: winds ? winds[index] : 0
                         };
@@ -2104,11 +2109,7 @@
         if (!w) return `<span class="weather-badge">☁ Weer volgt</span>`;
         const emoji = getWeatherEmoji(w.code);
         const bft = kmhToBeaufort(w.wind);
-        
-        // Afronden neerslag in mm (bijv. 0,2 mm of 0 mm)
-        let displayMm = w.rainMm ? (Math.round(w.rainMm * 10) / 10).toString().replace('.', ',') : "0";
-        
-        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 windkracht ${bft} | 🌧️ ${displayMm} mm</span>`;
+        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 windkracht ${bft} | 🌧️ ${w.rain}%</span>`;
     }
 
     function updateAlertUI() {
@@ -2469,12 +2470,11 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            // Melding bij neerslag > 0.5 mm per uur
-            let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && dinsdagWeatherObj.rainMm >= 0.5) 
-                ? `<div class="rain-alert">🌧️ Let op: Verwachte neerslag (${(Math.round(dinsdagWeatherObj.rainMm * 10) / 10).toString().replace('.', ',')} mm)!</div>` : '';
+            let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) 
+                ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${dinsdagWeatherObj.rain}%)!</div>` : '';
             
-            let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && donderdagWeatherObj.rainMm >= 0.5) 
-                ? `<div class="rain-alert">🌧️ Let op: Verwachte neerslag (${(Math.round(donderdagWeatherObj.rainMm * 10) / 10).toString().replace('.', ',')} mm)!</div>` : '';
+            let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && donderdagWeatherObj.rain > 60) 
+                ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${donderdagWeatherObj.rain}%)!</div>` : '';
 
             let dinsdagAbsentees = diCancelled ? [] : dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
             let donderdagAbsentees = doCancelled ? [] : donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
@@ -2548,7 +2548,7 @@
                         </div>` : ''}
                     </div>
                     ${dinsdagRainAlert}
-                    ${!diCancelled && dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
+                    ${!diCancelled && dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
                 </div>
 
                 <div class="match-row-wrapper">
