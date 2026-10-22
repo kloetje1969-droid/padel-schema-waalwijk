@@ -3,10 +3,40 @@ import { db, getTokensByPlayer, sendToTokens } from '../lib/padel.js';
 // De app roept dit aan nadat er een chatbericht of systeembericht (afmelding, schemawijziging,
 // baanboeking) is opgeslagen. De server leest dat bericht zelf uit de database en stuurt een
 // pushmelding naar de anderen. Er gaat nooit meer dan 1 melding per bericht uit.
+
+// INLOGCONTROLE: de app stuurt een inlogbewijs van Firebase mee. De server kan dat controleren.
+// Eerst staat dit op false: er wordt dan alleen in het Vercel-logboek gezet of het bewijs klopt,
+// maar er wordt niets geblokkeerd. Zie je daar een paar dagen "NOTIFY login: ok" bij elk bericht,
+// zet het dan op true. Dan worden aanroepen zonder geldig inlogbewijs geweigerd.
+const BLOKKEER_ZONDER_LOGIN = false;
+
+async function controleerInlog(req) {
+  const header = req.headers['authorization'] || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  if (!token) return { ok: false, reden: 'geen inlogbewijs meegestuurd' };
+  try {
+    const { getAuth } = await import('firebase-admin/auth');
+    const decoded = await getAuth().verifyIdToken(token);
+    return { ok: true, uid: decoded.uid };
+  } catch (e) {
+    return { ok: false, reden: e.code || e.message };
+  }
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Alleen POST.' });
+    }
+
+    const inlog = await controleerInlog(req);
+    if (inlog.ok) {
+      console.log('NOTIFY login: ok');
+    } else {
+      console.warn('NOTIFY login: NIET geldig -', inlog.reden);
+      if (BLOKKEER_ZONDER_LOGIN) {
+        return res.status(401).json({ error: 'Niet ingelogd.' });
+      }
     }
 
     let body = req.body || {};
@@ -82,6 +112,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: result.successCount > 0, ...result });
   } catch (error) {
     console.error('Fout bij versturen berichtmelding:', error);
-    return res.status(500).json({ error: error.message });
+    // Technische details alleen in het logboek, niet naar de aanroeper
+    return res.status(500).json({ error: 'Er ging iets mis bij het versturen van de melding.' });
   }
 }
