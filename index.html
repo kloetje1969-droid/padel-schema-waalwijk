@@ -2038,8 +2038,8 @@
     }
 
     function fetchWaalwijkWeather() {
-        // Aangepast met het KNMI Harmonie model (models=knmi_seamless) en precipitation voor slimme filtering
-        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation_probability,precipitation,weathercode,wind_speed_10m&models=knmi_seamless&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
+        // Gebruikt KNMI Harmonie model (models=knmi_seamless) en haalt de neerslag op in mm (precipitation)
+        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation,weathercode,wind_speed_10m&models=knmi_seamless&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
         
         fetch(weatherUrl)
             .then(res => res.json())
@@ -2047,24 +2047,16 @@
                 if (data && data.hourly) {
                     const times = data.hourly.time;
                     const temps = data.hourly.temperature_2m;
-                    const rainProb = data.hourly.precipitation_probability;
                     const rainMm = data.hourly.precipitation;
                     const codes = data.hourly.weathercode;
                     const winds = data.hourly.wind_speed_10m;
 
                     times.forEach((timeStr, index) => {
-                        let rawProb = rainProb ? rainProb[index] : 0;
                         let precip = rainMm ? rainMm[index] : 0;
-
-                        // Slimme ruisfilter: als er minder dan 0.1 mm valt, negeren we de valse neerslagkans (%)
-                        if (precip < 0.1) {
-                            rawProb = 0;
-                        }
 
                         weatherCache[timeStr] = {
                             temp: temps[index],
-                            rain: rawProb,
-                            precipitationMm: precip,
+                            rainMm: precip,
                             code: codes[index],
                             wind: winds ? winds[index] : 0
                         };
@@ -2112,7 +2104,11 @@
         if (!w) return `<span class="weather-badge">☁ Weer volgt</span>`;
         const emoji = getWeatherEmoji(w.code);
         const bft = kmhToBeaufort(w.wind);
-        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 windkracht ${bft} | 🌧️ ${w.rain}%</span>`;
+        
+        // Afronden neerslag in mm (bijv. 0,2 mm of 0 mm)
+        let displayMm = w.rainMm ? (Math.round(w.rainMm * 10) / 10).toString().replace('.', ',') : "0";
+        
+        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 windkracht ${bft} | 🌧️ ${displayMm} mm</span>`;
     }
 
     function updateAlertUI() {
@@ -2473,11 +2469,12 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) 
-                ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${dinsdagWeatherObj.rain}%)!</div>` : '';
+            // Melding bij neerslag > 0.5 mm per uur
+            let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && dinsdagWeatherObj.rainMm >= 0.5) 
+                ? `<div class="rain-alert">🌧️ Let op: Verwachte neerslag (${(Math.round(dinsdagWeatherObj.rainMm * 10) / 10).toString().replace('.', ',')} mm)!</div>` : '';
             
-            let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && donderdagWeatherObj.rain > 60) 
-                ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${donderdagWeatherObj.rain}%)!</div>` : '';
+            let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && donderdagWeatherObj.rainMm >= 0.5) 
+                ? `<div class="rain-alert">🌧️ Let op: Verwachte neerslag (${(Math.round(donderdagWeatherObj.rainMm * 10) / 10).toString().replace('.', ',')} mm)!</div>` : '';
 
             let dinsdagAbsentees = diCancelled ? [] : dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
             let donderdagAbsentees = doCancelled ? [] : donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
