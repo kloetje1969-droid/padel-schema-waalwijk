@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.5)</title>
+    <title>Padelschema - Rooster & Chat (v8.6)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1308,7 +1308,7 @@
 
     <!-- Versienummer onderaan -->
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v8.5
+        Padelschema v8.6
     </div>
 </div>
 
@@ -1358,7 +1358,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.5";
+    const APP_VERSION = "8.6";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1939,11 +1939,24 @@
             players: [p1, p2, p3, p4]
         };
 
+        // 1. Uitslag opslaan in de database
         await db.ref(`padelData/matchResults/${matchId}`).set(matchData);
         showToast("Uitslagen opgeslagen", `Set 1: ${t1s1}-${t2s1} | Set 2: ${t1s2}-${t2s2} | Set 3: ${t1s3}-${t2s3}`);
 
+        // 2. Berichten aanmaken in Firebase
         const uitslagTekst = `🎾 Uitslag ingevoerd door ${currentUserName}: Set 1 (${t1s1}-${t2s1}), Set 2 (${t1s2}-${t2s2}), Set 3 (${t1s3}-${t2s3})`;
-        await addSystemMessageIfUnique(uitslagTekst);
+        
+        const sysRef = db.ref('padelData/messages').push();
+        await sysRef.set({
+            author: "Systeem",
+            text: uitslagTekst,
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            tijd: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            type: "system"
+        });
+
+        // 3. Meteen de pushmelding server triggeren met de nieuwe sleutel
+        notifyServer(sysRef.key);
     }
 
     function renderBaanBoekingen() {
