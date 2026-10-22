@@ -2121,7 +2121,8 @@
     function formatWeatherBadge(w) {
         if (!w) return `<span class="weather-badge">☁ Weer volgt</span>`;
         const emoji = getWeatherEmoji(w.code);
-        return `<span class="weather-badge">${emoji} ${w.temp}°C (${w.rain}% neerslag)</span>`;
+        const bft = kmhToBeaufort(w.wind);
+        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 Windkracht ${bft} | 🌧️ ${w.rain}%</span>`;
     }
 
     function updateAlertUI() {
