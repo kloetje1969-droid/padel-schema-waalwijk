@@ -1363,6 +1363,23 @@
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
 
+    let inactivityTimer;
+    const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
+
+    function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+            sessionStorage.removeItem('padel_unlocked');
+            document.getElementById('pinInput').value = '';
+            document.getElementById('pinOverlay').style.display = 'flex';
+            document.getElementById('pinInput').focus();
+        }, INACTIVITY_TIMEOUT_MS);
+    }
+
+    ['click', 'touchstart', 'mousemove', 'keypress'].forEach(eventType => {
+        document.addEventListener(eventType, resetInactivityTimer, { passive: true });
+    });
+
     async function checkAppVersion() {
         try {
             const res = await fetch('index.html?v=' + Date.now(), { cache: 'no-store' });
@@ -1376,19 +1393,6 @@
         } catch (e) {}
     }
     setInterval(checkAppVersion, 30000);
-
-    // Veiligheid: maakt tekst uit de database onschadelijk voordat het in de pagina komt.
-    function esc(v) {
-        return String(v === undefined || v === null ? '' : v)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-
-    // Alleen echte foto's/pdf's/Word-bestanden als bijlage toestaan.
-    const SAFE_DATA_URL = /^data:(image\/(png|jpe?g|gif|webp|heic|heif)|application\/(pdf|msword|octet-stream|vnd\.openxmlformats-officedocument\.wordprocessingml\.document));base64,[A-Za-z0-9+\/=]+$/;
-    function safeFileUrl(u) {
-        return (typeof u === 'string' && SAFE_DATA_URL.test(u)) ? u : '';
-    }
 
     const firebaseConfig = {
         apiKey: "AIzaSyC2TvKuO8vSfzmaGu-CictLit5iuRnRFNU",
@@ -1406,13 +1410,13 @@
     }
     const db = firebase.database();
     
-    // Anoniem inloggen: er staat geen e-mailadres of wachtwoord meer in de code.
-    const authReady = firebase.auth().signInAnonymously()
-        .then(() => true)
-        .catch((error) => {
-            console.error("Anoniem inloggen mislukt:", error.code, error.message);
-            return false;
-        });
+    firebase.auth().signInWithEmailAndPassword("kloetje1969@gmail.com", "Kloetje1969!")
+      .then((userCredential) => {
+          console.log("Beheerder succesvol ingelogd:", userCredential.user.uid);
+      })
+      .catch((error) => {
+          console.error("Inlogfout beheerder:", error.message);
+      });
 
     let messaging = null;
     try {
@@ -1470,6 +1474,7 @@
         if (sessionStorage.getItem('padel_unlocked') === 'true') {
             document.getElementById('pinOverlay').style.display = 'none';
             initApp();
+            resetInactivityTimer();
         } else {
             document.getElementById('pinInput').focus();
         }
@@ -1531,13 +1536,11 @@
         }
     }
 
-    async function notifyServer(messageKey) {
+    function notifyServer(messageKey) {
         try {
-            const authUser = firebase.auth().currentUser;
-            const idToken = authUser ? await authUser.getIdToken() : '';
             fetch('/api/notify', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key: messageKey, by: currentUserName }),
                 keepalive: true
             }).catch(() => {});
@@ -1553,14 +1556,9 @@
             const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
             if (!token) return;
 
-            const prevUser = localStorage.getItem('padel_fcm_user');
-            const prevToken = localStorage.getItem('padel_fcm_token');
             const updates = {};
-            if (prevUser && prevToken && prevUser !== currentUserName) {
-                updates[`${prevUser}/${prevToken}`] = null;
-            }
-            updates[currentUserName] = { [token]: true };
-            await db.ref('padelData/tokens').update(updates);
+            updates[`padelData/tokens/${currentUserName}/${token}`] = true;
+            await db.ref().update(updates);
 
             localStorage.setItem('padel_fcm_user', currentUserName);
             localStorage.setItem('padel_fcm_token', token);
@@ -1699,6 +1697,7 @@
             sessionStorage.setItem('padel_unlocked', 'true');
             document.getElementById('pinOverlay').style.display = 'none';
             initApp();
+            resetInactivityTimer();
         } else {
             errDiv.style.display = 'block';
             document.getElementById('pinInput').value = '';
@@ -1713,26 +1712,11 @@
     }
 
     function initApp() {
-        authReady.then(ok => {
-            if (ok) {
-                startApp();
-            } else {
-                alert("Verbinden met de database is mislukt. Controleer je internet en laad de pagina opnieuw.");
-            }
-        });
-    }
-
-    function startApp() {
         if (appInitialized) return;
         appInitialized = true;
 
         initUserSelect();
         fetchWaalwijkWeather();
-        // Weer elk uur verversen, en ook als je terugkomt in de app (na minstens 15 minuten)
-        setInterval(fetchWaalwijkWeather, 60 * 60 * 1000);
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && Date.now() - lastWeatherFetch > 15 * 60 * 1000) fetchWaalwijkWeather();
-        });
         updatePushPermissionButtonUI();
         registerPushToken();
         
@@ -1930,18 +1914,11 @@
                 return `
                     <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
                         <span style="font-weight: 600; color: var(--accent-orange);">Cyclus ${parseInt(idx, 10) + 1}</span>
-                        <span style="color: var(--text-main);">🏆 <strong>${esc(wData.winner)}</strong> (${esc(wData.games)} games)</span>
+                        <span style="color: var(--text-main);">🏆 <strong>${wData.winner}</strong> (${wData.games} games)</span>
                     </div>
                 `;
             }).join('');
         }
-    }
-
-    function saveMatchFromButton(btn, matchId) {
-        let p = [];
-        try { p = JSON.parse(btn.dataset.players); } catch (e) { return; }
-        if (!Array.isArray(p) || p.length < 4) return;
-        saveMatchScore3Sets(matchId, p[0], p[1], p[2], p[3]);
     }
 
     async function saveMatchScore3Sets(matchId, p1, p2, p3, p4) {
@@ -1957,21 +1934,8 @@
             players: [p1, p2, p3, p4]
         };
 
-        const prevResult = matchResults[matchId];
-        const resultChanged = !prevResult || ['t1s1','t2s1','t1s2','t2s2','t1s3','t2s3'].some(k => Number(prevResult[k] || 0) !== matchData[k]);
-
         await db.ref(`padelData/matchResults/${matchId}`).set(matchData);
         showToast("Uitslagen opgeslagen", `Set 1: ${t1s1}-${t2s1} | Set 2: ${t1s2}-${t2s2} | Set 3: ${t1s3}-${t2s3}`);
-
-        // Chatbericht + pushmelding, alleen als de uitslag nieuw of gewijzigd is
-        if (resultChanged) {
-            const idParts = matchId.split('_');
-            const weekNr = (idParts[1] || '').replace('w', '');
-            const dagNaam = idParts[2] || '';
-            let sets = `${t1s1}-${t2s1}, ${t1s2}-${t2s2}`;
-            if (t1s3 || t2s3) sets += `, ${t1s3}-${t2s3}`;
-            await addSystemMessageIfUnique(`🏆 Uitslag week ${weekNr} (${dagNaam}): ${p1} & ${p2} tegen ${p3} & ${p4}: ${sets}`);
-        }
     }
 
     function renderBaanBoekingen() {
@@ -2011,11 +1975,11 @@
             lijstContainer.innerHTML = `<div style="font-size: 0.72rem; color: var(--accent-blue); font-weight: 600; margin-bottom: 2px;">Geboekte momenten (deze cyclus):</div>` +
                 currentCyclusBoekingen.map(b => {
                     let formattedDt = formatExactDateTime(new Date(b.dateTime).getTime());
-                    let baanInfo = b.baan ? ` op <strong>${esc(b.baan)}</strong>` : '';
+                    let baanInfo = b.baan ? ` op <strong>${b.baan}</strong>` : '';
                     let canDelete = (currentUserName === "Robert" || b.player === currentUserName);
-                    let deleteBtn = canDelete ? `<button data-id="${esc(b.id)}" onclick="deleteBaanBoeking(this.dataset.id)" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
+                    let deleteBtn = canDelete ? `<button onclick="deleteBaanBoeking('${b.id}')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
                     return `<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--card-border);">
-                        <span>${emojiIconHtml} <strong>${esc(b.player)}</strong>${baanInfo}: ${formattedDt}</span>
+                        <span>${emojiIconHtml} <strong>${b.player}</strong>${baanInfo}: ${formattedDt}</span>
                         ${deleteBtn}
                     </div>`;
                 }).join('');
@@ -2073,11 +2037,8 @@
         }
     }
 
-    let lastWeatherFetch = 0;
-
     function fetchWaalwijkWeather() {
-        lastWeatherFetch = Date.now();
-        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation_probability,weathercode&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
+        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation_probability,weathercode,wind_speed_10m&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
         
         fetch(weatherUrl)
             .then(res => res.json())
@@ -2087,12 +2048,14 @@
                     const temps = data.hourly.temperature_2m;
                     const rain = data.hourly.precipitation_probability;
                     const codes = data.hourly.weathercode;
+                    const winds = data.hourly.wind_speed_10m;
 
                     times.forEach((timeStr, index) => {
                         weatherCache[timeStr] = {
                             temp: temps[index],
                             rain: rain ? rain[index] : 0,
-                            code: codes[index]
+                            code: codes[index],
+                            wind: winds ? winds[index] : 0
                         };
                     });
                     renderSchedule();
@@ -2110,6 +2073,22 @@
         return "☁️";
     }
 
+    function kmhToBeaufort(kmh) {
+        if (kmh < 1) return 0;
+        if (kmh <= 5) return 1;
+        if (kmh <= 11) return 2;
+        if (kmh <= 19) return 3;
+        if (kmh <= 28) return 4;
+        if (kmh <= 38) return 5;
+        if (kmh <= 49) return 6;
+        if (kmh <= 61) return 7;
+        if (kmh <= 74) return 8;
+        if (kmh <= 88) return 9;
+        if (kmh <= 102) return 10;
+        if (kmh <= 117) return 11;
+        return 12;
+    }
+
     function getWeatherObject(dateObj) {
         const y = dateObj.getFullYear();
         const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -2122,7 +2101,7 @@
         if (!w) return `<span class="weather-badge">☁ Weer volgt</span>`;
         const emoji = getWeatherEmoji(w.code);
         const bft = kmhToBeaufort(w.wind);
-        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 Windkracht ${bft} | 🌧️ ${w.rain}%</span>`;
+        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 windkracht ${bft} | 🌧️ ${w.rain}%</span>`;
     }
 
     function updateAlertUI() {
@@ -2352,7 +2331,7 @@
                     <div class="status-badge ${isMe ? 'me' : ''}">
                         <div class="status-line">
                             <span class="status-dot ${isOnline ? 'online' : 'offline'}"></span>
-                            <span>${esc(player)}</span>
+                            <span>${player}</span>
                         </div>
                         ${subText}
                     </div>
@@ -2532,36 +2511,36 @@
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 1</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s1_${diMatchId}" value="${esc(diRes.t1s1)}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t1s1_${diMatchId}" value="${diRes.t1s1 !== undefined ? diRes.t1s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s1_${diMatchId}" value="${esc(diRes.t2s1)}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s1_${diMatchId}" value="${diRes.t2s1 !== undefined ? diRes.t2s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 2</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s2_${diMatchId}" value="${esc(diRes.t1s2)}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t1s2_${diMatchId}" value="${diRes.t1s2 !== undefined ? diRes.t1s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s2_${diMatchId}" value="${esc(diRes.t2s2)}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s2_${diMatchId}" value="${diRes.t2s2 !== undefined ? diRes.t2s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 3</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s3_${diMatchId}" value="${esc(diRes.t1s3)}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t1s3_${diMatchId}" value="${diRes.t1s3 !== undefined ? diRes.t1s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s3_${diMatchId}" value="${esc(diRes.t2s3)}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s3_${diMatchId}" value="${diRes.t2s3 !== undefined ? diRes.t2s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper" style="flex: 0 0 auto;">
                                     <div class="set-column-title">&nbsp;</div>
-                                    <button class="btn-edit" data-players="${esc(JSON.stringify(dinsdagPlayers))}" onclick="saveMatchFromButton(this, '${diMatchId}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
+                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${diMatchId}', '${dinsdagPlayers[0]}', '${dinsdagPlayers[1]}', '${dinsdagPlayers[2]}', '${dinsdagPlayers[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
                                 </div>
                             </div>
                         </div>` : ''}
                     </div>
                     ${dinsdagRainAlert}
-                    ${!diCancelled && dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠ Afwezig: ${dinsdagAbsentees.map(x => esc(x)).join(', ')}</div>` : ''}
+                    ${!diCancelled && dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
                 </div>
 
                 <div class="match-row-wrapper">
@@ -2587,36 +2566,36 @@
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 1</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s1_${doMatchId}" value="${esc(doRes.t1s1)}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t1s1_${doMatchId}" value="${doRes.t1s1 !== undefined ? doRes.t1s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s1_${doMatchId}" value="${esc(doRes.t2s1)}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s1_${doMatchId}" value="${doRes.t2s1 !== undefined ? doRes.t2s1 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 2</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s2_${doMatchId}" value="${esc(doRes.t1s2)}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t1s2_${doMatchId}" value="${doRes.t1s2 !== undefined ? doRes.t1s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s2_${doMatchId}" value="${esc(doRes.t2s2)}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s2_${doMatchId}" value="${doRes.t2s2 !== undefined ? doRes.t2s2 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 3</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s3_${doMatchId}" value="${esc(doRes.t1s3)}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t1s3_${doMatchId}" value="${doRes.t1s3 !== undefined ? doRes.t1s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s3_${doMatchId}" value="${esc(doRes.t2s3)}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
+                                        <input type="number" id="t2s3_${doMatchId}" value="${doRes.t2s3 !== undefined ? doRes.t2s3 : ''}" placeholder="0" min="0" style="width: 32px; font-size: 0.75rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 3px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper" style="flex: 0 0 auto;">
                                     <div class="set-column-title">&nbsp;</div>
-                                    <button class="btn-edit" data-players="${esc(JSON.stringify(donderdagPlayers))}" onclick="saveMatchFromButton(this, '${doMatchId}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
+                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${doMatchId}', '${donderdagPlayers[0]}', '${donderdagPlayers[1]}', '${donderdagPlayers[2]}', '${donderdagPlayers[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
                                 </div>
                             </div>
                         </div>` : ''}
                     </div>
                     ${donderdagRainAlert}
-                    ${!doCancelled && donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.map(x => esc(x)).join(', ')}</div>` : ''}
+                    ${!doCancelled && donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
                 </div>
             `;
 
@@ -2677,7 +2656,7 @@
                 if (isAbsent) cls += " absent-player";
             }
 
-            return `<span class="${cls}">${esc(p)}</span>`;
+            return `<span class="${cls}">${p}</span>`;
         };
 
         const team1 = players.slice(0, 2).map(createChip).join('');
@@ -2738,7 +2717,7 @@
         tbody.innerHTML = allKeys.map(p => {
             const isMe = (p === currentUserName);
             const data = counts[p];
-            let displayName = esc(p);
+            let displayName = p;
             if (isMe) displayName += ' (jij)';
             if (data.isSub) displayName += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
 
@@ -2796,7 +2775,7 @@
         tbody.innerHTML = allTablePlayers.map(p => {
             const isMe = (p === currentUserName);
             const isSub = !basePlayers.includes(p);
-            let nameDisplay = esc(p);
+            let nameDisplay = p;
             if (isMe) nameDisplay += ' (jij)';
             if (isSub) nameDisplay += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
 
@@ -2819,7 +2798,7 @@
 
                         rowHtml += `
                             <td>
-                                <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} data-player="${esc(p)}" onclick="toggleAbsence(this.dataset.player, '${uniqueWeekKey}', '${day}', ${wn})">
+                                <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uniqueWeekKey}', '${day}', ${wn})">
                                     ${isAbsent ? 'Afwezig' : 'Aanwezig'}
                                 </button>
                             </td>
@@ -2879,11 +2858,11 @@
                 let inp = document.getElementById(`p${i}Custom`);
                 
                 let availableOpts = (currentUserName === "Robert") ? [...basePlayers, "Extern / Invaller"] : [currentUserName, "Extern / Invaller"];
-                sel.innerHTML = availableOpts.map(opt => `<option value="${esc(opt)}">${esc(opt)}</option>`).join('');
+                sel.innerHTML = availableOpts.map(opt => `<option value="${opt}">${opt}</option>`).join('');
 
                 let pVal = (currentPlayers && currentPlayers[i]) ? currentPlayers[i] : basePlayers[i];
                 if (currentUserName !== "Robert" && !availableOpts.includes(pVal)) {
-                    sel.innerHTML = `<option value="${esc(pVal)}">${esc(pVal)}</option>` + sel.innerHTML;
+                    sel.innerHTML = `<option value="${pVal}">${pVal}</option>` + sel.innerHTML;
                 }
 
                 if (basePlayers.includes(pVal) || (currentUserName !== "Robert" && pVal === currentUserName)) {
@@ -2961,7 +2940,7 @@
         for (let i = 0; i < 4; i++) {
             let sel = document.getElementById(`p${i}Select`);
             let inp = document.getElementById(`p${i}Custom`);
-            let chosenVal = sel.value === "Extern / Invaller" ? (inp.value.trim().slice(0, 30) || "Invaller") : sel.value;
+            let chosenVal = sel.value === "Extern / Invaller" ? (inp.value.trim() || "Invaller") : sel.value;
             
             if (currentUserName !== "Robert") {
                 let tpl = defaultTemplate[activeTemplateIndex];
@@ -3057,16 +3036,16 @@
             const isSelf = (m.author === currentUserName);
             const isSystem = (m.type === "system" || m.author === "Systeem" || m.author === "Padel Weerbericht");
             const formattedTime = formatMessageTime(m.timestamp, m.tijd);
-            const tijdWeergave = formattedTime ? `<span style="font-size: 0.65rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${esc(formattedTime)}</span>` : '';
+            const tijdWeergave = formattedTime ? `<span style="font-size: 0.65rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${formattedTime}</span>` : '';
 
             let canDelete = (currentUserName === "Robert" || isSelf || (isSystem && currentUserName === "Robert"));
-            let deleteBtnHtml = canDelete ? `<button class="delete-msg-btn" data-key="${esc(m.key)}" onclick="deleteMessage(this.dataset.key)" title="Verwijder bericht">✕</button>` : '';
+            let deleteBtnHtml = canDelete ? `<button class="delete-msg-btn" onclick="deleteMessage('${m.key}')" title="Verwijder bericht">✕</button>` : '';
 
             if (isSystem) {
                 return `
                     <div class="message system-update">
                         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                            <span style="font-size: 0.75rem; color: var(--accent-blue); flex-grow: 1;">${esc(m.text)} ${tijdWeergave}</span>
+                            <span style="font-size: 0.75rem; color: var(--accent-blue); flex-grow: 1;">${m.text} ${tijdWeergave}</span>
                             ${deleteBtnHtml}
                         </div>
                     </div>
@@ -3074,17 +3053,16 @@
             }
 
             let attachmentHtml = '';
-            const fileUrl = safeFileUrl(m.fileUrl);
-            if (fileUrl) {
-                if (fileUrl.startsWith('data:image/')) {
-                    attachmentHtml = `<img src="${fileUrl}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 4px; cursor: pointer; object-fit: cover;" onclick="openImageModal(this.src)">`;
+            if (m.fileUrl) {
+                if (m.fileType && m.fileType.includes('image')) {
+                    attachmentHtml = `<img src="${m.fileUrl}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 4px; cursor: pointer; object-fit: cover;" onclick="openImageModal('${m.fileUrl}')">`;
                 } else {
-                    let icon = fileUrl.startsWith('data:application/pdf') ? '📄' : '📎';
+                    let icon = m.fileType && m.fileType.includes('pdf') ? '📄' : '📎';
                     attachmentHtml = `
-                        <a href="${fileUrl}" download="${esc(m.fileName || 'document')}" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; gap: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 10px; border-radius: 6px; color: var(--accent-blue); text-decoration: none; margin-top: 4px; font-weight: 500;">
+                        <a href="${m.fileUrl}" download="${m.fileName || 'document'}" target="_blank" style="display: flex; align-items: center; gap: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 10px; border-radius: 6px; color: var(--accent-blue); text-decoration: none; margin-top: 4px; font-weight: 500;">
                             <span style="font-size: 1.2rem;">${icon}</span>
                             <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1;">
-                                <div style="font-size: 0.8rem; font-weight: bold;">${esc(m.fileName || 'Bijlage openen')}</div>
+                                <div style="font-size: 0.8rem; font-weight: bold;">${m.fileName || 'Bijlage openen'}</div>
                                 <div style="font-size: 0.65rem; color: var(--text-muted);">Klik om te downloaden/bekijken</div>
                             </div>
                         </a>
@@ -3092,12 +3070,12 @@
                 }
             }
 
-            let textHtml = (m.text && m.text !== "(Bestand)" && m.text !== "(Foto)") ? `<span>${esc(m.text)}</span>` : '';
+            let textHtml = (m.text && m.text !== "(Bestand)" && m.text !== "(Foto)") ? `<span>${m.text}</span>` : '';
 
             return `
                 <div class="message ${isSelf ? 'self' : ''}">
                     <div class="message-header">
-                        <span class="author">${esc(m.author)} ${tijdWeergave}</span>
+                        <span class="author">${m.author} ${tijdWeergave}</span>
                         ${deleteBtnHtml}
                     </div>
                     ${textHtml}
@@ -3121,15 +3099,15 @@
         const now = new Date();
         let messageData = {
             author: currentUserName,
-            text: (text || "").slice(0, 2000),
+            text: text || "",
             timestamp: firebase.database.ServerValue.TIMESTAMP,
             tijd: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
         if (selectedFileBase64) {
             messageData.fileUrl = selectedFileBase64;
-            messageData.fileName = String(selectedFileName || "").slice(0, 200);
-            messageData.fileType = String(selectedFileType || "").slice(0, 100);
+            messageData.fileName = selectedFileName;
+            messageData.fileType = selectedFileType;
         }
 
         try {
