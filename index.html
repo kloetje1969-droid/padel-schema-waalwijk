@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.10)</title>
+    <title>Padelschema - Rooster & Chat (v8.11)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1305,7 +1305,7 @@
     </div>
 
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v8.10
+        Padelschema v8.11
     </div>
 </div>
 
@@ -1355,7 +1355,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.10";
+    const APP_VERSION = "8.11";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1921,13 +1921,17 @@
             // Sorteer van hoogst aantal games naar laagst
             const sortedPlayers = [...basePlayers].sort((a, b) => (gameCounts[b] || 0) - (gameCounts[a] || 0));
 
-            // Bepaal de medailles op basis van gelijke standen (ranks)
+            // Bepaal de correcte rangorde met gedeelde plaatsen (zodat bij gelijke stand de rangnummer pas verspringt bij de volgende lagere score)
             let currentRank = 1;
             const ranks = [];
 
             for (let i = 0; i < sortedPlayers.length; i++) {
-                if (i > 0 && (gameCounts[sortedPlayers[i]] || 0) < (gameCounts[sortedPlayers[i - 1]] || 0)) {
-                    currentRank = i + 1; // Volgende positie op basis van aantal spelers boven hem
+                if (i > 0) {
+                    const prevGames = gameCounts[sortedPlayers[i - 1]] || 0;
+                    const currGames = gameCounts[sortedPlayers[i]] || 0;
+                    if (currGames < prevGames) {
+                        currentRank = i + 1;
+                    }
                 }
                 ranks.push(currentRank);
             }
