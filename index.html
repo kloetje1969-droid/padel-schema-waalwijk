@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.12)</title>
+    <title>Padelschema - Rooster & Chat (v8.14)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1144,9 +1144,9 @@
 <div class="container">
     <header>
         <h1>
-            <span class="emoji-icon">🥎</span>
+            <span class="emoji-icon" id="headerIcon1">🥎</span>
             Padelschema 
-            <span class="emoji-icon">🥎</span>
+            <span class="emoji-icon" id="headerIcon2">🥎</span>
         </h1>
         
         <div class="user-and-status-row">
@@ -1234,7 +1234,7 @@
     <div class="card">
         <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
             <div class="section-title" style="font-size: 0.95rem;">
-                <span class="emoji-icon">🥎</span>
+                <span class="emoji-icon dynamic-ball-icon">🥎</span>
                 Baan Boeken
             </div>
             <span id="collapseArrow" class="collapse-arrow">▼ Open</span>
@@ -1305,7 +1305,7 @@
     </div>
 
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v8.12
+        Padelschema v8.14
     </div>
 </div>
 
@@ -1355,10 +1355,21 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.12";
+    const APP_VERSION = "8.14";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
-    const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
+    // Automatische seizoenswicon: 🎅 in december, anders 🥎
+    function getPadelIcon() {
+        const now = new Date();
+        const month = now.getMonth(); // 0 = jan, 11 = dec
+        // December (maand 11)
+        if (month === 11) {
+            return '🎅';
+        }
+        return '🥎';
+    }
+
+    const emojiIconHtml = `<span class="emoji-icon dynamic-ball-icon">${getPadelIcon()}</span>`;
 
     let inactivityTimer;
     const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
@@ -1467,6 +1478,7 @@
         sessionStartTime = Date.now();
         startLiveClock();
         updatePushPermissionButtonUI();
+        applyDynamicIcons();
 
         if (sessionStorage.getItem('padel_unlocked') === 'true') {
             document.getElementById('pinOverlay').style.display = 'none';
@@ -1496,6 +1508,18 @@
             window.visualViewport.addEventListener('scroll', handleResize);
         }
     });
+
+    function applyDynamicIcons() {
+        const icon = getPadelIcon();
+        const icon1 = document.getElementById('headerIcon1');
+        const icon2 = document.getElementById('headerIcon2');
+        if (icon1) icon1.innerText = icon;
+        if (icon2) icon2.innerText = icon;
+
+        document.querySelectorAll('.dynamic-ball-icon').forEach(el => {
+            el.innerText = icon;
+        });
+    }
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -1716,6 +1740,7 @@
         fetchWaalwijkWeather();
         updatePushPermissionButtonUI();
         registerPushToken();
+        applyDynamicIcons();
         
         checkEnStartNieuweCyclus();
 
@@ -1827,11 +1852,8 @@
             const res = matchResults[matchId];
             if (!res || !Array.isArray(res.players) || res.players.length !== 4) continue;
 
-            // Bepaal de ORIGINELE 4 spelers die volgens het basisschema op DIT specifieke slot horen
             const templateIndex = ((diffWeeks % 6) + 6) % 6;
             const tpl = defaultTemplate[templateIndex];
-            
-            // We vergelijken met het basisschema van dit specifieke slot, ongeacht naar welke dag de wedstrijd verzet is
             const defaultSlotPlayers = tpl[slotKey] || []; 
 
             const t1Games = (Number(res.t1s1) || 0) + (Number(res.t1s2) || 0) + (Number(res.t1s3) || 0);
@@ -1848,10 +1870,8 @@
                 const p = item.player;
                 if (!p) return;
 
-                // Controleer of speler 'p' de origineel ingeplande vaste speler voor DIT slot van de week is
                 const isOriginalPlayerForThisSlot = defaultSlotPlayers.includes(p);
 
-                // Alleen als het de originele speler van dit slot is (en in basePlayers staat), tellen de games mee
                 if (isOriginalPlayerForThisSlot && basePlayers.includes(p)) {
                     gameCounts[p] = (gameCounts[p] || 0) + item.games;
                     matchCounts[p] = (matchCounts[p] || 0) + 1;
@@ -1918,10 +1938,7 @@
             const activeCyclusIdx = getActiveCyclusIndex();
             const { gameCounts, matchCounts } = getGameCountsForCyclus(activeCyclusIdx);
             
-            // Sorteer van hoogst aantal games naar laagst
             const sortedPlayers = [...basePlayers].sort((a, b) => (gameCounts[b] || 0) - (gameCounts[a] || 0));
-
-            // Bepaal unieke scores in aflopende volgorde om de correcte rang (1, 2, 3...) te berekenen bij gelijke standen
             const uniqueScoresDesc = [...new Set(sortedPlayers.map(p => gameCounts[p] || 0))].sort((a, b) => b - a);
 
             container.innerHTML = sortedPlayers.map((p) => {
@@ -2045,7 +2062,7 @@
                     let canDelete = (currentUserName === "Robert" || b.player === currentUserName);
                     let deleteBtn = canDelete ? `<button onclick="deleteBaanBoeking('${b.id}')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
                     return `<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--card-border);">
-                        <span>${emojiIconHtml} <strong>${b.player}</strong>${baanInfo}: ${formattedDt}</span>
+                        <span><span class="emoji-icon dynamic-ball-icon" style="font-size: 1rem;">${getPadelIcon()}</span> <strong>${b.player}</strong>${baanInfo}: ${formattedDt}</span>
                         ${deleteBtn}
                     </div>`;
                 }).join('');
