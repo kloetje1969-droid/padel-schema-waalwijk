@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.15)</title>
+    <title>Padelschema - Rooster & Chat (v8.16)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1305,7 +1305,7 @@
     </div>
 
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v8.15
+        Padelschema v8.16
     </div>
 </div>
 
@@ -1355,7 +1355,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.15";
+    const APP_VERSION = "8.16";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     // Automatische seizoensgebonden icoontjes
@@ -1854,7 +1854,7 @@
 
             const year = parseInt(parts[0], 10);
             const week = parseInt(parts[1].replace('w', ''), 10);
-            const slotKey = parts[2]; // Unieke ID van het slot: 'dinsdag' of 'donderdag'
+            const slotKey = parts[2];
 
             if (!Number.isFinite(year) || !Number.isFinite(week)) continue;
 
@@ -1906,29 +1906,46 @@
 
             try {
                 const { gameCounts } = getGameCountsForCyclus(cyclusIdx);
-                const sortedPlayers = [...basePlayers].sort((a, b) => (gameCounts[b] || 0) - (gameCounts[a] || 0));
                 
-                const maxGames = gameCounts[sortedPlayers[0]] || 0;
+                // Sorteer unieke scores van hoog naar laag
+                const uniqueScoresDesc = [...new Set(basePlayers.map(p => gameCounts[p] || 0))].sort((a, b) => b - a);
+                const maxGames = uniqueScoresDesc[0] || 0;
                 if (maxGames === 0) continue;
 
-                const p1 = sortedPlayers[0];
-                const p2 = sortedPlayers[1];
-                const p3 = sortedPlayers[2];
+                const goudScore = uniqueScoresDesc[0] !== undefined ? uniqueScoresDesc[0] : null;
+                const zilverScore = uniqueScoresDesc[1] !== undefined ? uniqueScoresDesc[1] : null;
+                const bronsScore = uniqueScoresDesc[2] !== undefined ? uniqueScoresDesc[2] : null;
 
-                const summaryText = `🥇 1e plaats: ${p1} (${gameCounts[p1]} games)\n🥈 2e plaats: ${p2} (${gameCounts[p2]} games)\n🥉 3e plaats: ${p3} (${gameCounts[p3]} games)`;
+                const firstPlayers = goudScore !== null ? basePlayers.filter(p => (gameCounts[p] || 0) === goudScore) : [];
+                const secondPlayers = zilverScore !== null ? basePlayers.filter(p => (gameCounts[p] || 0) === zilverScore) : [];
+                const thirdPlayers = bronsScore !== null ? basePlayers.filter(p => (gameCounts[p] || 0) === bronsScore) : [];
+
+                const winnerText = firstPlayers.join(', ');
+                
+                let summaryText = `🥇 1e plaats: ${firstPlayers.join(', ')} (${goudScore} games)`;
+                if (secondPlayers.length > 0) {
+                    summaryText += `\n🥈 2e plaats: ${secondPlayers.join(', ')} (${zilverScore} games)`;
+                }
+                if (thirdPlayers.length > 0) {
+                    summaryText += `\n🥉 3e plaats: ${thirdPlayers.join(', ')} (${bronsScore} games)`;
+                }
 
                 const ref = db.ref(`padelData/cyclusWinnaars/${cyclusIdx}`);
                 let wasAlreadyStored = Boolean(cyclusWinnaars && cyclusWinnaars[cyclusIdx]);
                 
                 const result = await ref.transaction(current => {
-                    if (current && current.winner === p1 && Number(current.games) === maxGames) {
+                    if (current && current.winner === winnerText && Number(current.games) === maxGames) {
                         return;
                     }
                     return {
-                        winner: p1,
+                        winner: winnerText,
                         games: maxGames,
-                        podium: { first: p1, second: p2, third: p3 },
-                        scores: { [p1]: gameCounts[p1], [p2]: gameCounts[p2], [p3]: gameCounts[p3] },
+                        podium: {
+                            first: firstPlayers,
+                            second: secondPlayers,
+                            third: thirdPlayers
+                        },
+                        scores: gameCounts,
                         timestamp: current && current.timestamp ? current.timestamp : Date.now(),
                         updatedAt: current ? Date.now() : null
                     };
@@ -1984,7 +2001,18 @@
 
             histContainer.innerHTML = Object.keys(cyclusWinnaars).sort((a, b) => Number(a) - Number(b)).map(idx => {
                 const wData = cyclusWinnaars[idx];
-                const podiumHtml = wData.podium ? `<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">🥇 ${wData.podium.first} | 🥈 ${wData.podium.second} | 🥉 ${wData.podium.third}</div>` : '';
+                let podiumHtml = '';
+                if (wData.podium) {
+                    const f = Array.isArray(wData.podium.first) ? wData.podium.first.join(', ') : wData.podium.first;
+                    const s = Array.isArray(wData.podium.second) ? wData.podium.second.join(', ') : wData.podium.second;
+                    const t = Array.isArray(wData.podium.third) ? wData.podium.third.join(', ') : wData.podium.third;
+                    
+                    let pParts = [];
+                    if (f) pParts.push(`🥇 ${f}`);
+                    if (s) pParts.push(`🥈 ${s}`);
+                    if (t) pParts.push(`🥉 ${t}`);
+                    podiumHtml = `<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">${pParts.join(' | ')}</div>`;
+                }
                 return `
                     <div style="display: flex; flex-direction: column; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
