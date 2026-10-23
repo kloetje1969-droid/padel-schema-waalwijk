@@ -1844,17 +1844,6 @@
         return { gameCounts, matchCounts };
     }
 
-    function getCycleWinnerSummary(cyclusData) {
-        const { gameCounts } = cyclusData;
-        const maxGames = Math.max(0, ...basePlayers.map(p => gameCounts[p] || 0));
-        if (maxGames === 0) return { winner: 'Nog geen uitslagen', games: 0 };
-        const leaders = basePlayers.filter(p => (gameCounts[p] || 0) === maxGames);
-        return {
-            winner: leaders.length > 1 ? `Gelijkspel: ${leaders.join(' / ')}` : leaders[0],
-            games: maxGames
-        };
-    }
-
     async function checkAndStoreCyclusWinner() {
         const activeCyclusIdx = getActiveCyclusIndex();
         if (activeCyclusIdx <= 0) return;
@@ -1864,23 +1853,38 @@
             cyclusClaimInFlight[cyclusIdx] = true;
 
             try {
-                const summary = getCycleWinnerSummary(getGameCountsForCyclus(cyclusIdx));
+                const { gameCounts } = getGameCountsForCyclus(cyclusIdx);
+                const sortedPlayers = [...basePlayers].sort((a, b) => (gameCounts[b] || 0) - (gameCounts[a] || 0));
+                
+                const maxGames = gameCounts[sortedPlayers[0]] || 0;
+                if (maxGames === 0) continue;
+
+                const p1 = sortedPlayers[0];
+                const p2 = sortedPlayers[1];
+                const p3 = sortedPlayers[2];
+
+                const summaryText = `🥇 1e plaats: ${p1} (${gameCounts[p1]} games)\n🥈 2e plaats: ${p2} (${gameCounts[p2]} games)\n🥉 3e plaats: ${p3} (${gameCounts[p3]} games)`;
+
                 const ref = db.ref(`padelData/cyclusWinnaars/${cyclusIdx}`);
                 let wasAlreadyStored = Boolean(cyclusWinnaars && cyclusWinnaars[cyclusIdx]);
+                
                 const result = await ref.transaction(current => {
-                    if (current && current.winner === summary.winner && Number(current.games) === summary.games) {
+                    if (current && current.winner === p1 && Number(current.games) === maxGames) {
                         return;
                     }
                     return {
-                        winner: summary.winner,
-                        games: summary.games,
+                        winner: p1,
+                        games: maxGames,
+                        podium: { first: p1, second: p2, third: p3 },
+                        scores: { [p1]: gameCounts[p1], [p2]: gameCounts[p2], [p3]: gameCounts[p3] },
                         timestamp: current && current.timestamp ? current.timestamp : Date.now(),
                         updatedAt: current ? Date.now() : null
                     };
                 });
 
-                if (result.committed && !wasAlreadyStored && summary.games > 0) {
-                    await addSystemMessageIfUnique(`🏆 Cyclus van 6 weken is afgerond! ${summary.winner.startsWith('Gelijkspel:') ? 'Gelijkspel' : 'De winnaar'} van cyclus ${cyclusIdx + 1}: ${summary.winner}, met ${summary.games} gewonnen games. De telling is opnieuw begonnen.`);
+                if (result.committed && !wasAlreadyStored && maxGames > 0) {
+                    const fullMsg = `🏆 Cyclus van 6 weken is afgerond! Het podium van cyclus ${cyclusIdx + 1}:\n${summaryText}\nDe telling voor de nieuwe cyclus is weer vanaf 0 begonnen!`;
+                    await addSystemMessageIfUnique(fullMsg);
                 }
             } catch (err) {
                 console.error(`Fout bij bijwerken winnaar cyclus ${cyclusIdx + 1}:`, err);
@@ -1926,10 +1930,14 @@
 
             histContainer.innerHTML = Object.keys(cyclusWinnaars).sort((a, b) => Number(a) - Number(b)).map(idx => {
                 const wData = cyclusWinnaars[idx];
+                const podiumHtml = wData.podium ? `<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">🥇 ${wData.podium.first} | 🥈 ${wData.podium.second} | 🥉 ${wData.podium.third}</div>` : '';
                 return `
-                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
-                        <span style="font-weight: 600; color: var(--accent-orange);">Cyclus ${parseInt(idx, 10) + 1}</span>
-                        <span style="color: var(--text-main);">🏆 <strong>${wData.winner}</strong> (${wData.games} games)</span>
+                    <div style="display: flex; flex-direction: column; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600; color: var(--accent-orange);">Cyclus ${parseInt(idx, 10) + 1}</span>
+                            <span style="color: var(--text-main);">🏆 <strong>${wData.winner}</strong> (${wData.games} games)</span>
+                        </div>
+                        ${podiumHtml}
                     </div>
                 `;
             }).join('');
@@ -1957,7 +1965,6 @@
         await db.ref(`padelData/matchResults/${matchId}`).set(matchData);
         showToast("Uitslagen opgeslagen", `Set 1: ${t1s1}-${t2s1} | Set 2: ${t1s2}-${t2s2} | Set 3: ${t1s3}-${t2s3}`);
 
-        // Aangepaste opmaak van de notificatie / uitslagtekst met namen en set-standen
         const team1Naam = `${p1}-${p2}`;
         const team2Naam = `${p3}-${p4}`;
         const uitslagTekst = `🎾 Uitslag ingevoerd: ${team1Naam} vs ${team2Naam}: set 1 ${t1s1}-${t2s1}, set 2 ${t1s2}-${t2s2}, set 3 ${t1s3}-${t2s3}`;
@@ -2091,7 +2098,7 @@
                             temp: temps[index],
                             rain: precip ? precip[index] : 0,
                             code: codes[index],
-                            wind: winds ? winds[index] : 0
+                            wind: winds[index]
                         };
                     });
                     renderSchedule();
@@ -3081,7 +3088,7 @@
                 return `
                     <div class="message system-update">
                         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                            <span style="font-size: 0.75rem; color: var(--accent-blue); flex-grow: 1;">${m.text} ${tijdWeergave}</span>
+                            <span style="font-size: 0.75rem; color: var(--accent-blue); flex-grow: 1; white-space: pre-line; text-align: left; padding: 4px;">${m.text} ${tijdWeergave}</span>
                             ${deleteBtnHtml}
                         </div>
                     </div>
