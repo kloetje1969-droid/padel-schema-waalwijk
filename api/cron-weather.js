@@ -11,24 +11,20 @@ import {
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const RAIN_THRESHOLD = 60;
-const STALE_LOCK_MS = 10 * 60 * 1000;
 
 function isAuthorized(req) {
   if (!CRON_SECRET) {
-    console.error('CRON_SECRET ontbreekt in de omgevingsvariabelen.');
+    console.error('CRON_SECRET ontbreekt.');
     return false;
   }
 
-  // Alleen een geheime header accepteren, niet een secret in de URL.
   const supplied = req.headers['x-cron-secret'];
-
   if (typeof supplied !== 'string') return false;
 
   const expectedBuffer = Buffer.from(CRON_SECRET);
   const suppliedBuffer = Buffer.from(supplied);
 
   if (expectedBuffer.length !== suppliedBuffer.length) return false;
-
   return timingSafeEqual(expectedBuffer, suppliedBuffer);
 }
 
@@ -46,39 +42,31 @@ export default async function handler(req, res) {
   let ownsLock = false;
 
   try {
-    // Alle datum- en weekberekeningen gebruiken Nederlandse tijd.
     const nl = amsterdamNow();
     const week = getWeekInfo(nl.year, nl.month, nl.day);
 
     const dayNames = {
-      Mon: 'maandag',
-      Tue: 'dinsdag',
-      Wed: 'woensdag',
-      Thu: 'donderdag',
-      Fri: 'vrijdag',
-      Sat: 'zaterdag',
-      Sun: 'zondag'
+      Mon: 'maandag', Tue: 'dinsdag', Wed: 'woensdag',
+      Thu: 'donderdag', Fri: 'vrijdag',
+      Sat: 'zaterdag', Sun: 'zondag'
     };
 
     const todayName = dayNames[nl.weekday];
-
-    const weekRef = db.ref(`padelData/scheduleOverrides/${week.key}`);
-    const weekSnap = await weekRef.once('value');
+    const weekSnap = await db
+      .ref(`padelData/scheduleOverrides/${week.key}`)
+      .once('value');
     const weekData = weekSnap.val() || {};
 
-    // Houd rekening met eventueel verplaatste speeldagen.
     const slotsToday = ['dinsdag', 'donderdag'].filter(slot => {
       const customDay =
         slot === 'dinsdag'
           ? weekData.customDinsdag
           : weekData.customDonderdag;
-
       return (customDay || slot) === todayName;
     });
 
     const activeSlots = slotsToday.filter(slot => {
       const override = weekData[slot];
-
       return !(
         override &&
         typeof override === 'object' &&
@@ -93,45 +81,41 @@ export default async function handler(req, res) {
       });
     }
 
-    // Haal de regenverwachting voor 18:00 Nederlandse tijd op.
     const weatherUrl =
       'https://api.open-meteo.com/v1/forecast' +
-      '?latitude=51.6833' +
-      '&longitude=5.0708' +
+      '?latitude=51.6833&longitude=5.0708' +
       '&hourly=precipitation_probability,precipitation' +
       '&models=knmi_seamless' +
-      '&timezone=Europe%2FAmsterdam' +
-      '&forecast_days=2';
+      '&timezone=Europe%2FAmsterdam&forecast_days=2';
 
     const weatherRes = await fetch(weatherUrl);
-
     if (!weatherRes.ok) {
-      throw new Error(`Weerprovider antwoordde met HTTP ${weatherRes.status}.`);
+      throw new Error(`Weerprovider HTTP ${weatherRes.status}.`);
     }
 
     const weatherData = await weatherRes.json();
+    const hourly = weatherData?.hourly;
 
     if (
-      !weatherData?.hourly?.time ||
-      !Array.isArray(weatherData.hourly.time) ||
-      !Array.isArray(weatherData.hourly.precipitation_probability) ||
-      !Array.isArray(weatherData.hourly.precipitation)
+      !Array.isArray(hourly?.time) ||
+      !Array.isArray(hourly?.precipitation_probability) ||
+      !Array.isArray(hourly?.precipitation)
     ) {
-      throw new Error('De verwachte uurgegevens ontbreken in de weersvoorspelling.');
+      throw new Error('Ongeldige uurgegevens van de weerprovider.');
     }
 
     const targetTime = `${nl.dateKey}T18:00`;
-    const timeIndex = weatherData.hourly.time.indexOf(targetTime);
+    const timeIndex = hourly.time.indexOf(targetTime);
 
     if (timeIndex === -1) {
-      throw new Error(`Geen weersvoorspelling gevonden voor ${targetTime}.`);
+      throw new Error(`Geen weersverwachting gevonden voor ${targetTime}.`);
     }
 
-    const pop = weatherData.hourly.precipitation_probability[timeIndex];
-    const rain = weatherData.hourly.precipitation[timeIndex];
+    const pop = hourly.precipitation_probability[timeIndex];
+    const rain = hourly.precipitation[timeIndex];
 
     if (!Number.isFinite(pop) || !Number.isFinite(rain)) {
-      throw new Error('De regenverwachting bevat ongeldige waarden.');
+      throw new Error('Ongeldige regenwaarden ontvangen.');
     }
 
     if (pop < RAIN_THRESHOLD) {
@@ -142,12 +126,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // Bewust alle geregistreerde spelers gebruiken:
-    // afmeldingen sluiten niemand uit van een regenmelding.
+    // Alle spelers met tokens krijgen de melding, ook bij afmelding.
     const tokensData = await getTokensByPlayer();
-
-    const allPlayers = Object.keys(tokensData);
-    const tokens = tokensOf(tokensData, allPlayers);
+    const players = Object.keys(tokensData);
+    const tokens = tokensOf(tokensData, players);
 
     if (tokens.length === 0) {
       return res.status(200).json({
@@ -156,10 +138,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Claim de melding atomair. Een recente verzending in uitvoering
-    // en een reeds verzonden melding blokkeren dubbele verzendingen.
     lockRef = db.ref(`padelData/sentWeatherPushes/${nl.dateKey}`);
-
     const nowMs = Date.now();
 
     const claim = await lockRef.transaction(current => {
@@ -168,7 +147,7 @@ export default async function handler(req, res) {
       if (
         current?.status === 'sending' &&
         Number.isFinite(current.startedAt) &&
-        nowMs - current.startedAt < STALE_LOCK_MS
+        nowMs - current.startedAt < 10 * 60 * 1000
       ) {
         return;
       }
@@ -183,7 +162,7 @@ export default async function handler(req, res) {
 
     if (!claim.committed) {
       return res.status(200).json({
-        status: 'Weermelding is al verzonden of wordt al verwerkt.'
+        status: 'Weermelding al verzonden of in behandeling.'
       });
     }
 
@@ -195,13 +174,11 @@ export default async function handler(req, res) {
       tag: `weather_${nl.dateKey}`
     });
 
-    // Geen succesvolle aflevering? Geef een volgende poging de kans.
     if (result.successCount === 0) {
       await lockRef.remove();
       ownsLock = false;
-
       return res.status(502).json({
-        error: 'De weermelding kon bij geen enkel apparaat worden afgeleverd.',
+        error: 'Geen enkele melding succesvol afgeleverd.',
         ...result
       });
     }
@@ -220,7 +197,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       status: 'Weermelding verwerkt.',
-      recipients: allPlayers,
+      recipients: players,
       precipitationProbability: pop,
       rain,
       ...result
@@ -231,7 +208,7 @@ export default async function handler(req, res) {
     if (lockRef && ownsLock) {
       try {
         await lockRef.remove();
-      } catch (cleanupError) {
+      } catch {
         console.error('Kon de weermeldingsvergrendeling niet verwijderen.');
       }
     }
