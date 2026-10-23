@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.14)</title>
+    <title>Padelschema - Rooster & Chat (v8.15)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1305,7 +1305,7 @@
     </div>
 
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v8.14
+        Padelschema v8.15
     </div>
 </div>
 
@@ -1355,17 +1355,31 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.14";
+    const APP_VERSION = "8.15";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
-    // Automatische seizoenswicon: 🎅 in december, anders 🥎
+    // Automatische seizoensgebonden icoontjes
     function getPadelIcon() {
         const now = new Date();
-        const month = now.getMonth(); // 0 = jan, 11 = dec
-        // December (maand 11)
-        if (month === 11) {
+        const month = now.getMonth() + 1; // 1 = januari, 11 = november, 12 = december
+        const day = now.getDate();
+
+        // Sinterklaas periode: 15 november t/m 6 december -> Cadeautje
+        if ((month === 11 && day >= 15) || (month === 12 && day <= 6)) {
+            return '🎁';
+        }
+        
+        // Kerstman periode: 7 december t/m 31 december -> Kerstman
+        if (month === 12 && day >= 7) {
             return '🎅';
         }
+        
+        // Jaarwisseling periode: 1 januari t/m 5 januari -> Vuurwerk
+        if (month === 1 && day <= 5) {
+            return '🎆';
+        }
+        
+        // Rest van het jaar (6 januari t/m 14 november) -> Padelbal
         return '🥎';
     }
 
