@@ -1812,11 +1812,13 @@
         });
 
         for (const matchId in matchResults) {
-            const parts = matchId.split('_');
-            if (parts.length < 2) continue;
+            const parts = matchId.split('_'); // bijv: "2026", "w39", "dinsdag"
+            if (parts.length < 3) continue;
 
             const year = parseInt(parts[0], 10);
             const week = parseInt(parts[1].replace('w', ''), 10);
+            const day = parts[2]; // "dinsdag" of "donderdag"
+
             if (!Number.isFinite(year) || !Number.isFinite(week)) continue;
 
             const matchWeekStart = isoWeekToMonday(year, week);
@@ -1827,16 +1829,34 @@
             const res = matchResults[matchId];
             if (!res || !Array.isArray(res.players) || res.players.length !== 4) continue;
 
+            // Bepaal de originele/standaard opstelling van deze specifieke speeldag
+            const templateIndex = ((diffWeeks % 6) + 6) % 6;
+            const tpl = defaultTemplate[templateIndex];
+            const defaultDayPlayers = tpl[day] || [];
+
             const t1Games = (Number(res.t1s1) || 0) + (Number(res.t1s2) || 0) + (Number(res.t1s3) || 0);
             const t2Games = (Number(res.t2s1) || 0) + (Number(res.t2s2) || 0) + (Number(res.t2s3) || 0);
 
-            gameCounts[res.players[0]] = (gameCounts[res.players[0]] || 0) + t1Games;
-            gameCounts[res.players[1]] = (gameCounts[res.players[1]] || 0) + t1Games;
-            gameCounts[res.players[2]] = (gameCounts[res.players[2]] || 0) + t2Games;
-            gameCounts[res.players[3]] = (gameCounts[res.players[3]] || 0) + t2Games;
+            // Ken games en gespeelde wedstrijden toe per speler, MITS de speler een vaste speler voor deze dag was
+            const matchPlayerScores = [
+                { player: res.players[0], games: t1Games, slotIndex: 0 },
+                { player: res.players[1], games: t1Games, slotIndex: 1 },
+                { player: res.players[2], games: t2Games, slotIndex: 2 },
+                { player: res.players[3], games: t2Games, slotIndex: 3 }
+            ];
 
-            res.players.forEach(p => {
-                matchCounts[p] = (matchCounts[p] || 0) + 1;
+            matchPlayerScores.forEach(item => {
+                const p = item.player;
+                if (!p) return;
+
+                // Controleer of speler 'p' de origineel ingeplande vaste speler op deze plek was
+                const isOriginalPlayer = (defaultDayPlayers[item.slotIndex] === p);
+
+                // Alleen als het een vaste ingeplande speler op deze dag is (en in basePlayers staat), tellen de games en wedstrijd mee
+                if (isOriginalPlayer && basePlayers.includes(p)) {
+                    gameCounts[p] = (gameCounts[p] || 0) + item.games;
+                    matchCounts[p] = (matchCounts[p] || 0) + 1;
+                }
             });
         }
 
