@@ -229,7 +229,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
             width: 100%;
         }
 
@@ -248,29 +248,42 @@
             text-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
         }
 
-        .user-select-row {
+        .radar-container {
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            margin: 2px 0;
+            line-height: 0;
+        }
+
+        .radar-container iframe {
+            width: 100%;
+            height: 220px;
+            border: none;
+        }
+
+        .user-and-status-row {
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: space-between;
+            gap: 10px;
             width: 100%;
             border-top: 1px solid var(--card-border);
-            padding-top: 12px;
-            gap: 10px;
+            padding-top: 10px;
         }
 
         .user-select-container {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 12px;
+            gap: 8px;
             background: var(--bg-color);
-            padding: 10px 16px;
+            padding: 6px 12px;
             border-radius: 10px;
             border: 1px solid var(--card-border);
-            font-size: 0.95rem;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-            width: 100%;
-            flex-wrap: nowrap;
+            font-size: 0.85rem;
+            flex: 1;
         }
 
         .user-select-container label {
@@ -282,35 +295,13 @@
             background: var(--card-bg);
             color: var(--text-main);
             border: 1px solid var(--card-border);
-            padding: 8px 12px;
+            padding: 6px 10px;
             border-radius: 8px;
             font-weight: 700;
             outline: none;
             cursor: pointer;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             width: 100%;
-        }
-
-        .status-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            justify-content: center;
-            width: 100%;
-            border-top: 1px solid var(--card-border);
-            padding-top: 10px;
-        }
-
-        @keyframes blinkBlue {
-            0% { opacity: 0.3; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #38bdf8; }
-            100% { opacity: 0.3; transform: scale(0.8); }
-        }
-
-        @keyframes pulseConnection {
-            0% { opacity: 0.5; text-shadow: none; }
-            50% { opacity: 1; text-shadow: 0 0 10px rgba(56, 189, 248, 0.6); }
-            100% { opacity: 0.5; text-shadow: none; }
         }
 
         .db-connection-status {
@@ -318,10 +309,13 @@
             color: #38bdf8; 
             display: flex; 
             align-items: center; 
-            gap: 4px;
+            gap: 6px;
             animation: pulseConnection 2s infinite ease-in-out;
-            justify-content: center;
-            width: 100%;
+            white-space: nowrap;
+            background: var(--bg-color);
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
         }
 
         .header-actions-row {
@@ -348,6 +342,28 @@
         .live-clock-badge .clock-time {
             color: var(--accent-blue);
             font-weight: 700;
+        }
+
+        .status-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            width: 100%;
+            border-top: 1px solid var(--card-border);
+            padding-top: 10px;
+        }
+
+        @keyframes blinkBlue {
+            0% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #38bdf8; }
+            100% { opacity: 0.3; transform: scale(0.8); }
+        }
+
+        @keyframes pulseConnection {
+            0% { opacity: 0.6; text-shadow: none; }
+            50% { opacity: 1; text-shadow: 0 0 10px rgba(56, 189, 248, 0.6); }
+            100% { opacity: 0.6; text-shadow: none; }
         }
 
         .status-badge {
@@ -1148,25 +1164,29 @@
             Padelschema 
             <span class="emoji-icon">🥎</span>
         </h1>
+
+        <!-- Live KNMI Buienradar Radar -->
+        <div class="radar-container">
+            <iframe src="https://gadgets.buienradar.nl/gadget/radarmap" scrolling="no" frameborder="0" width="100%" height="220"></iframe>
+        </div>
         
-        <div class="user-select-row">
+        <!-- Naamselectie & Live status netjes uitgelijnd naast elkaar -->
+        <div class="user-and-status-row">
             <div class="user-select-container">
                 <label for="userSelect">Jij:</label>
-                <select id="userSelect" onchange="changeUser()">
-                </select>
+                <select id="userSelect" onchange="changeUser()"></select>
             </div>
             
-            <div class="header-actions-row">
-                <div id="connectionIndicator" class="db-connection-status is-online">
-                    <span class="status-dot online"></span>
-                    <span class="connection-text">Live verbonden met database</span>
-                </div>
-                <div style="display: flex; gap: 8px; align-items: center; justify-content: center; width: 100%;">
-                    <div id="liveClockBadge" class="live-clock-badge" style="width: 100%; justify-content: center;">
-                        <span>📅 <span id="clockDate">--</span></span>
-                        <span>⏰ <span id="clockTime" class="clock-time">--:--:--</span> <span id="clockTz" style="color: var(--text-muted); font-weight: normal; margin-left: 3px;">--</span></span>
-                    </div>
-                </div>
+            <div id="connectionIndicator" class="db-connection-status is-online">
+                <span class="status-dot online"></span>
+                <span class="connection-text">Live verbonden</span>
+            </div>
+        </div>
+
+        <div class="header-actions-row">
+            <div id="liveClockBadge" class="live-clock-badge" style="width: 100%; justify-content: center;">
+                <span>📅 <span id="clockDate">--</span></span>
+                <span>⏰ <span id="clockTime" class="clock-time">--:--:--</span> <span id="clockTz" style="color: var(--text-muted); font-weight: normal; margin-left: 3px;">--</span></span>
             </div>
         </div>
 
@@ -2303,7 +2323,7 @@
         indicator.classList.toggle('is-offline', !firebaseConnected);
 
         if (dot) dot.className = 'status-dot ' + (firebaseConnected ? 'online' : 'offline');
-        if (text) text.textContent = firebaseConnected ? 'Live verbonden met database' : 'Verbinding verbroken – opnieuw verbinden…';
+        if (text) text.textContent = firebaseConnected ? 'Live verbonden' : 'Verbroken';
     }
 
     function formatExactDateTime(ts) {
