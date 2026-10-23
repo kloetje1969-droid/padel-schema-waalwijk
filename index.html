@@ -250,18 +250,12 @@
 
         .radar-container {
             width: 100%;
-            border-radius: 10px;
+            height: 230px;
+            border-radius: 12px;
             overflow: hidden;
             border: 1px solid var(--card-border);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            margin: 2px 0;
-            line-height: 0;
-        }
-
-        .radar-container iframe {
-            width: 100%;
-            height: 220px;
-            border: none;
+            background: #111827;
+            position: relative;
         }
 
         .user-and-status-row {
@@ -1165,9 +1159,17 @@
             <span class="emoji-icon">🥎</span>
         </h1>
 
-        <!-- Live KNMI Buienradar Radar -->
+        <!-- Live Buienradar Waalwijk -->
         <div class="radar-container">
-            <iframe src="https://gadgets.buienradar.nl/gadget/radarmap" scrolling="no" frameborder="0" width="100%" height="220"></iframe>
+            <iframe 
+                src="https://gadgets.buienradar.nl/gadget/zoommap/?lat=51.6833&lng=5.0708&overzoom=2&zoom=8&size=2&forecast=0" 
+                scrolling="no" 
+                frameborder="0" 
+                width="100%" 
+                height="230" 
+                style="border: none; width: 100%; height: 230px; display: block;"
+                loading="eager">
+            </iframe>
         </div>
         
         <!-- Naamselectie & Live status netjes uitgelijnd naast elkaar -->
