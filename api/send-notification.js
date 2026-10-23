@@ -22,7 +22,7 @@ const defaultTemplate = [
         { dinsdag: ["Dennis","Robert", "Sander", "Ronald"], donderdag: ["Marcel", "Dennis", "Mark", "Ronald"] }
     ];
 
-
+.
 
 
 function getMonday(d) {
