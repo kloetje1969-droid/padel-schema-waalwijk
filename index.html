@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.7)</title>
+    <title>Padelschema - Rooster & Chat (v8.8)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1308,7 +1308,7 @@
 
     <!-- Versienummer onderaan -->
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v8.7
+        Padelschema v8.8
     </div>
 </div>
 
@@ -1358,7 +1358,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.7";
+    const APP_VERSION = "8.8";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1831,13 +1831,11 @@
             const t1Games = (Number(res.t1s1) || 0) + (Number(res.t1s2) || 0) + (Number(res.t1s3) || 0);
             const t2Games = (Number(res.t2s1) || 0) + (Number(res.t2s2) || 0) + (Number(res.t2s3) || 0);
 
-            // Games optellen
             gameCounts[res.players[0]] = (gameCounts[res.players[0]] || 0) + t1Games;
             gameCounts[res.players[1]] = (gameCounts[res.players[1]] || 0) + t1Games;
             gameCounts[res.players[2]] = (gameCounts[res.players[2]] || 0) + t2Games;
             gameCounts[res.players[3]] = (gameCounts[res.players[3]] || 0) + t2Games;
 
-            // Gespeelde wedstrijden optellen
             res.players.forEach(p => {
                 matchCounts[p] = (matchCounts[p] || 0) + 1;
             });
@@ -1956,11 +1954,9 @@
             players: [p1, p2, p3, p4]
         };
 
-        // 1. Uitslag opslaan in de database
         await db.ref(`padelData/matchResults/${matchId}`).set(matchData);
         showToast("Uitslagen opgeslagen", `Set 1: ${t1s1}-${t2s1} | Set 2: ${t1s2}-${t2s2} | Set 3: ${t1s3}-${t2s3}`);
 
-        // 2. Berichten aanmaken in Firebase
         const uitslagTekst = `🎾 Uitslag ingevoerd door ${currentUserName}: Set 1 (${t1s1}-${t2s1}), Set 2 (${t1s2}-${t2s2}), Set 3 (${t1s3}-${t2s3})`;
         
         const sysRef = db.ref('padelData/messages').push();
@@ -1972,7 +1968,6 @@
             type: "system"
         });
 
-        // 3. Meteen de pushmelding server triggeren met de nieuwe sleutel
         notifyServer(sysRef.key);
     }
 
@@ -2076,7 +2071,7 @@
     }
 
     function fetchWaalwijkWeather() {
-        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation_probability,weathercode,wind_speed_10m&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
+        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation,weathercode,wind_speed_10m&models=knmi_seamless&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
         
         fetch(weatherUrl)
             .then(res => res.json())
@@ -2084,14 +2079,14 @@
                 if (data && data.hourly) {
                     const times = data.hourly.time;
                     const temps = data.hourly.temperature_2m;
-                    const rain = data.hourly.precipitation_probability;
+                    const precip = data.hourly.precipitation;
                     const codes = data.hourly.weathercode;
                     const winds = data.hourly.wind_speed_10m;
 
                     times.forEach((timeStr, index) => {
                         weatherCache[timeStr] = {
                             temp: temps[index],
-                            rain: rain ? rain[index] : 0,
+                            rain: precip ? precip[index] : 0,
                             code: codes[index],
                             wind: winds ? winds[index] : 0
                         };
@@ -2139,7 +2134,7 @@
         if (!w) return `<span class="weather-badge">☁ Weer volgt</span>`;
         const emoji = getWeatherEmoji(w.code);
         const bft = kmhToBeaufort(w.wind);
-        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 windkracht ${bft} | 🌧️ ${w.rain}%</span>`;
+        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 windkracht ${bft} | 🌧️ ${w.rain} mm</span>`;
     }
 
     function updateAlertUI() {
@@ -2500,11 +2495,11 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && dinsdagWeatherObj.rain > 60) 
-                ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${dinsdagWeatherObj.rain}%)!</div>` : '';
+            let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && dinsdagWeatherObj.rain > 1.0) 
+                ? `<div class="rain-alert">🌧️ Let op: Verwacht neerslag (${dinsdagWeatherObj.rain} mm)!</div>` : '';
             
-            let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && donderdagWeatherObj.rain > 60) 
-                ? `<div class="rain-alert">🌧️ Let op: Grote kans op regen (${donderdagWeatherObj.rain}%)!</div>` : '';
+            let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && donderdagWeatherObj.rain > 1.0) 
+                ? `<div class="rain-alert">🌧️ Let op: Verwacht neerslag (${donderdagWeatherObj.rain} mm)!</div>` : '';
 
             let dinsdagAbsentees = diCancelled ? [] : dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
             let donderdagAbsentees = doCancelled ? [] : donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
