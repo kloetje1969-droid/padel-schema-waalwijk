@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.8)</title>
+    <title>Padelschema - Rooster & Chat (v8.9)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1149,7 +1149,6 @@
             <span class="emoji-icon">🥎</span>
         </h1>
         
-        <!-- Naamselectie & Live status netjes uitgelijnd naast elkaar -->
         <div class="user-and-status-row">
             <div class="user-select-container">
                 <label for="userSelect">Jij:</label>
@@ -1305,9 +1304,8 @@
         </div>
     </div>
 
-    <!-- Versienummer onderaan -->
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v8.8
+        Padelschema v8.9
     </div>
 </div>
 
@@ -1357,7 +1355,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.8";
+    const APP_VERSION = "8.9";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1919,11 +1917,23 @@
         if (container) {
             const activeCyclusIdx = getActiveCyclusIndex();
             const { gameCounts, matchCounts } = getGameCountsForCyclus(activeCyclusIdx);
+            
+            // Sorteer van hoogst aantal games naar laagst
             const sortedPlayers = [...basePlayers].sort((a, b) => (gameCounts[b] || 0) - (gameCounts[a] || 0));
 
+            // Bepaal de medailles op basis van gelijke standen (ranks)
+            let currentRank = 1;
+            const ranks = [];
+
+            for (let i = 0; i < sortedPlayers.length; i++) {
+                if (i > 0 && (gameCounts[sortedPlayers[i]] || 0) < (gameCounts[sortedPlayers[i - 1]] || 0)) {
+                    currentRank = i + 1; // Volgende positie op basis van aantal spelers boven hem
+                }
+                ranks.push(currentRank);
+            }
+
             container.innerHTML = sortedPlayers.map((p, index) => {
-                const tiedWithPrevious = index > 0 && (gameCounts[p] || 0) === (gameCounts[sortedPlayers[index - 1]] || 0);
-                const rank = tiedWithPrevious ? (gameCounts[sortedPlayers[index - 1]] === gameCounts[p] ? (sortedPlayers.slice(0, index).findIndex(prev => gameCounts[prev] === gameCounts[p]) + 1) : index + 1) : index + 1;
+                const rank = ranks[index];
                 const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
                 const isMe = (p === currentUserName);
                 const games = gameCounts[p] || 0;
