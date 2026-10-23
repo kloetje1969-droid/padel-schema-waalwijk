@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.6)</title>
+    <title>Padelschema - Rooster & Chat (v8.7)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1308,7 +1308,7 @@
 
     <!-- Versienummer onderaan -->
     <div style="text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 6px 0; opacity: 0.7;">
-        Padelschema v8.6
+        Padelschema v8.7
     </div>
 </div>
 
@@ -1358,7 +1358,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.6";
+    const APP_VERSION = "8.7";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     const emojiIconHtml = `<span class="emoji-icon">🥎</span>`;
@@ -1806,7 +1806,11 @@
     function getGameCountsForCyclus(cyclusIndex) {
         const referenceMonday = new Date(2026, 8, 21);
         const gameCounts = {};
-        basePlayers.forEach(p => gameCounts[p] = 0);
+        const matchCounts = {};
+        basePlayers.forEach(p => {
+            gameCounts[p] = 0;
+            matchCounts[p] = 0;
+        });
 
         for (const matchId in matchResults) {
             const parts = matchId.split('_');
@@ -1827,16 +1831,23 @@
             const t1Games = (Number(res.t1s1) || 0) + (Number(res.t1s2) || 0) + (Number(res.t1s3) || 0);
             const t2Games = (Number(res.t2s1) || 0) + (Number(res.t2s2) || 0) + (Number(res.t2s3) || 0);
 
+            // Games optellen
             gameCounts[res.players[0]] = (gameCounts[res.players[0]] || 0) + t1Games;
             gameCounts[res.players[1]] = (gameCounts[res.players[1]] || 0) + t1Games;
             gameCounts[res.players[2]] = (gameCounts[res.players[2]] || 0) + t2Games;
             gameCounts[res.players[3]] = (gameCounts[res.players[3]] || 0) + t2Games;
+
+            // Gespeelde wedstrijden optellen
+            res.players.forEach(p => {
+                matchCounts[p] = (matchCounts[p] || 0) + 1;
+            });
         }
 
-        return gameCounts;
+        return { gameCounts, matchCounts };
     }
 
-    function getCycleWinnerSummary(gameCounts) {
+    function getCycleWinnerSummary(cyclusData) {
+        const { gameCounts } = cyclusData;
         const maxGames = Math.max(0, ...basePlayers.map(p => gameCounts[p] || 0));
         if (maxGames === 0) return { winner: 'Nog geen uitslagen', games: 0 };
         const leaders = basePlayers.filter(p => (gameCounts[p] || 0) === maxGames);
@@ -1885,7 +1896,7 @@
         const container = document.getElementById('setsRankingContainer');
         if (container) {
             const activeCyclusIdx = getActiveCyclusIndex();
-            const gameCounts = getGameCountsForCyclus(activeCyclusIdx);
+            const { gameCounts, matchCounts } = getGameCountsForCyclus(activeCyclusIdx);
             const sortedPlayers = [...basePlayers].sort((a, b) => (gameCounts[b] || 0) - (gameCounts[a] || 0));
 
             container.innerHTML = sortedPlayers.map((p, index) => {
@@ -1893,10 +1904,16 @@
                 const rank = tiedWithPrevious ? (gameCounts[sortedPlayers[index - 1]] === gameCounts[p] ? (sortedPlayers.slice(0, index).findIndex(prev => gameCounts[prev] === gameCounts[p]) + 1) : index + 1) : index + 1;
                 const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
                 const isMe = (p === currentUserName);
+                const games = gameCounts[p] || 0;
+                const matches = matchCounts[p] || 0;
+
                 return `
                     <div style="display: flex; justify-content: space-between; align-items: center; background: ${isMe ? 'rgba(56, 189, 248, 0.15)' : 'var(--bg-color)'}; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
                         <span style="font-weight: ${isMe ? 'bold' : '500'}; color: ${isMe ? '#7dd3fc' : 'var(--text-main)'};">${medal} ${p}</span>
-                        <span style="color: var(--accent-blue); font-weight: bold;">${gameCounts[p] || 0} gewonnen games</span>
+                        <div style="text-align: right;">
+                            <span style="color: var(--accent-blue); font-weight: bold;">${games} games</span>
+                            <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 6px;">(${matches} wedstr.)</span>
+                        </div>
                     </div>
                 `;
             }).join('');
