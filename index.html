@@ -1957,7 +1957,10 @@
         await db.ref(`padelData/matchResults/${matchId}`).set(matchData);
         showToast("Uitslagen opgeslagen", `Set 1: ${t1s1}-${t2s1} | Set 2: ${t1s2}-${t2s2} | Set 3: ${t1s3}-${t2s3}`);
 
-        const uitslagTekst = `🎾 Uitslag ingevoerd door ${currentUserName}: Set 1 (${t1s1}-${t2s1}), Set 2 (${t1s2}-${t2s2}), Set 3 (${t1s3}-${t2s3})`;
+        // Aangepaste opmaak van de notificatie / uitslagtekst met namen en set-standen
+        const team1Naam = `${p1}-${p2}`;
+        const team2Naam = `${p3}-${p4}`;
+        const uitslagTekst = `🎾 Uitslag ingevoerd: ${team1Naam} vs ${team2Naam}: set 1 ${t1s1}-${t2s1}, set 2 ${t1s2}-${t2s2}, set 3 ${t1s3}-${t2s3}`;
         
         const sysRef = db.ref('padelData/messages').push();
         await sysRef.set({
