@@ -233,6 +233,29 @@
             width: 100%;
         }
 
+        /* Header wrapper voor gecentreerde titel met "Bron: KNMI" linksboven */
+        .app-header-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 4px 0;
+        }
+
+        .bron-knmi-label {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            opacity: 0.7;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+
         h1 {
             font-size: 1.7rem;
             font-weight: 800;
@@ -243,7 +266,7 @@
             justify-content: center;
             flex-wrap: nowrap;
             gap: 10px;
-            width: 100%;
+            margin: 0;
             text-align: center;
             text-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
         }
@@ -1143,11 +1166,14 @@
 
 <div class="container">
     <header>
-        <h1>
-            <span class="emoji-icon" id="headerIcon1">🥎</span>
-            Padelschema 
-            <span class="emoji-icon" id="headerIcon2">🥎</span>
-        </h1>
+        <div class="app-header-wrapper">
+            <span class="bron-knmi-label">Bron: KNMI</span>
+            <h1>
+                <span class="emoji-icon" id="headerIcon1">🥎</span>
+                Padelschema 
+                <span class="emoji-icon" id="headerIcon2">🥎</span>
+            </h1>
+        </div>
         
         <div class="user-and-status-row">
             <div class="user-select-container">
