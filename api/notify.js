@@ -8,7 +8,7 @@ import { db, getTokensByPlayer, sendToTokens } from '../lib/padel.js';
 // Eerst staat dit op false: er wordt dan alleen in het Vercel-logboek gezet of het bewijs klopt,
 // maar er wordt niets geblokkeerd. Zie je daar een paar dagen "NOTIFY login: ok" bij elk bericht,
 // zet het dan op true. Dan worden aanroepen zonder geldig inlogbewijs geweigerd.
-const BLOKKEER_ZONDER_LOGIN = true;
+const BLOKKEER_ZONDER_LOGIN = false;
 
 async function controleerInlog(req) {
   const header = req.headers['authorization'] || '';
