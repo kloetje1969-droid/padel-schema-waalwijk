@@ -233,33 +233,15 @@
             width: 100%;
         }
 
-        /* 3-koloms grid zodat de titel exact in het midden blijft en links ruimte biedt */
         .app-header-wrapper {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
+            display: flex;
+            justify-content: center;
             align-items: center;
             width: 100%;
             padding: 4px 0;
         }
 
-        .header-side-zone {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            padding-left: 4px;
-        }
-
-        .bron-knmi-label {
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            opacity: 0.7;
-            font-weight: 500;
-            letter-spacing: 0.2px;
-            white-space: nowrap;
-        }
-
         h1 {
-            grid-column: 2;
             font-size: 1.7rem;
             font-weight: 800;
             color: var(--accent-blue);
@@ -536,6 +518,23 @@
             align-items: center;
             gap: 6px;
             text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+        }
+
+        .section-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        .bron-knmi-label {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            opacity: 0.7;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
         }
 
         .week-card {
@@ -1170,9 +1169,6 @@
 <div class="container">
     <header>
         <div class="app-header-wrapper">
-            <div class="header-side-zone">
-                <span class="bron-knmi-label">Bron: KNMI</span>
-            </div>
             <h1>
                 <span class="emoji-icon" id="headerIcon1">🥎</span>
                 Padelschema 
@@ -1213,7 +1209,10 @@
         <span class="alert-badge-count" id="alertBadgeCount">0</span>
     </button>
 
-    <div class="section-title" style="margin-top: 4px;">Speelschema & Uitslagen (komende 6 weken)</div>
+    <div class="section-title-row">
+        <div class="section-title">Speelschema & Uitslagen (6 weken)</div>
+        <span class="bron-knmi-label">Bron: KNMI</span>
+    </div>
     <div id="scheduleContainer" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">Laden van schema...</div>
 
     <div class="card">
