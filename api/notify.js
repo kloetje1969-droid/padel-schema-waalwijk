@@ -23,6 +23,29 @@ async function controleerInlog(req) {
   }
 }
 
+// Functie om het actuele weer op te halen via Open-Meteo met het KNMI Harmonie Arome model
+async function checkKnmiWeerNeerslag() {
+  try {
+    // Coördinaten van Waalwijk met expliciete KNMI-modelparameter
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=51.68&longitude=5.07&hourly=precipitation&models=knmi_seamless';
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    
+    if (data && data.hourly && data.hourly.precipitation && data.hourly.time) {
+      const now = new Date();
+      // Zoek het uur dat het dichtst bij nu ligt of de avond (18:00 - 21:00)
+      const currentHourIndex = data.hourly.time.findIndex(t => new Date(t).getHours() >= now.getHours());
+      if (currentHourIndex !== -1) {
+        return data.hourly.precipitation[currentHourIndex]; // Neerslag in mm/u volgens KNMI-model
+      }
+    }
+  } catch (err) {
+    console.error('Fout bij ophalen KNMI weerdata:', err);
+  }
+  return null;
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method !== 'POST') {
@@ -73,6 +96,12 @@ export default async function handler(req, res) {
     if (isSystem) {
       title = '🔔 Padel update';
       text = String(m.text || 'Er is iets gewijzigd in de app.');
+
+      // Als het een speelronde- of systeemmelding betreft, controleren we direct via het KNMI-model of er neerslag verwacht wordt (> 1.0 mm/u)
+      const neerslagMm = await checkKnmiWeerNeerslag();
+      if (neerslagMm !== null && neerslagMm > 1.0) {
+        text += ` ⚠️ Let op: KNMI voorspelt regen (${neerslagMm} mm/u)!`;
+      }
     } else {
       title = `💬 ${m.author || 'Padel chat'}`;
       if (m.text) {
