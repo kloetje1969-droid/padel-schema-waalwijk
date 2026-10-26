@@ -30,24 +30,28 @@
             --btn-hover: #32445c;
             --text-main: #f9fafb;
             --text-muted: #9ca3af;
-            --accent-blue: #38bdf8;
-            --accent-orange: #fb923c;
-            --accent-green: #34d399;
+            --accent-blue: #0284c7;
+            --accent-orange: #c2410c;
+            --accent-green: #059669;
             --accent-green-bg: rgba(52, 211, 153, 0.15);
-            --danger: #f87171;
+            --danger: #dc2626;
             --danger-bg: rgba(248, 113, 113, 0.15);
             --main-glow: 0 16px 60px rgba(56, 189, 248, 0.22), 0 0 40px rgba(56, 189, 248, 0.12);
         }
 
-        /* Stijlen voor de Lichte Modus */
+        /* Volledige stijlen voor de Lichte Modus met goed leesbare teksten */
         body.light-mode {
             --bg-color: #f3f4f6 !important;
             --card-bg: #ffffff !important;
-            --card-border: #e5e7eb !important;
+            --card-border: #d1d5db !important;
             --btn-bg: #e5e7eb !important;
             --btn-hover: #d1d5db !important;
-            --text-main: #1f2937 !important;
+            --text-main: #111827 !important;
             --text-muted: #4b5563 !important;
+            --accent-blue: #0284c7 !important;
+            --accent-orange: #c2410c !important;
+            --accent-green: #059669 !important;
+            --danger: #dc2626 !important;
             --main-glow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
 
@@ -57,16 +61,32 @@
         body.light-mode .pin-box,
         body.light-mode .modal-content {
             background-color: #ffffff !important;
-            color: #1f2937 !important;
-            border-color: #e5e7eb !important;
+            color: #111827 !important;
+            border-color: #d1d5db !important;
+        }
+
+        body.light-mode h1,
+        body.light-mode .section-title,
+        body.light-mode .week-title-text,
+        body.light-mode .match-day-date,
+        body.light-mode .match-date {
+            color: #0284c7 !important;
+            text-shadow: none !important;
+        }
+
+        body.light-mode .week-header {
+            background: #f9fafb !important;
+            color: #111827 !important;
+            border-bottom: 1px solid #d1d5db !important;
+            text-shadow: none !important;
         }
 
         body.light-mode select,
         body.light-mode input,
         body.light-mode textarea {
-            background-color: #f9fafb !important;
-            color: #1f2937 !important;
-            border-color: #d1d5db !important;
+            background-color: #ffffff !important;
+            color: #111827 !important;
+            border-color: #9ca3af !important;
         }
 
         body.light-mode .stats-table th, 
@@ -78,8 +98,53 @@
         body.light-mode .db-connection-status,
         body.light-mode .live-clock-badge {
             background-color: #f9fafb !important;
+            color: #111827 !important;
+            border-color: #d1d5db !important;
+        }
+
+        body.light-mode .status-badge {
+            background: #e5e7eb !important;
+            border-color: #cbd5e1 !important;
+            color: #111827 !important;
+        }
+
+        body.light-mode .status-badge.me {
+            background: rgba(2, 132, 199, 0.15) !important;
+            border-color: #0284c7 !important;
+            color: #0369a1 !important;
+        }
+
+        body.light-mode .player-chip {
+            background: #e5e7eb !important;
+            border-color: #cbd5e1 !important;
             color: #1f2937 !important;
-            border-color: #e5e7eb !important;
+        }
+
+        body.light-mode .player-chip.me {
+            background: #0284c7 !important;
+            border-color: #0284c7 !important;
+            color: #ffffff !important;
+        }
+
+        body.light-mode .match-score-section {
+            background: rgba(0, 0, 0, 0.03) !important;
+            border-color: #d1d5db !important;
+        }
+
+        body.light-mode .message {
+            background: #e5e7eb !important;
+            color: #111827 !important;
+        }
+
+        body.light-mode .message.self {
+            background: #0284c7 !important;
+            color: #ffffff !important;
+        }
+
+        body.light-mode .message .author,
+        body.light-mode .status-time,
+        body.light-mode .bron-knmi-label {
+            color: #4b5563 !important;
         }
 
         /* Rustig pulserend groen bolletje */
@@ -156,7 +221,7 @@
 
         .booking-input-soft {
             background-color: rgba(52, 211, 153, 0.08) !important;
-            color: #d1fae5 !important;
+            color: #059669 !important;
             border: 1px solid rgba(52, 211, 153, 0.3) !important;
         }
         
@@ -440,12 +505,6 @@
             min-width: 145px;
         }
 
-        body.light-mode .status-badge {
-            background: #e5e7eb;
-            border-color: #d1d5db;
-            color: #1f2937;
-        }
-
         .status-badge.me {
             border-color: #38bdf8;
             background: rgba(56, 189, 248, 0.2);
@@ -648,11 +707,6 @@
             overflow: hidden;
         }
 
-        body.light-mode .week-header {
-            background: rgba(0, 0, 0, 0.02);
-            color: #1f2937;
-        }
-
         .week-title-text {
             overflow: hidden;
             text-overflow: ellipsis;
@@ -755,10 +809,6 @@
             width: 100%;
         }
 
-        body.light-mode .match-score-section {
-            background: rgba(0, 0, 0, 0.03);
-        }
-
         .sets-inputs-grid {
             display: flex;
             justify-content: space-between;
@@ -854,12 +904,6 @@
             font-size: 0.85rem;
             font-weight: 600;
             white-space: nowrap;
-        }
-
-        body.light-mode .player-chip {
-            background: #e5e7eb;
-            border-color: #d1d5db;
-            color: #374151;
         }
 
         .player-chip.me {
@@ -977,10 +1021,6 @@
             font-weight: 600; 
             background: rgba(0, 0, 0, 0.2); 
         }
-
-        body.light-mode .stats-table th, body.light-mode .stats-table td {
-            background: rgba(0, 0, 0, 0.03);
-        }
         
         .stats-table tr.highlight-row, .absence-table tr.highlight-row { 
             background-color: rgba(56, 189, 248, 0.15); 
@@ -989,10 +1029,6 @@
         
         .stats-table tr.highlight-row td { 
             color: #7dd3fc; 
-        }
-
-        body.light-mode .stats-table tr.highlight-row td {
-            color: #0284c7;
         }
 
         .absence-btn { 
@@ -1039,24 +1075,12 @@
             display: flex; 
             flex-direction: column; 
             gap: 4px; 
-            color: #f9fafb;
-        }
-
-        body.light-mode .message {
-            background: #e5e7eb;
-            color: #1f2937;
         }
         
         .message.self { 
             align-self: flex-end; 
             background: #0369a1; 
-            color: #f9fafb;
             box-shadow: 0 0 10px rgba(3, 105, 161, 0.5);
-        }
-
-        body.light-mode .message.self {
-            background: #0ea5e9;
-            color: #ffffff;
         }
         
         .message.system-update {
@@ -1066,10 +1090,6 @@
             max-width: 100%;
             width: 100%;
             text-align: center;
-        }
-
-        body.light-mode .message.system-update {
-            background: #f0f9ff;
         }
 
         .message-header { 
@@ -1087,10 +1107,6 @@
         
         .message.self .author { 
             color: #bae6fd; 
-        }
-
-        body.light-mode .message.self .author {
-            color: #e0f2fe;
         }
         
         .delete-msg-btn { 
@@ -1312,9 +1328,8 @@
                 <select id="userSelect" onchange="changeUser()"></select>
             </div>
             
-            <!-- Knop voor Donker/Licht Modus & Pulserend Bolletje precies ertussen -->
             <div style="display: flex; align-items: center; gap: 8px;">
-                <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-700/60 hover:bg-slate-600 border border-slate-600 transition-all flex items-center justify-center" style="background: var(--btn-bg); border: 1px solid var(--card-border); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem;" title="Wissel van thema">
+                <button id="themeToggleBtn" onclick="toggleTheme()" style="background: var(--btn-bg); border: 1px solid var(--card-border); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem;" title="Wissel van thema">
                     <span id="themeIcon">☀️</span>
                 </button>
 
@@ -1423,7 +1438,7 @@
                     <option value="Baan 9">Baan 9</option>
                     <option value="Baan 10">Baan 10</option>
                 </select>
-                <input type="datetime-local" id="boekingDateTime" class="booking-input-soft" style="padding: 7px; border-radius: 6px; font-size: 0.8rem; outline: none; color-scheme: dark; flex-grow: 1;">
+                <input type="datetime-local" id="boekingDateTime" class="booking-input-soft" style="padding: 7px; border-radius: 6px; font-size: 0.8rem; outline: none; flex-grow: 1;">
                 <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
             </div>
             <div id="baanBoekingLijst" style="font-size: 0.75rem; color: var(--text-main); margin-top: 4px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--card-border); padding-top: 6px;"></div>
@@ -2167,7 +2182,7 @@
 
                 return `
                     <div style="display: flex; justify-content: space-between; align-items: center; background: ${isMe ? 'rgba(56, 189, 248, 0.15)' : 'var(--bg-color)'}; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
-                        <span style="font-weight: ${isMe ? 'bold' : '500'}; color: ${isMe ? '#7dd3fc' : 'var(--text-main)'};">${medal} ${p}</span>
+                        <span style="font-weight: ${isMe ? 'bold' : '500'}; color: ${isMe ? 'var(--accent-blue)' : 'var(--text-main)'};">${medal} ${p}</span>
                         <div style="text-align: right;">
                             <span style="color: var(--accent-blue); font-weight: bold;">${games} games</span>
                             <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 6px;">(${matches} wedstr.)</span>
@@ -3089,7 +3104,7 @@
             if (isMe) nameDisplay += ' (jij)';
             if (isSub) nameDisplay += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
 
-            let rowHtml = `<td style="text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 2; color: ${isMe ? '#7dd3fc' : (isSub ? '#fed7aa' : 'inherit')}">${nameDisplay}</td>`;
+            let rowHtml = `<td style="text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 2; color: ${isMe ? 'var(--accent-blue)' : (isSub ? 'var(--accent-orange)' : 'inherit')}">${nameDisplay}</td>`;
 
             for (let i = 0; i < 6; i++) {
                 let weekStart = new Date(currentMonday);
