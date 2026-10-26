@@ -39,6 +39,72 @@
             --main-glow: 0 16px 60px rgba(56, 189, 248, 0.22), 0 0 40px rgba(56, 189, 248, 0.12);
         }
 
+        /* Stijlen voor de Lichte Modus */
+        body.light-mode {
+            --bg-color: #f3f4f6 !important;
+            --card-bg: #ffffff !important;
+            --card-border: #e5e7eb !important;
+            --btn-bg: #e5e7eb !important;
+            --btn-hover: #d1d5db !important;
+            --text-main: #1f2937 !important;
+            --text-muted: #4b5563 !important;
+            --main-glow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        body.light-mode .card,
+        body.light-mode header,
+        body.light-mode .week-card,
+        body.light-mode .pin-box,
+        body.light-mode .modal-content {
+            background-color: #ffffff !important;
+            color: #1f2937 !important;
+            border-color: #e5e7eb !important;
+        }
+
+        body.light-mode select,
+        body.light-mode input,
+        body.light-mode textarea {
+            background-color: #f9fafb !important;
+            color: #1f2937 !important;
+            border-color: #d1d5db !important;
+        }
+
+        body.light-mode .stats-table th, 
+        body.light-mode .stats-table td,
+        body.light-mode .absence-table th, 
+        body.light-mode .absence-table td,
+        body.light-mode .chat-messages,
+        body.light-mode .user-select-container,
+        body.light-mode .db-connection-status,
+        body.light-mode .live-clock-badge {
+            background-color: #f9fafb !important;
+            color: #1f2937 !important;
+            border-color: #e5e7eb !important;
+        }
+
+        /* Rustig pulserend groen bolletje */
+        .live-dot {
+            width: 14px;
+            height: 14px;
+            background-color: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
         #toastContainer {
             position: fixed;
             top: 15px;
@@ -151,6 +217,7 @@
             align-items: center;
             min-height: 100vh;
             overflow-x: hidden;
+            transition: background-color 0.2s, color 0.2s;
         }
 
         #pinOverlay {
@@ -260,7 +327,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
+            gap: 8px;
             width: 100%;
             border-top: 1px solid var(--card-border);
             padding-top: 10px;
@@ -371,6 +438,12 @@
             align-items: center;
             gap: 3px;
             min-width: 145px;
+        }
+
+        body.light-mode .status-badge {
+            background: #e5e7eb;
+            border-color: #d1d5db;
+            color: #1f2937;
         }
 
         .status-badge.me {
@@ -575,6 +648,11 @@
             overflow: hidden;
         }
 
+        body.light-mode .week-header {
+            background: rgba(0, 0, 0, 0.02);
+            color: #1f2937;
+        }
+
         .week-title-text {
             overflow: hidden;
             text-overflow: ellipsis;
@@ -677,6 +755,10 @@
             width: 100%;
         }
 
+        body.light-mode .match-score-section {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
         .sets-inputs-grid {
             display: flex;
             justify-content: space-between;
@@ -772,6 +854,12 @@
             font-size: 0.85rem;
             font-weight: 600;
             white-space: nowrap;
+        }
+
+        body.light-mode .player-chip {
+            background: #e5e7eb;
+            border-color: #d1d5db;
+            color: #374151;
         }
 
         .player-chip.me {
@@ -889,6 +977,10 @@
             font-weight: 600; 
             background: rgba(0, 0, 0, 0.2); 
         }
+
+        body.light-mode .stats-table th, body.light-mode .stats-table td {
+            background: rgba(0, 0, 0, 0.03);
+        }
         
         .stats-table tr.highlight-row, .absence-table tr.highlight-row { 
             background-color: rgba(56, 189, 248, 0.15); 
@@ -897,6 +989,10 @@
         
         .stats-table tr.highlight-row td { 
             color: #7dd3fc; 
+        }
+
+        body.light-mode .stats-table tr.highlight-row td {
+            color: #0284c7;
         }
 
         .absence-btn { 
@@ -943,12 +1039,24 @@
             display: flex; 
             flex-direction: column; 
             gap: 4px; 
+            color: #f9fafb;
+        }
+
+        body.light-mode .message {
+            background: #e5e7eb;
+            color: #1f2937;
         }
         
         .message.self { 
             align-self: flex-end; 
             background: #0369a1; 
+            color: #f9fafb;
             box-shadow: 0 0 10px rgba(3, 105, 161, 0.5);
+        }
+
+        body.light-mode .message.self {
+            background: #0ea5e9;
+            color: #ffffff;
         }
         
         .message.system-update {
@@ -958,6 +1066,10 @@
             max-width: 100%;
             width: 100%;
             text-align: center;
+        }
+
+        body.light-mode .message.system-update {
+            background: #f0f9ff;
         }
 
         .message-header { 
@@ -975,6 +1087,10 @@
         
         .message.self .author { 
             color: #bae6fd; 
+        }
+
+        body.light-mode .message.self .author {
+            color: #e0f2fe;
         }
         
         .delete-msg-btn { 
@@ -1196,9 +1312,15 @@
                 <select id="userSelect" onchange="changeUser()"></select>
             </div>
             
-            <div id="connectionIndicator" class="db-connection-status is-online">
-                <span class="status-dot online"></span>
-                <span class="connection-text">Live verbonden</span>
+            <!-- Knop voor Donker/Licht Modus & Pulserend Bolletje precies ertussen -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-700/60 hover:bg-slate-600 border border-slate-600 transition-all flex items-center justify-center" style="background: var(--btn-bg); border: 1px solid var(--card-border); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem;" title="Wissel van thema">
+                    <span id="themeIcon">☀️</span>
+                </button>
+
+                <div id="connectionIndicator" class="db-connection-status is-online" style="padding: 6px 8px;">
+                    <span class="live-dot" title="Live verbonden"></span>
+                </div>
             </div>
         </div>
 
@@ -1403,6 +1525,31 @@
     const APP_VERSION = "8.16";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
+    // --- Thema Schakelaar Logic ---
+    function toggleTheme() {
+        const body = document.body;
+        const themeIcon = document.getElementById('themeIcon');
+        
+        body.classList.toggle('light-mode');
+        
+        if (body.classList.contains('light-mode')) {
+            themeIcon.textContent = '🌙';
+            localStorage.setItem('padel_theme', 'light');
+        } else {
+            themeIcon.textContent = '☀️';
+            localStorage.setItem('padel_theme', 'dark');
+        }
+    }
+
+    function initTheme() {
+        const savedTheme = localStorage.getItem('padel_theme');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-mode');
+            const themeIcon = document.getElementById('themeIcon');
+            if (themeIcon) themeIcon.textContent = '🌙';
+        }
+    }
+
     function getPadelIcon() {
         const now = new Date();
         const month = now.getMonth() + 1;
@@ -1469,6 +1616,7 @@
     }
     const db = firebase.database();
     
+    // --- Beheerder Login (Behouden zoals verzocht) ---
     firebase.auth().signInWithEmailAndPassword("kloetje1969@gmail.com", "Kloetje1969!")
       .then((userCredential) => {
           console.log("Beheerder succesvol ingelogd:", userCredential.user.uid);
@@ -1526,6 +1674,7 @@
     let appInitialized = false;
 
     document.addEventListener('DOMContentLoaded', () => {
+        initTheme(); // Thema inladen bij opstarten
         sessionStartTime = Date.now();
         startLiveClock();
         updatePushPermissionButtonUI();
