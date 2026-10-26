@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.17)</title>
+    <title>Padelschema - Rooster & Chat (v8.18)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1349,7 +1349,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.17</span>
+        <span>Padelschema v8.18</span>
         <span>© Robert</span>
     </div>
 </div>
@@ -1400,23 +1400,27 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.17";
+    const APP_VERSION = "8.18";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function getPadelIcon() {
         const now = new Date();
-        const month = now.getMonth() + 1;
+        const month = now.getMonth() + 1; // 1-12
         const day = now.getDate();
 
+        // 1. Cadeautje: 15 november t/m 6 december
         if ((month === 11 && day >= 15) || (month === 12 && day <= 6)) {
             return '🎁';
         }
-        if (month === 12 && day >= 7) {
+        // 2. Kerstman: 7 december t/m 30 december
+        if (month === 12 && day >= 7 && day <= 30) {
             return '🎅';
         }
-        if (month === 1 && day <= 5) {
-            return '<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M12 2v4m0 12v4M2 12h4m12 0h4m-3.17-6.83l-2.83 2.83m-8 8l-2.83 2.83m0-13.66l2.83 2.83m8 8l2.83 2.83"></path></svg>';
+        // 3. Wijnglazen: 31 december t/m 1 januari
+        if ((month === 12 && day === 31) || (month === 1 && day === 1)) {
+            return '🥂';
         }
+        // 4. Standaard: Padelbal
         return '🥎';
     }
 
