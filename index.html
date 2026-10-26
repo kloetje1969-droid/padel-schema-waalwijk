@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.19)</title>
+    <title>Padelschema - Rooster & Chat (v8.20)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -22,7 +22,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
     
     <style>
-        :root.theme-blue {
+        :root {
             --bg-color: #0b0f19;
             --card-bg: #111827;
             --card-border: #1f2937;
@@ -31,27 +31,12 @@
             --text-main: #f9fafb;
             --text-muted: #9ca3af;
             --accent-blue: #0284c7;
+            --accent-orange: #c2410c;
+            --accent-green: #059669;
+            --accent-green-bg: rgba(52, 211, 153, 0.15);
+            --danger: #dc2626;
+            --danger-bg: rgba(248, 113, 113, 0.15);
             --main-glow: 0 16px 60px rgba(56, 189, 248, 0.22), 0 0 40px rgba(56, 189, 248, 0.12);
-            --chat-self-bg: #0369a1;
-            --chat-self-shadow: rgba(3, 105, 161, 0.5);
-            --toast-gradient: linear-gradient(135deg, #0ea5e9, #0369a1);
-            --toast-shadow: rgba(14, 165, 233, 0.4);
-        }
-
-        :root.theme-green {
-            --bg-color: #06140b;
-            --card-bg: #0d2315;
-            --card-border: #163821;
-            --btn-bg: #1b3d27;
-            --btn-hover: #245234;
-            --text-main: #f0fdf4;
-            --text-muted: #86efac;
-            --accent-blue: #10b981;
-            --main-glow: 0 16px 60px rgba(16, 185, 129, 0.22), 0 0 40px rgba(16, 185, 129, 0.12);
-            --chat-self-bg: #047857;
-            --chat-self-shadow: rgba(4, 120, 87, 0.5);
-            --toast-gradient: linear-gradient(135deg, #10b981, #047857);
-            --toast-shadow: rgba(16, 185, 129, 0.4);
         }
 
         #toastContainer {
@@ -69,11 +54,11 @@
         }
 
         .toast-banner {
-            background: var(--toast-gradient);
+            background: linear-gradient(135deg, #0ea5e9, #0369a1);
             color: white;
             padding: 12px 16px;
             border-radius: 12px;
-            box-shadow: 0 10px 30px var(--toast-shadow);
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.4);
             border: 1px solid rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
@@ -313,7 +298,7 @@
 
         .db-connection-status {
             font-size: 0.72rem; 
-            color: var(--accent-blue); 
+            color: #38bdf8; 
             display: flex; 
             align-items: center; 
             gap: 6px;
@@ -363,13 +348,13 @@
 
         @keyframes blinkBlue {
             0% { opacity: 0.3; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px var(--accent-blue); }
+            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #38bdf8; }
             100% { opacity: 0.3; transform: scale(0.8); }
         }
 
         @keyframes pulseConnection {
             0% { opacity: 0.6; text-shadow: none; }
-            50% { opacity: 1; text-shadow: 0 0 10px var(--accent-blue); }
+            50% { opacity: 1; text-shadow: 0 0 10px rgba(56, 189, 248, 0.6); }
             100% { opacity: 0.6; text-shadow: none; }
         }
 
@@ -389,9 +374,9 @@
         }
 
         .status-badge.me {
-            border-color: var(--accent-blue);
-            background: var(--card-border);
-            box-shadow: 0 0 6px var(--accent-blue);
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 6px rgba(56, 189, 248, 0.3);
             font-weight: bold;
         }
 
@@ -418,7 +403,7 @@
         }
 
         .status-dot.online {
-            background: var(--accent-blue);
+            background: #38bdf8;
             animation: blinkBlue 1.5s infinite ease-in-out;
         }
 
@@ -497,10 +482,10 @@
             font-size: 0.75rem;
             font-weight: 600;
             color: var(--accent-blue);
-            background: var(--card-border);
+            background: rgba(56, 189, 248, 0.1);
             padding: 3px 8px;
             border-radius: 6px;
-            border: 1px solid var(--card-border);
+            border: 1px solid rgba(56, 189, 248, 0.2);
             flex-shrink: 0;
         }
 
@@ -532,7 +517,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            text-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
         }
 
         .section-title-row {
@@ -580,6 +565,7 @@
             font-size: 0.82rem;
             color: #e5e7eb;
             border-bottom: 1px solid var(--card-border);
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -607,8 +593,8 @@
             font-size: 0.7rem;
             font-weight: 700;
             color: var(--accent-blue);
-            background: var(--card-border);
-            border: 1px solid var(--card-border);
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.25);
             padding: 2px 6px;
             border-radius: 6px;
             letter-spacing: 0.02em;
@@ -662,13 +648,13 @@
         }
         
         .day-select-inline.slot-dinsdag {
-            color: #059669;
+            color: var(--accent-green);
             border-color: rgba(52, 211, 153, 0.3);
             background: rgba(52, 211, 153, 0.05);
         }
 
         .day-select-inline.slot-donderdag {
-            color: #c2410c;
+            color: var(--accent-orange);
             border-color: rgba(251, 146, 60, 0.3);
             background: rgba(251, 146, 60, 0.05);
         }
@@ -732,17 +718,17 @@
         }
 
         .match-date.slot-dinsdag {
-            color: #059669;
+            color: var(--accent-green);
         }
 
         .match-date.slot-donderdag {
-            color: #c2410c;
+            color: var(--accent-orange);
         }
 
         .weather-badge {
-            background: var(--card-border);
-            border: 1px solid var(--card-border);
-            color: var(--accent-blue);
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            color: #38bdf8;
             padding: 2px 6px;
             border-radius: 4px;
             font-size: 0.68rem;
@@ -789,10 +775,10 @@
         }
 
         .player-chip.me {
-            background: var(--accent-blue);
-            border: 1px solid var(--accent-blue);
+            background: #0369a1;
+            border: 1px solid #0284c7;
             color: #bae6fd;
-            box-shadow: 0 0 10px var(--accent-blue);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
             font-weight: 700;
         }
 
@@ -905,18 +891,18 @@
         }
         
         .stats-table tr.highlight-row, .absence-table tr.highlight-row { 
-            background-color: var(--card-border); 
+            background-color: rgba(56, 189, 248, 0.15); 
             font-weight: bold; 
         }
         
         .stats-table tr.highlight-row td { 
-            color: var(--text-main); 
+            color: #7dd3fc; 
         }
 
         .absence-btn { 
-            background: var(--card-border); 
-            color: var(--accent-blue); 
-            border: 1px solid var(--accent-blue); 
+            background: rgba(56, 189, 248, 0.15); 
+            color: #38bdf8; 
+            border: 1px solid #38bdf8; 
             padding: 4px 8px; 
             border-radius: 5px; 
             font-size: 0.7rem; 
@@ -961,12 +947,12 @@
         
         .message.self { 
             align-self: flex-end; 
-            background: var(--chat-self-bg); 
-            box-shadow: 0 0 10px var(--chat-self-shadow);
+            background: #0369a1; 
+            box-shadow: 0 0 10px rgba(3, 105, 161, 0.5);
         }
         
         .message.system-update {
-            background: var(--card-border);
+            background: #1e293b;
             border: 1px dashed var(--accent-blue);
             align-self: center;
             max-width: 100%;
@@ -988,7 +974,7 @@
         }
         
         .message.self .author { 
-            color: var(--text-main); 
+            color: #bae6fd; 
         }
         
         .delete-msg-btn { 
@@ -1036,15 +1022,15 @@
         }
         
         .btn-primary { 
-            background: var(--accent-blue); 
-            color: var(--bg-color); 
+            background: #0ea5e9; 
+            color: #0b0f19; 
             border: none; 
             padding: 8px 12px; 
             border-radius: 6px; 
             cursor: pointer; 
             font-weight: 800; 
             font-size: 0.85rem; 
-            box-shadow: 0 0 10px var(--toast-shadow);
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
             height: 38px;
             flex-shrink: 0;
         }
@@ -1068,13 +1054,13 @@
             border-radius: 14px; 
             width: 100%; 
             max-width: 380px; 
-            box-shadow: 0 0 25px var(--main-glow);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.3);
             max-height: 90vh;
             overflow-y: auto;
         }
         
         .modal-content h3 { 
-            color: var(--accent-blue); 
+            color: #7dd3fc; 
             font-size: 1.05rem; 
             margin-bottom: 12px; 
         }
@@ -1163,7 +1149,7 @@
         }
     </style>
 </head>
-<body class="theme-blue">
+<body>
 
 <div id="toastContainer"></div>
 
@@ -1227,7 +1213,7 @@
             Laden status...
         </div>
 
-        <button class="btn-edit" id="pushPermissionBtn" onclick="requestPushPermission()" style="width: 100%; justify-content: center; margin-top: 4px; background: var(--card-border); border-color: var(--accent-blue); color: var(--accent-blue);">
+        <button class="btn-edit" id="pushPermissionBtn" onclick="requestPushPermission()" style="width: 100%; justify-content: center; margin-top: 4px; background: rgba(56, 189, 248, 0.15); border-color: var(--accent-blue); color: var(--accent-blue);">
             🔔 Meldingen aan (ook als app dicht is)
         </button>
     </header>
@@ -1255,8 +1241,8 @@
                         <thead>
                             <tr>
                                 <th style="text-align: left;">Speler</th>
-                                <th style="color: #059669;">Dinsdag</th>
-                                <th style="color: #c2410c;">Donderdag</th>
+                                <th style="color: var(--accent-green);">Dinsdag</th>
+                                <th style="color: var(--accent-orange);">Donderdag</th>
                                 <th>Totaal</th>
                             </tr>
                         </thead>
@@ -1363,8 +1349,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.19</span>
-        <button id="themeToggleBtn" onclick="toggleTheme()" style="background: var(--card-border); border: 1px solid var(--card-border); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: 600;" title="Wissel thema">🎨 Blauw</button>
+        <span>Padelschema v8.20</span>
         <span>© Robert</span>
     </div>
 </div>
@@ -1415,58 +1400,27 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.19";
+    const APP_VERSION = "8.20";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
-
-    // Thema initialisatie
-    function initTheme() {
-        const savedTheme = localStorage.getItem('padel_theme') || 'blue';
-        applyTheme(savedTheme);
-    }
-
-    function toggleTheme() {
-        const currentTheme = document.body.classList.contains('theme-green') ? 'green' : 'blue';
-        const newTheme = currentTheme === 'blue' ? 'green' : 'blue';
-        localStorage.setItem('padel_theme', newTheme);
-        applyTheme(newTheme);
-    }
-
-    function applyTheme(themeName) {
-        const btn = document.getElementById('themeToggleBtn');
-        if (themeName === 'green') {
-            document.body.classList.remove('theme-blue');
-            document.body.classList.add('theme-green');
-            if (btn) btn.innerText = '🎨 Groen';
-            metaThemeColor('#06140b');
-        } else {
-            document.body.classList.remove('theme-green');
-            document.body.classList.add('theme-blue');
-            if (btn) btn.innerText = '🎨 Blauw';
-            metaThemeColor('#0b0f19');
-        }
-    }
-
-    function metaThemeColor(colorHex) {
-        let meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute('content', colorHex);
-    }
-
-    initTheme();
 
     function getPadelIcon() {
         const now = new Date();
         const month = now.getMonth() + 1; // 1-12
         const day = now.getDate();
 
+        // 1. Cadeautje: 15 november t/m 6 december
         if ((month === 11 && day >= 15) || (month === 12 && day <= 6)) {
             return '🎁';
         }
+        // 2. Kerstman: 7 december t/m 30 december
         if (month === 12 && day >= 7 && day <= 30) {
             return '🎅';
         }
+        // 3. Wijnglazen: 31 december t/m 1 januari
         if ((month === 12 && day === 31) || (month === 1 && day === 1)) {
             return '🥂';
         }
+        // 4. Standaard: Padelbal
         return '🥎';
     }
 
@@ -1643,8 +1597,8 @@
         if (browserGranted) {
             btn.innerText = "✓ Meldingen actief";
             btn.style.background = "rgba(52, 211, 153, 0.15)";
-            btn.style.borderColor = "#059669";
-            btn.style.color = "#059669";
+            btn.style.borderColor = "var(--accent-green)";
+            btn.style.color = "var(--accent-green)";
         } else if (browserDenied) {
             btn.innerText = "✕ Meldingen geblokkeerd in browser";
             btn.style.background = "var(--danger-bg)";
@@ -1652,7 +1606,7 @@
             btn.style.color = "var(--danger)";
         } else {
             btn.innerText = "🔔 Meldingen aan (ook als app dicht is)";
-            btn.style.background = "var(--card-border)";
+            btn.style.background = "rgba(56, 189, 248, 0.15)";
             btn.style.borderColor = "var(--accent-blue)";
             btn.style.color = "var(--accent-blue)";
         }
@@ -1743,7 +1697,7 @@
         toast.innerHTML = `
             ${emojiIconHtml}
             <div style="flex-grow: 1;">
-                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">${title}</div>
+                <div style="font-size: 0.75rem; color: #bae6fd; font-weight: 700; text-transform: uppercase;">${title}</div>
                 <div>${text}</div>
             </div>
         `;
@@ -2067,7 +2021,7 @@
                 const isMe = (p === currentUserName);
 
                 return `
-                    <div style="display: flex; justify-content: space-between; align-items: center; background: ${isMe ? 'var(--card-border)' : 'var(--bg-color)'}; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: ${isMe ? 'rgba(56, 189, 248, 0.15)' : 'var(--bg-color)'}; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
                         <span style="font-weight: ${isMe ? 'bold' : '500'}; color: ${isMe ? 'var(--accent-blue)' : 'var(--text-main)'};">${medal} ${p}</span>
                         <div style="text-align: right;">
                             <span style="color: var(--accent-blue); font-weight: bold;">${games} games</span>
@@ -2102,7 +2056,7 @@
                 return `
                     <div style="display: flex; flex-direction: column; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: 600; color: #c2410c;">Cyclus ${parseInt(idx, 10) + 1}</span>
+                            <span style="font-weight: 600; color: var(--accent-orange);">Cyclus ${parseInt(idx, 10) + 1}</span>
                             <span style="color: var(--text-main);">🏆 <strong>${wData.winner}</strong> (${wData.games} games)</span>
                         </div>
                         ${podiumHtml}
@@ -2930,7 +2884,7 @@
             const data = counts[p];
             let displayName = p;
             if (isMe) displayName += ' (jij)';
-            if (data.isSub) displayName += ' <span style="color: #c2410c; font-size: 0.65rem;">(invaller)</span>';
+            if (data.isSub) displayName += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
 
             return `
                 <tr class="${isMe ? 'highlight-row' : ''}">
@@ -2988,9 +2942,9 @@
             const isSub = !basePlayers.includes(p);
             let nameDisplay = p;
             if (isMe) nameDisplay += ' (jij)';
-            if (isSub) nameDisplay += ' <span style="color: #c2410c; font-size: 0.65rem;">(invaller)</span>';
+            if (isSub) nameDisplay += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
 
-            let rowHtml = `<td style="text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 2; color: ${isMe ? 'var(--accent-blue)' : (isSub ? '#c2410c' : 'inherit')}">${nameDisplay}</td>`;
+            let rowHtml = `<td style="text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 2; color: ${isMe ? 'var(--accent-blue)' : (isSub ? 'var(--accent-orange)' : 'inherit')}">${nameDisplay}</td>`;
 
             for (let i = 0; i < 6; i++) {
                 let weekStart = new Date(currentMonday);
@@ -3049,8 +3003,8 @@
         if (currentlyCancelled) {
             toggleBtn.innerHTML = "✅ Herstellen";
             toggleBtn.style.background = "rgba(52, 211, 153, 0.2)";
-            toggleBtn.style.borderColor = "#059669";
-            toggleBtn.style.color = "#059669";
+            toggleBtn.style.borderColor = "var(--accent-green)";
+            toggleBtn.style.color = "var(--accent-green)";
             selectsDiv.style.display = "none";
             saveBtn.style.display = "none";
         } else {
@@ -3270,7 +3224,7 @@
                 } else {
                     let icon = m.fileType && m.fileType.includes('pdf') ? '📄' : '📎';
                     attachmentHtml = `
-                        <a href="${m.fileUrl}" download="${m.fileName || 'document'}" target="_blank" style="display: flex; align-items: center; gap: 8px; background: var(--card-border); border: 1px solid var(--card-border); padding: 8px 10px; border-radius: 6px; color: var(--accent-blue); text-decoration: none; margin-top: 4px; font-weight: 500;">
+                        <a href="${m.fileUrl}" download="${m.fileName || 'document'}" target="_blank" style="display: flex; align-items: center; gap: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 10px; border-radius: 6px; color: var(--accent-blue); text-decoration: none; margin-top: 4px; font-weight: 500;">
                             <span style="font-size: 1.2rem;">${icon}</span>
                             <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1;">
                                 <div style="font-size: 0.8rem; font-weight: bold;">${m.fileName || 'Bijlage openen'}</div>
