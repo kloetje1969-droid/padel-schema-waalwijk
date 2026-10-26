@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.16)</title>
+    <title>Padelschema - Rooster & Chat (v8.17)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -37,137 +37,6 @@
             --danger: #dc2626;
             --danger-bg: rgba(248, 113, 113, 0.15);
             --main-glow: 0 16px 60px rgba(56, 189, 248, 0.22), 0 0 40px rgba(56, 189, 248, 0.12);
-        }
-
-        /* Volledige stijlen voor de Lichte Modus met goed leesbare teksten */
-        body.light-mode {
-            --bg-color: #f3f4f6 !important;
-            --card-bg: #ffffff !important;
-            --card-border: #d1d5db !important;
-            --btn-bg: #e5e7eb !important;
-            --btn-hover: #d1d5db !important;
-            --text-main: #111827 !important;
-            --text-muted: #4b5563 !important;
-            --accent-blue: #0284c7 !important;
-            --accent-orange: #c2410c !important;
-            --accent-green: #059669 !important;
-            --danger: #dc2626 !important;
-            --main-glow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-
-        body.light-mode .card,
-        body.light-mode header,
-        body.light-mode .week-card,
-        body.light-mode .pin-box,
-        body.light-mode .modal-content {
-            background-color: #ffffff !important;
-            color: #111827 !important;
-            border-color: #d1d5db !important;
-        }
-
-        body.light-mode h1,
-        body.light-mode .section-title,
-        body.light-mode .week-title-text,
-        body.light-mode .match-day-date,
-        body.light-mode .match-date {
-            color: #0284c7 !important;
-            text-shadow: none !important;
-        }
-
-        body.light-mode .week-header {
-            background: #f9fafb !important;
-            color: #111827 !important;
-            border-bottom: 1px solid #d1d5db !important;
-            text-shadow: none !important;
-        }
-
-        body.light-mode select,
-        body.light-mode input,
-        body.light-mode textarea {
-            background-color: #ffffff !important;
-            color: #111827 !important;
-            border-color: #9ca3af !important;
-        }
-
-        body.light-mode .stats-table th, 
-        body.light-mode .stats-table td,
-        body.light-mode .absence-table th, 
-        body.light-mode .absence-table td,
-        body.light-mode .chat-messages,
-        body.light-mode .user-select-container,
-        body.light-mode .db-connection-status,
-        body.light-mode .live-clock-badge {
-            background-color: #f9fafb !important;
-            color: #111827 !important;
-            border-color: #d1d5db !important;
-        }
-
-        body.light-mode .status-badge {
-            background: #e5e7eb !important;
-            border-color: #cbd5e1 !important;
-            color: #111827 !important;
-        }
-
-        body.light-mode .status-badge.me {
-            background: rgba(2, 132, 199, 0.15) !important;
-            border-color: #0284c7 !important;
-            color: #0369a1 !important;
-        }
-
-        body.light-mode .player-chip {
-            background: #e5e7eb !important;
-            border-color: #cbd5e1 !important;
-            color: #1f2937 !important;
-        }
-
-        body.light-mode .player-chip.me {
-            background: #0284c7 !important;
-            border-color: #0284c7 !important;
-            color: #ffffff !important;
-        }
-
-        body.light-mode .match-score-section {
-            background: rgba(0, 0, 0, 0.03) !important;
-            border-color: #d1d5db !important;
-        }
-
-        body.light-mode .message {
-            background: #e5e7eb !important;
-            color: #111827 !important;
-        }
-
-        body.light-mode .message.self {
-            background: #0284c7 !important;
-            color: #ffffff !important;
-        }
-
-        body.light-mode .message .author,
-        body.light-mode .status-time,
-        body.light-mode .bron-knmi-label {
-            color: #4b5563 !important;
-        }
-
-        /* Rustig pulserend groen bolletje */
-        .live-dot {
-            width: 14px;
-            height: 14px;
-            background-color: #10b981;
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
-            animation: pulse-green 2s infinite;
-        }
-
-        @keyframes pulse-green {
-            0% {
-                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-            }
         }
 
         #toastContainer {
@@ -282,7 +151,6 @@
             align-items: center;
             min-height: 100vh;
             overflow-x: hidden;
-            transition: background-color 0.2s, color 0.2s;
         }
 
         #pinOverlay {
@@ -1328,14 +1196,9 @@
                 <select id="userSelect" onchange="changeUser()"></select>
             </div>
             
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <button id="themeToggleBtn" onclick="toggleTheme()" style="background: var(--btn-bg); border: 1px solid var(--card-border); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem;" title="Wissel van thema">
-                    <span id="themeIcon">☀️</span>
-                </button>
-
-                <div id="connectionIndicator" class="db-connection-status is-online" style="padding: 6px 8px;">
-                    <span class="live-dot" title="Live verbonden"></span>
-                </div>
+            <div id="connectionIndicator" class="db-connection-status is-online">
+                <span class="status-dot online"></span>
+                <span class="connection-text">Live verbonden</span>
             </div>
         </div>
 
@@ -1486,7 +1349,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.16</span>
+        <span>Padelschema v8.17</span>
         <span>© Robert</span>
     </div>
 </div>
@@ -1537,33 +1400,8 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.16";
+    const APP_VERSION = "8.17";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
-
-    // --- Thema Schakelaar Logic ---
-    function toggleTheme() {
-        const body = document.body;
-        const themeIcon = document.getElementById('themeIcon');
-        
-        body.classList.toggle('light-mode');
-        
-        if (body.classList.contains('light-mode')) {
-            themeIcon.textContent = '🌙';
-            localStorage.setItem('padel_theme', 'light');
-        } else {
-            themeIcon.textContent = '☀️';
-            localStorage.setItem('padel_theme', 'dark');
-        }
-    }
-
-    function initTheme() {
-        const savedTheme = localStorage.getItem('padel_theme');
-        if (savedTheme === 'light') {
-            document.body.classList.add('light-mode');
-            const themeIcon = document.getElementById('themeIcon');
-            if (themeIcon) themeIcon.textContent = '🌙';
-        }
-    }
 
     function getPadelIcon() {
         const now = new Date();
@@ -1631,7 +1469,6 @@
     }
     const db = firebase.database();
     
-    // --- Beheerder Login (Behouden zoals verzocht) ---
     firebase.auth().signInWithEmailAndPassword("kloetje1969@gmail.com", "Kloetje1969!")
       .then((userCredential) => {
           console.log("Beheerder succesvol ingelogd:", userCredential.user.uid);
@@ -1689,7 +1526,6 @@
     let appInitialized = false;
 
     document.addEventListener('DOMContentLoaded', () => {
-        initTheme(); // Thema inladen bij opstarten
         sessionStartTime = Date.now();
         startLiveClock();
         updatePushPermissionButtonUI();
