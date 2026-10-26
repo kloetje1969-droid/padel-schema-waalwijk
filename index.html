@@ -851,12 +851,15 @@
             background: var(--danger-bg);
             border-top: 1px solid rgba(248, 113, 113, 0.3);
             color: #fca5a5;
-            padding: 6px 14px;
+            padding: 6px 10px;
             font-size: 0.75rem;
             font-weight: 500;
             display: flex;
             align-items: center;
             gap: 6px;
+            border-radius: 6px;
+            margin-top: 2px;
+            margin-bottom: 2px;
         }
 
         .table-scroll-wrapper { 
@@ -1412,7 +1415,7 @@
             return '🎅';
         }
         if (month === 1 && day <= 5) {
-            return '🎆';
+            return '<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M12 2v4m0 12v4M2 12h4m12 0h4m-3.17-6.83l-2.83 2.83m-8 8l-2.83 2.83m0-13.66l2.83 2.83m8 8l2.83 2.83"></path></svg>';
         }
         return '🥎';
     }
@@ -1561,11 +1564,11 @@
         const icon = getPadelIcon();
         const icon1 = document.getElementById('headerIcon1');
         const icon2 = document.getElementById('headerIcon2');
-        if (icon1) icon1.innerText = icon;
-        if (icon2) icon2.innerText = icon;
+        if (icon1) icon1.innerHTML = icon;
+        if (icon2) icon2.innerHTML = icon;
 
         document.querySelectorAll('.dynamic-ball-icon').forEach(el => {
-            el.innerText = icon;
+            el.innerHTML = icon;
         });
     }
 
@@ -2661,6 +2664,7 @@
                             ${diCancelled ? '<span style="color: var(--danger); font-size: 0.72rem; font-weight: bold; margin-left: 4px;">(AFGELAST)</span>' : ''}
                         </div>
 
+                        ${dinsdagRainAlert}
                         ${dinsdagBodyHtml}
 
                         ${!diCancelled ? `
@@ -2697,7 +2701,6 @@
                             </div>
                         </div>` : ''}
                     </div>
-                    ${dinsdagRainAlert}
                     ${!diCancelled && dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
                 </div>
 
@@ -2716,6 +2719,7 @@
                             ${doCancelled ? '<span style="color: var(--danger); font-size: 0.72rem; font-weight: bold; margin-left: 4px;">(AFGELAST)</span>' : ''}
                         </div>
 
+                        ${donderdagRainAlert}
                         ${donderdagBodyHtml}
 
                         ${!doCancelled ? `
@@ -2752,7 +2756,6 @@
                             </div>
                         </div>` : ''}
                     </div>
-                    ${donderdagRainAlert}
                     ${!doCancelled && donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
                 </div>
             `;
