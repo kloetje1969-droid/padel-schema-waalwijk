@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.22)</title>
+    <title>Padelschema - Rooster & Chat (v8.23)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -676,6 +676,11 @@
             flex-shrink: 0;
             width: 76px;
             text-align: center;
+        }
+        
+        .tijd-select-inline option {
+            background: var(--card-bg);
+            color: var(--text-main);
         }
 
         .match-sub-info {
@@ -1372,7 +1377,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.22</span>
+        <span>Padelschema v8.23</span>
         <span>© Robert</span>
     </div>
 </div>
@@ -1423,7 +1428,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.22";
+    const APP_VERSION = "8.23";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function getPadelIcon() {
@@ -2692,15 +2697,15 @@
                     `</select>`;
             };
 
-            // GEWIJZIGD: Gebruik van <select> met digitale tijdstippen in plaats van <input type="time"> om de analoge klok pop-up op Android te vermijden
             let availableTimes = ["17:00", "17:30", "18:00", "18:15", "18:30", "18:45", "19:00", "19:15", "19:30", "19:45", "20:00", "20:15", "20:30", "21:00", "21:30"];
             let makeTimeSelect = (currentTijd, slotKey) => {
-                if (!availableTimes.includes(currentTijd)) {
-                    availableTimes.push(currentTijd);
+                let workingTijd = currentTijd || "18:30";
+                if (!availableTimes.includes(workingTijd)) {
+                    availableTimes.push(workingTijd);
                     availableTimes.sort();
                 }
                 return `<select class="tijd-select-inline" onchange="updateSpeelTijd('${uniqueWeekKey}', '${slotKey}', this.value)" title="Wijzig speeltijd">` +
-                    availableTimes.map(t => `<option value="${t}" ${t === currentTijd ? 'selected' : ''}>${t}</option>`).join('') +
+                    availableTimes.map(t => `<option value="${t}" ${t === workingTijd ? 'selected' : ''}>${t}</option>`).join('') +
                     `</select>`;
             };
 
@@ -2861,6 +2866,7 @@
     async function updateSpeelTijd(uniqueWeekKey, slotKey, newTime) {
         let path = `padelData/scheduleOverrides/${uniqueWeekKey}/${slotKey}Tijd`;
         await db.ref(path).set(newTime);
+        showToast("Tijd opgeslagen", `Speeltijd gewijzigd naar ${newTime}`);
         await addSystemMessageIfUnique(`⏰ Speeltijd voor ${slotKey} in week ${uniqueWeekKey.split('_w')[1]} is gewijzigd naar ${newTime}.`);
     }
 
@@ -3300,7 +3306,7 @@
             return `
                 <div class="message ${isSelf ? 'self' : ''}">
                     <div class="message-header">
-                        <span class="author">${m.author} ${tijdWeggave || tijdWeergave}</span>
+                        <span class="author">${m.author} ${tijdWeergave}</span>
                         ${deleteBtnHtml}
                     </div>
                     ${textHtml}
