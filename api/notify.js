@@ -1,9 +1,6 @@
 import { db, getTokensByPlayer, sendToTokens } from '../lib/padel.js';
 
-// De app roept dit aan nadat er een chatbericht of systeembericht (afmelding, schemawijziging,
-// baanboeking) is opgeslagen. De server leest dat bericht zelf uit de database en stuurt een
-// pushmelding naar de anderen. Er gaat nooit meer dan 1 melding per bericht uit.
-
+// De app roept dit aan nadat er een chatbericht of systeembericht is opgeslagen.
 const BLOKKEER_ZONDER_LOGIN = true;
 
 async function controleerInlog(req) {
@@ -17,30 +14,6 @@ async function controleerInlog(req) {
   } catch (e) {
     return { ok: false, reden: e.code || e.message };
   }
-}
-
-// Functie om het actuele weer op te halen via Open-Meteo met het KNMI Harmonie Arome model (inclusief regenkans)
-async function checkKnmiWeerNeerslag() {
-  try {
-    const url = 'https://api.open-meteo.com/v1/forecast?latitude=51.68&longitude=5.07&hourly=precipitation,precipitation_probability&models=knmi_seamless';
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    const data = await response.json();
-    
-    if (data && data.hourly && data.hourly.time) {
-      const now = new Date();
-      const currentHourIndex = data.hourly.time.findIndex(t => new Date(t).getHours() >= now.getHours());
-      if (currentHourIndex !== -1) {
-        return {
-          neerslagMm: data.hourly.precipitation ? data.hourly.precipitation[currentHourIndex] : 0,
-          kansPct: data.hourly.precipitation_probability ? data.hourly.precipitation_probability[currentHourIndex] : 0
-        };
-      }
-    }
-  } catch (err) {
-    console.error('Fout bij ophalen KNMI weerdata:', err);
-  }
-  return null;
 }
 
 export default async function handler(req, res) {
@@ -75,12 +48,12 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Bericht niet gevonden.' });
     }
 
-    // Alleen berichten van de laatste 2 minuten
-    if (!m.timestamp || Date.now() - m.timestamp > 2 * 60 * 1000) {
-      return res.status(200).json({ status: 'Bericht is te oud, geen melding verstuurd.' });
+    // Alleen berichten van de laatste 45 seconden mogen een melding geven
+    if (!m.timestamp || Date.now() - m.timestamp > 45 * 1000) {
+      return res.status(200).json({ status: 'Bericht is te oud of al verwerkt, geen melding verstuurd.' });
     }
 
-    // Maximaal 1x per bericht
+    // Maximaal 1x per bericht via Firebase transactie
     const claim = await db.ref(`padelData/notified/${key}`).transaction(cur => (cur ? undefined : true));
     if (!claim.committed) {
       return res.status(200).json({ status: 'Voor dit bericht is al een melding verstuurd.' });
@@ -90,16 +63,13 @@ export default async function handler(req, res) {
 
     let title;
     let text;
+    
     if (isSystem) {
+      // Zuivere systeemmelding of uitslag ZONDER weertekst
       title = '🔔 Padel update';
       text = String(m.text || 'Er is iets gewijzigd in de app.');
-
-      // Controleer via KNMI of de kans op regen >= 60% is (of neerslag > 1.0 mm)
-      const weerInfo = await checkKnmiWeerNeerslag();
-      if (weerInfo !== null && (weerInfo.kansPct >= 60 || weerInfo.neerslagMm > 1.0)) {
-        text += ` ⚠️ Let op: KNMI voorspelt ${weerInfo.kansPct}% kans op regen (${weerInfo.neerslagMm} mm/u)!`;
-      }
     } else {
+      // Normaal chatbericht
       title = `💬 ${m.author || 'Padel chat'}`;
       if (m.text) {
         text = String(m.text);
@@ -109,6 +79,7 @@ export default async function handler(req, res) {
         text = 'Nieuw bericht';
       }
     }
+    
     if (text.length > 120) text = text.slice(0, 117) + '...';
 
     const tokensData = await getTokensByPlayer();
