@@ -624,7 +624,7 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            gap: 8px;
+            gap: 6px;
         }
 
         .match-day-date {
@@ -634,7 +634,9 @@
             font-size: 0.8rem;
             font-weight: 700;
             color: var(--accent-blue);
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            flex-grow: 1;
+            min-width: 0;
         }
 
         .day-select-inline {
@@ -642,10 +644,11 @@
             border: 1px solid var(--card-border);
             padding: 3px 6px;
             border-radius: 6px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 700;
             outline: none;
             cursor: pointer;
+            flex-shrink: 0;
         }
         
         .day-select-inline.slot-dinsdag {
@@ -664,12 +667,15 @@
             background: var(--bg-color);
             color: var(--accent-blue);
             border: 1px solid var(--card-border);
-            padding: 3px 6px;
+            padding: 3px 4px;
             border-radius: 6px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 700;
             outline: none;
             cursor: pointer;
+            flex-shrink: 0;
+            width: 72px;
+            text-align: center;
         }
 
         .match-sub-info {
@@ -725,9 +731,10 @@
         }
 
         .match-date {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
+            white-space: nowrap;
         }
 
         .match-date.slot-dinsdag {
@@ -830,10 +837,10 @@
             background-color: var(--btn-bg);
             color: var(--text-main);
             border: 1px solid var(--card-border);
-            padding: 5px 9px;
+            padding: 4px 8px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
@@ -2654,11 +2661,9 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            // Dynamische regenwaarschuwing voor dinsdag (of de verplaatste dag) vanaf 60% kans of > 1.0 mm
             let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && (dinsdagWeatherObj.rainProbability >= 60 || dinsdagWeatherObj.rain > 1.0)) 
                 ? `<div class="rain-alert">🌧️ Let op: ${dinsdagWeatherObj.rainProbability || 0}% kans op regen (${dinsdagWeatherObj.rain} mm)!</div>` : '';
             
-            // Dynamische regenwaarschuwing voor donderdag (of de verplaatste dag) vanaf 60% kans of > 1.0 mm
             let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && (donderdagWeatherObj.rainProbability >= 60 || donderdagWeatherObj.rain > 1.0)) 
                 ? `<div class="rain-alert">🌧️ Let op: ${donderdagWeatherObj.rainProbability || 0}% kans op regen (${donderdagWeatherObj.rain} mm)!</div>` : '';
 
