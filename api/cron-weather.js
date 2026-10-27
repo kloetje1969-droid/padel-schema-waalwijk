@@ -1,4 +1,3 @@
-
 import { timingSafeEqual } from 'node:crypto';
 
 import {
@@ -12,6 +11,7 @@ import {
 
 const CRON_SECRET = process.env.CRON_SECRET || '';
 const RAIN_THRESHOLD = 60;
+const PRECIPITATION_THRESHOLD = 1.0; // in mm
 
 const BASE_PLAYERS = [
   'Marcel',
@@ -230,12 +230,18 @@ export default async function handler(req, res) {
 
     const forecast = await getRainForecast(nl.dateKey);
 
-    if (forecast.probability < RAIN_THRESHOLD) {
+    // Controleer zowel op regenkans (>= 60%) als neerslaghoeveelheid (> 1.0 mm)
+    if (
+      forecast.probability < RAIN_THRESHOLD ||
+      forecast.precipitation <= PRECIPITATION_THRESHOLD
+    ) {
       return res.status(200).json({
-        status: 'Geen weerpush nodig',
+        status: 'Geen weerpush nodig (onder drempel voor kans of millimeters)',
         date: nl.dateKey,
         rainProbability: forecast.probability,
-        threshold: RAIN_THRESHOLD
+        precipitation: forecast.precipitation,
+        rainThreshold: RAIN_THRESHOLD,
+        precipitationThreshold: PRECIPITATION_THRESHOLD
       });
     }
 
@@ -249,17 +255,6 @@ export default async function handler(req, res) {
       });
     }
 
-    /*
-     * BELANGRIJK:
-     * Eén registratie per kalenderdag.
-     *
-     * Zowel "sending" als "sent" blokkeert volgende
-     * uitvoeringen. Een bestaande "sending"-status
-     * wordt niet na 10 minuten opnieuw geclaimd.
-     *
-     * Dit voorkomt dat 18:10 of 18:20 automatisch
-     * opnieuw verstuurt na een onduidelijke uitkomst.
-     */
     lockRef = db.ref(
       `padelData/sentWeatherPushes/${nl.dateKey}`
     );
@@ -285,15 +280,10 @@ export default async function handler(req, res) {
 
     lockClaimed = true;
 
-    /*
-     * Vanaf hier kan een foutmelding niet altijd bewijzen
-     * dat de pushdienst de melding niet heeft ontvangen.
-     * Daarom blijft "sending" bij een onzekere fout staan.
-     */
     const result = await sendToTokens(tokens, {
       title: '🌧️ Kans op regen tijdens padel',
       body:
-        `Voor vanavond is de regenkans ${forecast.probability}%. ` +
+        `Voor vanavond is de regenkans ${forecast.probability}% (${forecast.precipitation} mm). ` +
         'Controleer het weer voordat je gaat spelen.',
       tag: `padel-weather-${nl.dateKey}`
     });
@@ -320,11 +310,6 @@ export default async function handler(req, res) {
       });
     }
 
-    /*
-     * De pushhelper heeft teruggekoppeld dat geen enkele
-     * verzending is geslaagd. Alleen dan mag een volgende
-     * cronuitvoering opnieuw proberen.
-     */
     await lockRef.remove();
     lockClaimed = false;
 
@@ -337,11 +322,6 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Cron weather error:', error);
 
-    /*
-     * Bewust geen automatische verwijdering van de lock
-     * bij een onzekere fout tijdens het versturen.
-     * Zo voorkomen we een mogelijke dubbele push.
-     */
     return res.status(500).json({
       status: 'Fout bij de weercontrole',
       error: String(error?.message || error),
