@@ -1,13 +1,10 @@
-import { db, getTokensByPlayer, sendToTokens } from '../lib/padel.js';
+Import { db, getTokensByPlayer, sendToTokens } from '../lib/padel.js';
 
 // De app roept dit aan nadat er een chatbericht of systeembericht (afmelding, schemawijziging,
 // baanboeking) is opgeslagen. De server leest dat bericht zelf uit de database en stuurt een
 // pushmelding naar de anderen. Er gaat nooit meer dan 1 melding per bericht uit.
 
-// INLOGCONTROLE: de app stuurt een inlogbewijs van Firebase mee. De server kan dat controleren.
-// Eerst staat dit op false: er wordt dan alleen in het Vercel-logboek gezet of het bewijs klopt,
-// maar er wordt niets geblokkeerd. Zie je daar een paar dagen "NOTIFY login: ok" bij elk bericht,
-// zet het dan op true. Dan worden aanroepen zonder geldig inlogbewijs geweigerd.
+// INLOGCONTROLE: de app stuurt optioneel een inlogbewijs van Firebase mee.
 const BLOKKEER_ZONDER_LOGIN = false;
 
 async function controleerInlog(req) {
@@ -55,11 +52,9 @@ export default async function handler(req, res) {
     const inlog = await controleerInlog(req);
     if (inlog.ok) {
       console.log('NOTIFY login: ok');
-    } else {
+    } else if (BLOKKEER_ZONDER_LOGIN) {
       console.warn('NOTIFY login: NIET geldig -', inlog.reden);
-      if (BLOKKEER_ZONDER_LOGIN) {
-        return res.status(401).json({ error: 'Niet ingelogd.' });
-      }
+      return res.status(401).json({ error: 'Niet ingelogd.' });
     }
 
     let body = req.body || {};
