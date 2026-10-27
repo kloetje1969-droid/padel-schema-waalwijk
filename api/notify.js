@@ -4,10 +4,6 @@ import { db, getTokensByPlayer, sendToTokens } from '../lib/padel.js';
 // baanboeking) is opgeslagen. De server leest dat bericht zelf uit de database en stuurt een
 // pushmelding naar de anderen. Er gaat nooit meer dan 1 melding per bericht uit.
 
-// INLOGCONTROLE: de app stuurt een inlogbewijs van Firebase mee. De server kan dat controleren.
-// Eerst staat dit op false: er wordt dan alleen in het Vercel-logboek gezet of het bewijs klopt,
-// maar er wordt niets geblokkeerd. Zie je daar een paar dagen "NOTIFY login: ok" bij elk bericht,
-// zet het dan op true. Dan worden aanroepen zonder geldig inlogbewijs geweigerd.
 const BLOKKEER_ZONDER_LOGIN = true;
 
 async function controleerInlog(req) {
@@ -23,21 +19,22 @@ async function controleerInlog(req) {
   }
 }
 
-// Functie om het actuele weer op te halen via Open-Meteo met het KNMI Harmonie Arome model
+// Functie om het actuele weer op te halen via Open-Meteo met het KNMI Harmonie Arome model (inclusief regenkans)
 async function checkKnmiWeerNeerslag() {
   try {
-    // Coördinaten van Waalwijk met expliciete KNMI-modelparameter
-    const url = 'https://api.open-meteo.com/v1/forecast?latitude=51.68&longitude=5.07&hourly=precipitation&models=knmi_seamless';
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=51.68&longitude=5.07&hourly=precipitation,precipitation_probability&models=knmi_seamless';
     const response = await fetch(url);
     if (!response.ok) return null;
     const data = await response.json();
     
-    if (data && data.hourly && data.hourly.precipitation && data.hourly.time) {
+    if (data && data.hourly && data.hourly.time) {
       const now = new Date();
-      // Zoek het uur dat het dichtst bij nu ligt of de avond (18:00 - 21:00)
       const currentHourIndex = data.hourly.time.findIndex(t => new Date(t).getHours() >= now.getHours());
       if (currentHourIndex !== -1) {
-        return data.hourly.precipitation[currentHourIndex]; // Neerslag in mm/u volgens KNMI-model
+        return {
+          neerslagMm: data.hourly.precipitation ? data.hourly.precipitation[currentHourIndex] : 0,
+          kansPct: data.hourly.precipitation_probability ? data.hourly.precipitation_probability[currentHourIndex] : 0
+        };
       }
     }
   } catch (err) {
@@ -78,7 +75,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Bericht niet gevonden.' });
     }
 
-    // Alleen berichten van de laatste 2 minuten (geen oude berichten opnieuw versturen)
+    // Alleen berichten van de laatste 2 minuten
     if (!m.timestamp || Date.now() - m.timestamp > 2 * 60 * 1000) {
       return res.status(200).json({ status: 'Bericht is te oud, geen melding verstuurd.' });
     }
@@ -97,10 +94,10 @@ export default async function handler(req, res) {
       title = '🔔 Padel update';
       text = String(m.text || 'Er is iets gewijzigd in de app.');
 
-      // Als het een speelronde- of systeemmelding betreft, controleren we direct via het KNMI-model of er neerslag verwacht wordt (> 1.0 mm/u)
-      const neerslagMm = await checkKnmiWeerNeerslag();
-      if (neerslagMm !== null && neerslagMm > 1.0) {
-        text += ` ⚠️ Let op: KNMI voorspelt regen (${neerslagMm} mm/u)!`;
+      // Controleer via KNMI of de kans op regen >= 60% is (of neerslag > 1.0 mm)
+      const weerInfo = await checkKnmiWeerNeerslag();
+      if (weerInfo !== null && (weerInfo.kansPct >= 60 || weerInfo.neerslagMm > 1.0)) {
+        text += ` ⚠️ Let op: KNMI voorspelt ${weerInfo.kansPct}% kans op regen (${weerInfo.neerslagMm} mm/u)!`;
       }
     } else {
       title = `💬 ${m.author || 'Padel chat'}`;
@@ -115,7 +112,6 @@ export default async function handler(req, res) {
     if (text.length > 120) text = text.slice(0, 117) + '...';
 
     const tokensData = await getTokensByPlayer();
-    // Iedereen krijgt de melding, ook degene die het bericht of de wijziging zelf deed
     const recipients = Object.keys(tokensData);
     const tokens = recipients.flatMap(player => Object.keys(tokensData[player] || {}));
 
@@ -127,7 +123,6 @@ export default async function handler(req, res) {
 
     const result = await sendToTokens(tokens, { title, body: text, tag: key });
 
-    // Dit verschijnt in het Vercel-logboek (Logs, klik op de regel, onder "Messages")
     console.log('NOTIFY resultaat', JSON.stringify({
       soort: isSystem ? 'systeem' : 'chat',
       titel: title,
@@ -141,7 +136,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: result.successCount > 0, ...result });
   } catch (error) {
     console.error('Fout bij versturen berichtmelding:', error);
-    // Technische details alleen in het logboek, niet naar de aanroeper
     return res.status(500).json({ error: 'Er ging iets mis bij het versturen van de melding.' });
   }
 }
