@@ -1472,8 +1472,6 @@
     }
     const db = firebase.database();
     
-    // Anonieme login: geen wachtwoord meer in de pagina.
-    // authReady is klaar zodra de inlog gelukt is; de app start pas daarna.
     const authReady = firebase.auth().signInAnonymously()
       .then((userCredential) => {
           console.log("Anoniem ingelogd:", userCredential.user.uid);
@@ -1613,8 +1611,6 @@
         }
     }
 
-    // Stuurt het Firebase-inlogbewijs (ID-token) mee, zodat de server kan controleren
-    // dat de aanroep van een ingelogde app komt.
     async function notifyServer(messageKey) {
         try {
             const user = firebase.auth().currentUser;
@@ -1795,8 +1791,6 @@
         }
     }
 
-    // De app start pas nadat de anonieme login klaar is, zodat de database-lezers
-    // niet te vroeg beginnen (anders kan de database ze weigeren).
     function initApp() {
         authReady.then(startApp);
     }
@@ -2217,7 +2211,7 @@
     }
 
     function fetchWaalwijkWeather() {
-        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation,weathercode,wind_speed_10m&models=knmi_seamless&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
+        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation,precipitation_probability,weathercode,wind_speed_10m&models=knmi_seamless&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
         
         fetch(weatherUrl)
             .then(res => res.json())
@@ -2226,6 +2220,7 @@
                     const times = data.hourly.time;
                     const temps = data.hourly.temperature_2m;
                     const precip = data.hourly.precipitation;
+                    const probs = data.hourly.precipitation_probability;
                     const codes = data.hourly.weathercode;
                     const winds = data.hourly.wind_speed_10m;
 
@@ -2233,6 +2228,7 @@
                         weatherCache[timeStr] = {
                             temp: temps[index],
                             rain: precip ? precip[index] : 0,
+                            rainProbability: probs ? probs[index] : 0,
                             code: codes[index],
                             wind: winds[index]
                         };
@@ -2280,7 +2276,8 @@
         if (!w) return `<span class="weather-badge">☁ Weer volgt</span>`;
         const emoji = getWeatherEmoji(w.code);
         const bft = kmhToBeaufort(w.wind);
-        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 windkracht ${bft} | 🌧️ ${w.rain} mm</span>`;
+        const probText = w.rainProbability !== undefined ? ` | ☔ ${w.rainProbability}%` : '';
+        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 windkracht ${bft} | 🌧️ ${w.rain} mm${probText}</span>`;
     }
 
     function updateAlertUI() {
@@ -2641,11 +2638,13 @@
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && dinsdagWeatherObj.rain > 1.0) 
-                ? `<div class="rain-alert">🌧️ Let op: Verwacht neerslag (${dinsdagWeatherObj.rain} mm)!</div>` : '';
+            // Dynamische regenwaarschuwing voor dinsdag (of de verplaatste dag) vanaf 60% kans of > 1.0 mm
+            let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && (dinsdagWeatherObj.rainProbability >= 60 || dinsdagWeatherObj.rain > 1.0)) 
+                ? `<div class="rain-alert">🌧️ Let op: ${dinsdagWeatherObj.rainProbability || 0}% kans op regen (${dinsdagWeatherObj.rain} mm)!</div>` : '';
             
-            let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && donderdagWeatherObj.rain > 1.0) 
-                ? `<div class="rain-alert">🌧️ Let op: Verwacht neerslag (${donderdagWeatherObj.rain} mm)!</div>` : '';
+            // Dynamische regenwaarschuwing voor donderdag (of de verplaatste dag) vanaf 60% kans of > 1.0 mm
+            let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && (donderdagWeatherObj.rainProbability >= 60 || donderdagWeatherObj.rain > 1.0)) 
+                ? `<div class="rain-alert">🌧️ Let op: ${donderdagWeatherObj.rainProbability || 0}% kans op regen (${donderdagWeatherObj.rain} mm)!</div>` : '';
 
             let dinsdagAbsentees = diCancelled ? [] : dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
             let donderdagAbsentees = doCancelled ? [] : donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
