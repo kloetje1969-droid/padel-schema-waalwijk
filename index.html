@@ -667,14 +667,14 @@
             background: var(--bg-color);
             color: var(--accent-blue);
             border: 1px solid var(--card-border);
-            padding: 3px 4px;
+            padding: 3px 6px;
             border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 700;
             outline: none;
             cursor: pointer;
             flex-shrink: 0;
-            width: 72px;
+            width: 76px;
             text-align: center;
         }
 
@@ -2692,8 +2692,16 @@
                     `</select>`;
             };
 
+            // GEWIJZIGD: Gebruik van <select> met digitale tijdstippen in plaats van <input type="time"> om de analoge klok pop-up op Android te vermijden
+            let availableTimes = ["17:00", "17:30", "18:00", "18:15", "18:30", "18:45", "19:00", "19:15", "19:30", "19:45", "20:00", "20:15", "20:30", "21:00", "21:30"];
             let makeTimeSelect = (currentTijd, slotKey) => {
-                return `<input type="time" class="tijd-select-inline" value="${currentTijd}" onchange="updateSpeelTijd('${uniqueWeekKey}', '${slotKey}', this.value)" title="Wijzig speeltijd">`;
+                if (!availableTimes.includes(currentTijd)) {
+                    availableTimes.push(currentTijd);
+                    availableTimes.sort();
+                }
+                return `<select class="tijd-select-inline" onchange="updateSpeelTijd('${uniqueWeekKey}', '${slotKey}', this.value)" title="Wijzig speeltijd">` +
+                    availableTimes.map(t => `<option value="${t}" ${t === currentTijd ? 'selected' : ''}>${t}</option>`).join('') +
+                    `</select>`;
             };
 
             let matchesContent = `
@@ -3292,7 +3300,7 @@
             return `
                 <div class="message ${isSelf ? 'self' : ''}">
                     <div class="message-header">
-                        <span class="author">${m.author} ${tijdWeergave}</span>
+                        <span class="author">${m.author} ${tijdWeggave || tijdWeergave}</span>
                         ${deleteBtnHtml}
                     </div>
                     ${textHtml}
