@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.25)</title>
+    <title>Padelschema - Rooster & Chat (v8.26)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -646,7 +646,13 @@
             background: rgba(251, 146, 60, 0.05);
         }
 
-        /* Compacte analoge tijdinvoer die perfect op één regel past */
+        .tijd-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            flex-shrink: 0;
+        }
+
         .tijd-input-inline {
             background: var(--bg-color);
             color: var(--accent-blue);
@@ -657,9 +663,24 @@
             font-weight: 700;
             outline: none;
             cursor: pointer;
-            flex-shrink: 0;
-            width: 72px;
+            width: 68px;
             text-align: center;
+        }
+
+        .tijd-save-btn {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-blue);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 3px 5px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .tijd-save-btn:hover {
+            background: rgba(56, 189, 248, 0.3);
         }
 
         .match-sub-info {
@@ -1356,7 +1377,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.25</span>
+        <span>Padelschema v8.26</span>
         <span>© Robert</span>
     </div>
 </div>
@@ -1407,7 +1428,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.25";
+    const APP_VERSION = "8.26";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function getPadelIcon() {
@@ -2676,10 +2697,14 @@
                     `</select>`;
             };
 
-            // Analoge tijdinvoer (<input type="time">) met compacte stijlen zodat het strak op één regel past
             let makeTimeInput = (currentTijd, slotKey) => {
                 let workingTijd = currentTijd || "18:30";
-                return `<input type="time" class="tijd-input-inline" value="${workingTijd}" onchange="updateSpeelTijd('${uniqueWeekKey}', '${slotKey}', this.value)" title="Wijzig speeltijd">`;
+                return `
+                    <div class="tijd-input-wrapper">
+                        <input type="time" id="tijd_${uniqueWeekKey}_${slotKey}" class="tijd-input-inline" value="${workingTijd}" onchange="updateSpeelTijd('${uniqueWeekKey}', '${slotKey}', this.value)">
+                        <button class="tijd-save-btn" onclick="handmatigOpslaanTijd('${uniqueWeekKey}', '${slotKey}')" title="Opslaan">💾</button>
+                    </div>
+                `;
             };
 
             let matchesContent = `
@@ -2845,6 +2870,13 @@
         await db.ref(path).set(newTime);
         showToast("Tijd opgeslagen", `Speeltijd gewijzigd naar ${newTime}`);
         await addSystemMessageIfUnique(`⏰ Speeltijd voor ${slotKey} in week ${uniqueWeekKey.split('_w')[1]} is gewijzigd naar ${newTime}.`);
+    }
+
+    async function handmatigOpslaanTijd(uniqueWeekKey, slotKey) {
+        const inputElem = document.getElementById(`tijd_${uniqueWeekKey}_${slotKey}`);
+        if (inputElem && inputElem.value) {
+            await updateSpeelTijd(uniqueWeekKey, slotKey, inputElem.value);
+        }
     }
 
     function renderPlayerChips(players, uniqueWeekKey, day, isCancelled) {
