@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.20)</title>
+    <title>Padelschema - Rooster & Chat (v8.21)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -837,14 +837,17 @@
 
         .absence-alert {
             background: var(--danger-bg);
-            border-top: 1px solid rgba(248, 113, 113, 0.3);
+            border: 1px solid rgba(248, 113, 113, 0.3);
             color: #fca5a5;
-            padding: 8px 14px;
+            padding: 6px 10px;
             font-size: 0.75rem;
             font-weight: 500;
             display: flex;
             align-items: center;
             gap: 6px;
+            border-radius: 6px;
+            margin-top: 4px;
+            margin-bottom: 2px;
         }
 
         .rain-alert {
@@ -1349,7 +1352,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.20</span>
+        <span>Padelschema v8.21</span>
         <span>© Robert</span>
     </div>
 </div>
@@ -1400,7 +1403,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.20";
+    const APP_VERSION = "8.21";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function getPadelIcon() {
@@ -1408,19 +1411,15 @@
         const month = now.getMonth() + 1; // 1-12
         const day = now.getDate();
 
-        // 1. Cadeautje: 15 november t/m 6 december
         if ((month === 11 && day >= 15) || (month === 12 && day <= 6)) {
             return '🎁';
         }
-        // 2. Kerstman: 7 december t/m 30 december
         if (month === 12 && day >= 7 && day <= 30) {
             return '🎅';
         }
-        // 3. Wijnglazen: 31 december t/m 1 januari
         if ((month === 12 && day === 31) || (month === 1 && day === 1)) {
             return '🥂';
         }
-        // 4. Standaard: Padelbal
         return '🥎';
     }
 
@@ -2636,6 +2635,12 @@
             let dinsdagAbsentees = diCancelled ? [] : dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
             let donderdagAbsentees = doCancelled ? [] : donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
 
+            let dinsdagAbsenceAlert = (!diCancelled && dinsdagAbsentees.length > 0) 
+                ? `<div class="absence-alert">⚠️ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : '';
+
+            let donderdagAbsenceAlert = (!doCancelled && donderdagAbsentees.length > 0) 
+                ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : '';
+
             let diMatchId = `${uniqueWeekKey}_dinsdag`;
             let doMatchId = `${uniqueWeekKey}_donderdag`;
             let diRes = matchResults[diMatchId] || { t1s1:'', t2s1:'', t1s2:'', t2s2:'', t1s3:'', t2s3:'' };
@@ -2670,6 +2675,7 @@
 
                         ${dinsdagRainAlert}
                         ${dinsdagBodyHtml}
+                        ${dinsdagAbsenceAlert}
 
                         ${!diCancelled ? `
                         <div class="match-score-section">
@@ -2705,7 +2711,6 @@
                             </div>
                         </div>` : ''}
                     </div>
-                    ${!diCancelled && dinsdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : ''}
                 </div>
 
                 <div class="match-row-wrapper">
@@ -2725,6 +2730,7 @@
 
                         ${donderdagRainAlert}
                         ${donderdagBodyHtml}
+                        ${donderdagAbsenceAlert}
 
                         ${!doCancelled ? `
                         <div class="match-score-section">
@@ -2760,7 +2766,6 @@
                             </div>
                         </div>` : ''}
                     </div>
-                    ${!doCancelled && donderdagAbsentees.length > 0 ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : ''}
                 </div>
             `;
 
