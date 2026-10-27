@@ -1,4 +1,4 @@
-Import { db, getTokensByPlayer, sendToTokens } from '../lib/padel.js';
+import { db, getTokensByPlayer, sendToTokens } from '../lib/padel.js';
 
 // De app roept dit aan nadat er een chatbericht of systeembericht (afmelding, schemawijziging,
 // baanboeking) is opgeslagen. De server leest dat bericht zelf uit de database en stuurt een
