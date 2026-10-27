@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.26)</title>
+    <title>Padelschema - Rooster & Chat (v8.27)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -67,6 +67,11 @@
             font-weight: 600;
             pointer-events: auto;
             animation: slideDownIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .toast-banner.toast-error {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);
         }
 
         .toast-banner.fade-out {
@@ -665,22 +670,6 @@
             cursor: pointer;
             width: 68px;
             text-align: center;
-        }
-
-        .tijd-save-btn {
-            background: rgba(56, 189, 248, 0.15);
-            color: var(--accent-blue);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            padding: 3px 5px;
-            border-radius: 6px;
-            font-size: 0.7rem;
-            cursor: pointer;
-            font-weight: bold;
-            line-height: 1;
-        }
-
-        .tijd-save-btn:hover {
-            background: rgba(56, 189, 248, 0.3);
         }
 
         .match-sub-info {
@@ -1377,7 +1366,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.26</span>
+        <span>Padelschema v8.27</span>
         <span>© Robert</span>
     </div>
 </div>
@@ -1428,7 +1417,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.26";
+    const APP_VERSION = "8.27";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function getPadelIcon() {
@@ -1717,12 +1706,12 @@
         setInterval(updateClock, 1000);
     }
 
-    function showToast(title, text) {
+    function showToast(title, text, isError) {
         const container = document.getElementById('toastContainer');
         if (!container) return;
 
         const toast = document.createElement('div');
-        toast.className = 'toast-banner';
+        toast.className = 'toast-banner' + (isError ? ' toast-error' : '');
         toast.innerHTML = `
             ${emojiIconHtml}
             <div style="flex-grow: 1;">
@@ -1736,7 +1725,7 @@
         setTimeout(() => {
             toast.classList.add('fade-out');
             setTimeout(() => toast.remove(), 300);
-        }, 5000);
+        }, isError ? 8000 : 5000);
     }
 
     function toggleBaanBoekingMenu() {
@@ -2701,8 +2690,7 @@
                 let workingTijd = currentTijd || "18:30";
                 return `
                     <div class="tijd-input-wrapper">
-                        <input type="time" id="tijd_${uniqueWeekKey}_${slotKey}" class="tijd-input-inline" value="${workingTijd}" onchange="updateSpeelTijd('${uniqueWeekKey}', '${slotKey}', this.value)">
-                        <button class="tijd-save-btn" onclick="handmatigOpslaanTijd('${uniqueWeekKey}', '${slotKey}')" title="Opslaan">💾</button>
+                        <input type="time" id="tijd_${uniqueWeekKey}_${slotKey}" class="tijd-input-inline" value="${workingTijd}" onchange="debouncedSpeelTijd('${uniqueWeekKey}', '${slotKey}', this.value)">
                     </div>
                 `;
             };
@@ -2861,21 +2849,29 @@
         await addSystemMessageIfUnique(`📅 Een speeldag in week ${uniqueWeekKey.split('_w')[1]} is gewijzigd naar ${newDay}.`);
     }
 
-    async function updateSpeelTijd(uniqueWeekKey, slotKey, newTime) {
-        if (!newTime) return;
-        if (!liveOverrides[uniqueWeekKey]) liveOverrides[uniqueWeekKey] = {};
-        liveOverrides[uniqueWeekKey][slotKey + 'Tijd'] = newTime;
-
-        let path = `padelData/scheduleOverrides/${uniqueWeekKey}/${slotKey}Tijd`;
-        await db.ref(path).set(newTime);
-        showToast("Tijd opgeslagen", `Speeltijd gewijzigd naar ${newTime}`);
-        await addSystemMessageIfUnique(`⏰ Speeltijd voor ${slotKey} in week ${uniqueWeekKey.split('_w')[1]} is gewijzigd naar ${newTime}.`);
+    // Wacht even met opslaan, zodat tijdens het typen/kiezen niet elke tussenwaarde wordt opgeslagen
+    const speelTijdTimers = {};
+    function debouncedSpeelTijd(uniqueWeekKey, slotKey, newTime) {
+        const timerKey = `${uniqueWeekKey}_${slotKey}`;
+        clearTimeout(speelTijdTimers[timerKey]);
+        speelTijdTimers[timerKey] = setTimeout(() => {
+            updateSpeelTijd(uniqueWeekKey, slotKey, newTime);
+        }, 800);
     }
 
-    async function handmatigOpslaanTijd(uniqueWeekKey, slotKey) {
-        const inputElem = document.getElementById(`tijd_${uniqueWeekKey}_${slotKey}`);
-        if (inputElem && inputElem.value) {
-            await updateSpeelTijd(uniqueWeekKey, slotKey, inputElem.value);
+    async function updateSpeelTijd(uniqueWeekKey, slotKey, newTime) {
+        if (!newTime) return;
+
+        const stored = (liveOverrides[uniqueWeekKey] || {})[slotKey + 'Tijd'] || "18:30";
+        if (stored === newTime) return;
+
+        try {
+            await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}/${slotKey}Tijd`).set(newTime);
+            showToast("Tijd opgeslagen", `Speeltijd gewijzigd naar ${newTime}`);
+            await addSystemMessageIfUnique(`⏰ Speeltijd voor ${slotKey} in week ${uniqueWeekKey.split('_w')[1]} is gewijzigd naar ${newTime}.`);
+        } catch (err) {
+            console.error("Tijd opslaan mislukt:", err);
+            showToast("Opslaan mislukt", err.code || err.message || "Onbekende fout", true);
         }
     }
 
