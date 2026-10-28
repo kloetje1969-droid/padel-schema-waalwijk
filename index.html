@@ -93,7 +93,6 @@
             vertical-align: middle;
         }
 
-        /* Baan Boeken stijl in exact dezelfde lijn als Wie boekt, Baan en Slot */
         .booking-input-soft {
             background-color: var(--bg-color) !important;
             color: var(--text-main) !important;
@@ -103,6 +102,12 @@
         .booking-input-soft option {
             background-color: var(--card-bg);
             color: var(--text-main);
+        }
+
+        /* Zorgt dat het kalender-icoontje in datetime-local goed zichtbaar is op mobiel */
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.8);
+            cursor: pointer;
         }
 
         #ptr-element {
@@ -1305,7 +1310,7 @@
         </details>
     </div>
 
-    <!-- MODULE: BAAN BOEKEN (Exact in dezelfde stijl als Wie boekt, Baan en Slot) -->
+    <!-- MODULE: BAAN BOEKEN (Met originele datetime-local invoer en duidelijke aanduiding erboven) -->
     <div class="card">
         <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
             <div class="section-title" style="font-size: 0.95rem;">
@@ -1337,21 +1342,17 @@
                     <option value="dinsdag">🟢 Slot: 1e wedstrijd (Di)</option>
                     <option value="donderdag">🟠 Slot: 2e wedstrijd (Do)</option>
                 </select>
-                <!-- Aangepast: Datum & Tijd keuzemenu in exact dezelfde stijl als de overige velden -->
-                <select id="boekingDateTime" class="booking-input-soft" style="flex-grow: 1; min-width: 150px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;">
-                    <option value="" disabled selected>-- Datum & Tijd --</option>
-                    <option value="2026-11-03T19:30">Di 3 Nov - 19:30 uur</option>
-                    <option value="2026-11-05T19:30">Do 5 Nov - 19:30 uur</option>
-                    <option value="2026-11-10T19:30">Di 10 Nov - 19:30 uur</option>
-                    <option value="2026-11-12T19:30">Do 12 Nov - 19:30 uur</option>
-                    <option value="custom">📅 Afwijkende datum/tijd kiezen...</option>
-                </select>
-                <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
             </div>
-            <!-- Verborgen custom datum-tijd kiezertje indien afwijkend geselecteerd -->
-            <div id="customDateTimeWrapper" style="display: none; margin-top: 4px;">
-                <input type="datetime-local" id="customBookingDateTime" class="booking-input-soft" style="padding: 7px; border-radius: 6px; font-size: 0.8rem; outline: none; width: 100%;">
+
+            <!-- Duidelijk label / tekst boven de datum- en tijdinvoer zodat je direct ziet wat je daar invult -->
+            <div style="display: flex; flex-direction: column; gap: 3px; margin-top: 4px;">
+                <label for="boekingDateTime" style="font-size: 0.72rem; color: var(--accent-blue); font-weight: 700;">📅 Speeldatum & Starttijd:</label>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <input type="datetime-local" id="boekingDateTime" class="booking-input-soft" style="padding: 7px 10px; border-radius: 6px; font-size: 0.85rem; outline: none; flex-grow: 1; font-weight: 500;">
+                    <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
+                </div>
             </div>
+
             <div id="baanBoekingLijst" style="font-size: 0.75rem; color: var(--text-main); margin-top: 4px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--card-border); padding-top: 6px;"></div>
         </div>
     </div>
@@ -1578,21 +1579,6 @@
         startLiveClock();
         updatePushPermissionButtonUI();
         applyDynamicIcons();
-
-        // Listener voor het openen/sluiten van custom datumveld in Baan Boeken
-        const boekingDateTimeSelect = document.getElementById('boekingDateTime');
-        if (boekingDateTimeSelect) {
-            boekingDateTimeSelect.addEventListener('change', function() {
-                const customWrapper = document.getElementById('customDateTimeWrapper');
-                if (customWrapper) {
-                    if (this.value === 'custom') {
-                        customWrapper.style.display = 'block';
-                    } else {
-                        customWrapper.style.display = 'none';
-                    }
-                }
-            });
-        }
 
         if (sessionStorage.getItem('padel_unlocked') === 'true') {
             document.getElementById('pinOverlay').style.display = 'none';
@@ -2235,17 +2221,12 @@
         const select = document.getElementById('boekingDropdown');
         const baanSelect = document.getElementById('baanDropdown');
         const slotTargetSelect = document.getElementById('slotTargetDropdown');
-        const dateSelect = document.getElementById('boekingDateTime');
-        const customDateInput = document.getElementById('customBookingDateTime');
+        const dateInput = document.getElementById('boekingDateTime');
         
         const gekozenSpeler = select.value;
         const gekozenBaan = baanSelect.value;
         const targetSlot = slotTargetSelect ? slotTargetSelect.value : 'auto';
-        
-        let gekozenDatum = dateSelect.value;
-        if (gekozenDatum === 'custom') {
-            gekozenDatum = customDateInput ? customDateInput.value : '';
-        }
+        const gekozenDatum = dateInput.value;
 
         if (!gekozenSpeler) {
             alert("Selecteer eerst een speler uit het menu!");
@@ -2258,7 +2239,7 @@
         }
 
         if (!gekozenDatum) {
-            alert("Kies alstublieft een datum en tijd uit het menu (of kies 'Afwijkende datum/tijd')!");
+            alert("Kies alstublieft een datum en tijd in het invoerveld!");
             return;
         }
 
@@ -2317,10 +2298,7 @@
             select.value = "";
             baanSelect.value = "";
             if (slotTargetSelect) slotTargetSelect.value = "auto";
-            dateSelect.value = "";
-            if (customDateInput) customDateInput.value = "";
-            const customWrapper = document.getElementById('customDateTimeWrapper');
-            if (customWrapper) customWrapper.style.display = 'none';
+            dateInput.value = "";
 
             showToast("Baan geboekt & Schema bijgewerkt!", `Tijd en dag zijn automatisch overgezet naar speelschema week ${weekNum}.`);
         } catch (error) {
