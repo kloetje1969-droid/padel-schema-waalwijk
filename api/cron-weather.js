@@ -1,61 +1,20 @@
-import { timingSafeEqual } from 'node:crypto';
 import {
   db,
   amsterdamNow,
   getWeekInfo,
+  getTodaysMatches,
+  inWindow,
+  pad2,
+  isCronAuthorized,
   getTokensByPlayer,
   tokensOf,
   sendToTokens
 } from '../lib/padel.js';
 
-const CRON_SECRET = process.env.CRON_SECRET || '';
-const RAIN_THRESHOLD = 60;
-const PRECIPITATION_THRESHOLD = 1.0; // in mm
-
-const DAGEN = {
-  Mon: 'maandag',
-  Tue: 'dinsdag',
-  Wed: 'woensdag',
-  Thu: 'donderdag',
-  Fri: 'vrijdag',
-  Sat: 'zaterdag',
-  Sun: 'zondag'
-};
-
-const DAY_ALIASES = {
-  maandag: 'maandag', monday: 'maandag', mon: 'maandag',
-  dinsdag: 'dinsdag', tuesday: 'dinsdag', tue: 'dinsdag',
-  woensdag: 'woensdag', wednesday: 'woensdag', wed: 'woensdag',
-  donderdag: 'donderdag', thursday: 'donderdag', thu: 'donderdag',
-  vrijdag: 'vrijdag', friday: 'vrijdag', fri: 'vrijdag',
-  zaterdag: 'zaterdag', saturday: 'zaterdag', sat: 'zaterdag',
-  zondag: 'zondag', sunday: 'zondag', sun: 'zondag'
-};
-
-function authorized(req) {
-  const supplied = String(req.headers['x-cron-secret'] || '');
-  if (!CRON_SECRET || !supplied) return false;
-  const sBuf = Buffer.from(supplied);
-  const eBuf = Buffer.from(CRON_SECRET);
-  if (sBuf.length !== eBuf.length) return false;
-  return timingSafeEqual(sBuf, eBuf);
-}
-
-function normalizeDay(value) {
-  if (!value) return null;
-  return DAY_ALIASES[String(value).trim().toLowerCase()] || null;
-}
-
-function parseTime(timeStr) {
-  if (!timeStr || typeof timeStr !== 'string') return { hour: 18, minute: 30 };
-  const parts = timeStr.split(':');
-  if (parts.length >= 2) {
-    const h = parseInt(parts[0], 10);
-    const m = parseInt(parts[1], 10);
-    if (!isNaN(h) && !isNaN(m)) return { hour: h, minute: m };
-  }
-  return { hour: 18, minute: 30 };
-}
+const RAIN_THRESHOLD = 60;          // regenkans in %
+const PRECIPITATION_THRESHOLD = 1.0; // neerslag in mm (1,0 of meer)
+const CHECK_BEFORE_START_MIN = 30;   // weercheck 30 minuten voor aanvang
+const WINDOW_MIN = 30;               // de check mag maximaal 30 minuten na het doeltijdstip draaien
 
 async function getRainForecast(dateKey, targetHour) {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
@@ -71,7 +30,7 @@ async function getRainForecast(dateKey, targetHour) {
   const weather = await response.json();
   const hourly = weather.hourly;
 
-  const targetTime = `${dateKey}T${String(targetHour).padStart(2, '0')}:00`;
+  const targetTime = `${dateKey}T${pad2(targetHour)}:00`;
   const index = hourly.time.indexOf(targetTime);
   if (index === -1) throw new Error(`Geen weersverwachting gevonden voor ${targetTime}`);
 
@@ -86,115 +45,87 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ status: 'Methode niet toegestaan' });
   }
-  if (!authorized(req)) {
+  if (!isCronAuthorized(req)) {
     return res.status(401).json({ status: 'Niet geautoriseerd' });
   }
 
-  let lockRef = null;
-  let lockClaimed = false;
-
   try {
     const nl = amsterdamNow();
-    const vandaag = DAGEN[nl.weekday];
-    if (!vandaag) return res.status(500).json({ status: 'Onbekende weekdag' });
-
     const week = getWeekInfo(nl.year, nl.month, nl.day);
-    const weekSnap = await db.ref(`padelData/scheduleOverrides/${week.key}`).once('value');
+
+    const [weekSnap, absenceSnap] = await Promise.all([
+      db.ref(`padelData/scheduleOverrides/${week.key}`).once('value'),
+      db.ref('padelData/absence').once('value')
+    ]);
     const weekOverride = weekSnap.val() || {};
+    const absences = absenceSnap.val() || {};
 
-    const possibleSlots = ['dinsdag', 'donderdag', 'maandag', 'woensdag', 'vrijdag', 'zaterdag', 'zondag'];
-    let actieveSlotInfo = null;
+    const matches = getTodaysMatches(nl, week, weekOverride);
+    if (matches.length === 0) {
+      return res.status(200).json({ status: 'Geen speeldag/wedstrijd vandaag', date: nl.dateKey });
+    }
 
-    for (const slot of possibleSlots) {
-      const override = weekOverride[slot];
-      if (override && typeof override === 'object' && !Array.isArray(override) && override.cancelled === true) {
+    const results = [];
+
+    for (const match of matches) {
+      const target = match.hour * 60 + match.minute - CHECK_BEFORE_START_MIN;
+      const info = { slot: match.slot, start: match.timeString };
+
+      if (!inWindow(nl, target, WINDOW_MIN)) {
+        results.push({
+          ...info,
+          status: 'Niet het juiste tijdstip voor de weerscheck',
+          doelTijd: `${pad2(Math.floor(target / 60))}:${pad2(target % 60)}`,
+          huidigeTijd: `${pad2(nl.hour)}:${pad2(nl.minute)}`
+        });
         continue;
       }
 
-      const customKey = `custom${slot.charAt(0).toUpperCase() + slot.slice(1)}`;
-      const specificTimeKey = weekOverride[`${slot}Tijd`] ? `${slot}Tijd` : `custom${slot.charAt(0).toUpperCase() + slot.slice(1)}Tijd`;
-      const scheduledDay = normalizeDay(weekOverride[customKey]) || normalizeDay(override?.day) || slot;
+      const forecast = await getRainForecast(nl.dateKey, match.hour);
+      if (forecast.probability < RAIN_THRESHOLD || forecast.precipitation < PRECIPITATION_THRESHOLD) {
+        results.push({ ...info, status: 'Geen weerpush nodig (onder drempel)', ...forecast });
+        continue;
+      }
 
-      if (scheduledDay === vandaag) {
-        const timeString = weekOverride[specificTimeKey] || override?.time || '18:30';
-        const { hour, minute } = parseTime(timeString);
+      // Alleen spelers die niet afwezig zijn
+      const activePlayers = match.players.filter(p => !(absences[p] && absences[p][`${week.key}_${match.slot}`]));
+      const tokens = tokensOf(await getTokensByPlayer(), activePlayers);
+      if (tokens.length === 0) {
+        results.push({ ...info, status: 'Geen pushtokens gevonden', spelers: activePlayers });
+        continue;
+      }
 
-        let players = ['Marcel', 'Mark', 'Ronald', 'Sander', 'Dennis', 'Robert'];
-        if (override && override.players && Array.isArray(override.players)) {
-          players = override.players;
+      // Maximaal 1x per wedstrijd per dag
+      const lockRef = db.ref(`padelData/sentWeatherPushes/${nl.dateKey}_${match.slot}`);
+      const claim = await lockRef.transaction(cur => (cur !== null ? undefined : { status: 'sending', startedAt: Date.now() }));
+      if (!claim.committed) {
+        results.push({ ...info, status: 'Weerpush al verstuurd' });
+        continue;
+      }
+
+      try {
+        const result = await sendToTokens(tokens, {
+          title: '🌧️ Kans op regen tijdens padel',
+          body: `Vandaag om ${match.timeString} uur padel. Regenkans ${forecast.probability}% (${forecast.precipitation} mm).`,
+          tag: `padel-weather-${nl.dateKey}-${match.slot}`
+        });
+
+        if (Number(result.successCount || 0) > 0) {
+          await lockRef.update({ status: 'sent', sentAt: Date.now(), successCount: result.successCount });
+          results.push({ ...info, status: 'Weerpush verstuurd', successCount: result.successCount, ...forecast });
         } else {
-          const matchSnap = await db.ref(`padelData/matches/${week.key}/${slot}`).once('value');
-          const matchData = matchSnap.val();
-          if (matchData && matchData.players) {
-            players = Array.isArray(matchData.players) ? matchData.players : Object.values(matchData.players);
-          }
+          await lockRef.remove();
+          results.push({ ...info, status: 'Geen push afgeleverd', errorCodes: result.errorCodes });
         }
-
-        actieveSlotInfo = { slot, timeString, hour, minute, players, override };
-        break;
+      } catch (err) {
+        await lockRef.remove();
+        throw err;
       }
     }
 
-    if (!actieveSlotInfo) {
-      return res.status(200).json({ status: 'Geen actieve speeldag vandaag', date: nl.dateKey });
-    }
-
-    // Weerscheck moet precies 30 minuten vóór aanvang draaien
-    let checkHour = actieveSlotInfo.hour;
-    let checkMinute = actieveSlotInfo.minute - 30;
-    if (checkMinute < 0) {
-      checkMinute += 60;
-      checkHour -= 1;
-    }
-
-    const currentH = Number(nl.hour || 0);
-    const currentM = Number(nl.minute || 0);
-    const targetTotalMins = checkHour * 60 + checkMinute;
-    const currentTotalMins = currentH * 60 + currentM;
-
-    if (Math.abs(currentTotalMins - targetTotalMins) > 30) {
-      return res.status(200).json({
-        status: 'Niet het juiste tijdstip voor de weerscheck',
-        doelTijd: `${String(checkHour).padStart(2, '0')}:${String(checkMinute).padStart(2, '0')}`,
-        huidigeTijd: `${String(currentH).padStart(2, '0')}:${String(currentM).padStart(2, '0')}`
-      });
-    }
-
-    const forecast = await getRainForecast(nl.dateKey, actieveSlotInfo.hour);
-
-    if (forecast.probability < RAIN_THRESHOLD || forecast.precipitation <= PRECIPITATION_THRESHOLD) {
-      return res.status(200).json({ status: 'Geen weerpush nodig (onder drempel)', probability: forecast.probability, precipitation: forecast.precipitation });
-    }
-
-    const tokensData = await getTokensByPlayer();
-    const tokens = tokensOf(tokensData, actieveSlotInfo.players);
-    if (tokens.length === 0) {
-      return res.status(200).json({ status: 'Geen pushtokens gevonden' });
-    }
-
-    lockRef = db.ref(`padelData/sentWeatherPushes/${nl.dateKey}`);
-    const claim = await lockRef.transaction(current => (current !== null ? undefined : { status: 'sending', startedAt: Date.now() }));
-    if (!claim.committed) {
-      return res.status(200).json({ status: 'Weerpush vandaag al verstuurd' });
-    }
-    lockClaimed = true;
-
-    const result = await sendToTokens(tokens, {
-      title: '🌧️ Kans op regen tijdens padel',
-      body: `Vanavond om ${actieveSlotInfo.timeString} uur padel. Regenkans ${forecast.probability}% (${forecast.precipitation} mm).`,
-      tag: `padel-weather-${nl.dateKey}`
-    });
-
-    if (Number(result?.successCount || 0) > 0) {
-      await lockRef.update({ status: 'sent', sentAt: Date.now(), successCount: result.successCount });
-      return res.status(200).json({ status: 'Weerpush verstuurd', successCount: result.successCount });
-    }
-
-    await lockRef.remove();
-    return res.status(502).json({ status: 'Geen push afgeleverd' });
+    return res.status(200).json({ date: nl.dateKey, results });
   } catch (error) {
     console.error('Cron weather error:', error);
-    if (lockClaimed && lockRef) await lockRef.remove();
     return res.status(500).json({ status: 'Fout bij weercontrole', error: String(error?.message || error) });
   }
 }
