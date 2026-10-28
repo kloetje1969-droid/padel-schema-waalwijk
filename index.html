@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.27)</title>
+    <title>Padelschema - Rooster & Chat (v8.28)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -622,7 +622,8 @@
             font-size: 0.78rem;
             font-weight: 700;
             color: var(--accent-blue);
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
+            row-gap: 4px;
             flex-grow: 1;
             min-width: 0;
         }
@@ -654,22 +655,33 @@
         .tijd-input-wrapper {
             display: flex;
             align-items: center;
-            gap: 2px;
+            gap: 1px;
             flex-shrink: 0;
         }
 
-        .tijd-input-inline {
+        .tijd-vak {
             background: var(--bg-color);
             color: var(--accent-blue);
             border: 1px solid var(--card-border);
-            padding: 3px 4px;
+            padding: 5px 0;
             border-radius: 6px;
             font-size: 0.72rem;
             font-weight: 700;
+            font-family: inherit;
             outline: none;
-            cursor: pointer;
-            width: 68px;
+            width: 19px;
+            box-sizing: border-box;
             text-align: center;
+        }
+
+        .tijd-vak:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .tijd-sep {
+            color: var(--accent-blue);
+            font-weight: 700;
+            font-size: 0.78rem;
         }
 
         .match-sub-info {
@@ -1366,7 +1378,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.27</span>
+        <span>Padelschema v8.28</span>
         <span>© Robert</span>
     </div>
 </div>
@@ -1417,7 +1429,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.27";
+    const APP_VERSION = "8.28";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function getPadelIcon() {
@@ -2687,10 +2699,17 @@
             };
 
             let makeTimeInput = (currentTijd, slotKey) => {
-                let workingTijd = currentTijd || "18:30";
+                const tijdKey = `${uniqueWeekKey}_${slotKey}`;
+                const concept = tijdConcepten[tijdKey];
+                const delen = String(currentTijd || "18:30").split(':');
+                const uurWaarde = concept ? concept.h : (delen[0] || "18");
+                const minWaarde = concept ? concept.m : (delen[1] || "30");
                 return `
                     <div class="tijd-input-wrapper">
-                        <input type="time" id="tijd_${uniqueWeekKey}_${slotKey}" class="tijd-input-inline" value="${workingTijd}" onchange="debouncedSpeelTijd('${uniqueWeekKey}', '${slotKey}', this.value)">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" aria-label="Uur" id="tijdu_${tijdKey}" class="tijd-vak" value="${uurWaarde}" oninput="onTijdTyp(this, '${uniqueWeekKey}', '${slotKey}', 'h')">
+                        <span class="tijd-sep">:</span>
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" aria-label="Minuten" id="tijdm_${tijdKey}" class="tijd-vak" value="${minWaarde}" oninput="onTijdTyp(this, '${uniqueWeekKey}', '${slotKey}', 'm')">
+                        <button class="btn-edit" onclick="saveSpeelTijd('${uniqueWeekKey}', '${slotKey}')" title="Speeltijd opslaan" style="padding: 5px 3px; font-size: 0.7rem;">💾</button>
                     </div>
                 `;
             };
@@ -2840,7 +2859,15 @@
                 `;
             }
         }
+        // Tijdens het typen van een speeltijd de focus en cursor behouden bij een verversing
+        const actief = document.activeElement;
+        const actiefId = (actief && /^tijd[um]_/.test(actief.id || '')) ? actief.id : null;
+        const cursorPos = actiefId ? actief.selectionStart : null;
         container.innerHTML = html;
+        if (actiefId) {
+            const terug = document.getElementById(actiefId);
+            if (terug) { terug.focus(); try { terug.setSelectionRange(cursorPos, cursorPos); } catch (e) {} }
+        }
     }
 
     async function updateWeekDay(uniqueWeekKey, slotKey, newDay) {
@@ -2849,29 +2876,61 @@
         await addSystemMessageIfUnique(`📅 Een speeldag in week ${uniqueWeekKey.split('_w')[1]} is gewijzigd naar ${newDay}.`);
     }
 
-    // Wacht even met opslaan, zodat tijdens het typen/kiezen niet elke tussenwaarde wordt opgeslagen
-    const speelTijdTimers = {};
-    function debouncedSpeelTijd(uniqueWeekKey, slotKey, newTime) {
-        const timerKey = `${uniqueWeekKey}_${slotKey}`;
-        clearTimeout(speelTijdTimers[timerKey]);
-        speelTijdTimers[timerKey] = setTimeout(() => {
-            updateSpeelTijd(uniqueWeekKey, slotKey, newTime);
-        }, 800);
+    // Getypte maar nog niet opgeslagen tijden, zodat ze niet verdwijnen als het schema ververst
+    const tijdConcepten = {};
+
+    function onTijdTyp(el, uniqueWeekKey, slotKey, deel) {
+        el.value = el.value.replace(/\D/g, '').slice(0, 2);
+        const tijdKey = `${uniqueWeekKey}_${slotKey}`;
+        const uurEl = document.getElementById(`tijdu_${tijdKey}`);
+        const minEl = document.getElementById(`tijdm_${tijdKey}`);
+        tijdConcepten[tijdKey] = { h: uurEl.value, m: minEl.value };
+        // Na twee cijfers bij het uur direct door naar de minuten
+        if (deel === 'h' && el.value.length === 2) { minEl.focus(); minEl.select(); }
+    }
+
+    async function saveSpeelTijd(uniqueWeekKey, slotKey) {
+        const tijdKey = `${uniqueWeekKey}_${slotKey}`;
+        const uurEl = document.getElementById(`tijdu_${tijdKey}`);
+        const minEl = document.getElementById(`tijdm_${tijdKey}`);
+        if (!uurEl || !minEl) return;
+
+        const uur = parseInt(uurEl.value, 10);
+        const min = minEl.value === '' ? 0 : parseInt(minEl.value, 10);
+        if (isNaN(uur) || isNaN(min) || uur < 0 || uur > 23 || min < 0 || min > 59) {
+            showToast("Ongeldige tijd", "Vul een tijd in tussen 00:00 en 23:59.", true);
+            return;
+        }
+        const pad = n => String(n).padStart(2, '0');
+        const nieuweTijd = `${pad(uur)}:${pad(min)}`;
+        uurEl.value = pad(uur);
+        minEl.value = pad(min);
+
+        const resultaat = await updateSpeelTijd(uniqueWeekKey, slotKey, nieuweTijd);
+        if (resultaat === 'zelfde') {
+            delete tijdConcepten[tijdKey];
+            showToast("Tijd ongewijzigd", `De speeltijd staat al op ${nieuweTijd}`);
+        } else if (resultaat === 'ok') {
+            delete tijdConcepten[tijdKey];
+        }
+        // bij een fout blijft de getypte tijd staan, dan kun je het opnieuw proberen
     }
 
     async function updateSpeelTijd(uniqueWeekKey, slotKey, newTime) {
-        if (!newTime) return;
+        if (!newTime) return 'fout';
 
         const stored = (liveOverrides[uniqueWeekKey] || {})[slotKey + 'Tijd'] || "18:30";
-        if (stored === newTime) return;
+        if (stored === newTime) return 'zelfde';
 
         try {
             await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}/${slotKey}Tijd`).set(newTime);
             showToast("Tijd opgeslagen", `Speeltijd gewijzigd naar ${newTime}`);
             await addSystemMessageIfUnique(`⏰ Speeltijd voor ${slotKey} in week ${uniqueWeekKey.split('_w')[1]} is gewijzigd naar ${newTime}.`);
+            return 'ok';
         } catch (err) {
             console.error("Tijd opslaan mislukt:", err);
             showToast("Opslaan mislukt", err.code || err.message || "Onbekende fout", true);
+            return 'fout';
         }
     }
 
