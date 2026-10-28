@@ -1662,8 +1662,21 @@
             const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
             if (!token) return;
 
+            // Maak een nette, leesbare datum en tijd string aan
+            const nu = new Date();
+            const leesbareTijd = nu.toLocaleString('nl-NL', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+            });
+
             const updates = {};
-            updates[`padelData/tokens/${currentUserName}/${token}`] = true;
+            updates[`padelData/tokens/${currentUserName}/${token}`] = {
+                createdAtFormatted: leesbareTijd
+            };
             await db.ref().update(updates);
 
             localStorage.setItem('padel_fcm_user', currentUserName);
