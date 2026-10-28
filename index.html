@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.29)</title>
+    <title>Padelschema - Rooster & Chat (v8.30)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -102,11 +102,6 @@
         .booking-input-soft option {
             background-color: var(--card-bg);
             color: var(--text-main);
-        }
-
-        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-            filter: invert(0.8);
-            cursor: pointer;
         }
 
         #ptr-element {
@@ -1346,11 +1341,9 @@
                 </select>
             </div>
 
-            <!-- Duidelijk label ervoor zodat het altijd zichtbaar is in dezelfde stijl -->
+            <!-- Altijd netjes gevuld met duidelijke tekst en automatische datumkiezer bij aanraken -->
             <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
-                <div style="position: relative; flex-grow: 1; display: flex; align-items: center;">
-                    <input type="datetime-local" id="boekingDateTime" class="booking-input-soft" style="padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; width: 100%; font-weight: 500;">
-                </div>
+                <input type="text" id="boekingDateTime" class="booking-input-soft" placeholder="📅 Speeldatum & Starttijd" onfocus="this.type='datetime-local'; this.focus();" style="padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; flex-grow: 1; font-weight: 500;">
                 <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
             </div>
 
@@ -1399,7 +1392,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.29</span>
+        <span>Padelschema v8.30</span>
         <span>© Robert</span>
     </div>
 </div>
@@ -1450,7 +1443,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.29";
+    const APP_VERSION = "8.30";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function getPadelIcon() {
@@ -2299,6 +2292,7 @@
             select.value = "";
             baanSelect.value = "";
             if (slotTargetSelect) slotTargetSelect.value = "auto";
+            dateInput.type = "text";
             dateInput.value = "";
 
             showToast("Baan geboekt & Schema bijgewerkt!", `Tijd en dag zijn automatisch overgezet naar speelschema week ${weekNum}.`);
