@@ -1310,7 +1310,7 @@
         </details>
     </div>
 
-    <!-- MODULE: BAAN BOEKEN (Met originele datetime-local invoer en duidelijke aanduiding erboven) -->
+    <!-- MODULE: BAAN BOEKEN (Met datum/tijd geïntegreerd in dezelfde stijl als de knoppen erboven) -->
     <div class="card">
         <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
             <div class="section-title" style="font-size: 0.95rem;">
@@ -1337,20 +1337,20 @@
                     <option value="Baan 9">Baan 9</option>
                     <option value="Baan 10">Baan 10</option>
                 </select>
-                <select id="slotTargetDropdown" class="booking-input-soft" style="min-width: 130px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;" title="Kies welk slot in het speelschema moet worden aangepast">
+            </div>
+
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 2px;">
+                <select id="slotTargetDropdown" class="booking-input-soft" style="flex-grow: 1; min-width: 130px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;" title="Kies welk slot in het speelschema moet worden aangepast">
                     <option value="auto">🔄 Slot: Automatisch</option>
                     <option value="dinsdag">🟢 Slot: 1e wedstrijd (Di)</option>
                     <option value="donderdag">🟠 Slot: 2e wedstrijd (Do)</option>
                 </select>
             </div>
 
-            <!-- Duidelijk label / tekst boven de datum- en tijdinvoer zodat je direct ziet wat je daar invult -->
-            <div style="display: flex; flex-direction: column; gap: 3px; margin-top: 4px;">
-                <label for="boekingDateTime" style="font-size: 0.72rem; color: var(--accent-blue); font-weight: 700;">📅 Speeldatum & Starttijd:</label>
-                <div style="display: flex; gap: 6px; align-items: center;">
-                    <input type="datetime-local" id="boekingDateTime" class="booking-input-soft" style="padding: 7px 10px; border-radius: 6px; font-size: 0.85rem; outline: none; flex-grow: 1; font-weight: 500;">
-                    <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
-                </div>
+            <!-- Invoer in dezelfde stijl als de keuzemenu's erboven, met nette placeholder/label -->
+            <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
+                <input type="datetime-local" id="boekingDateTime" class="booking-input-soft" style="padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; flex-grow: 1; font-weight: 500;" title="Speeldatum & Starttijd">
+                <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
             </div>
 
             <div id="baanBoekingLijst" style="font-size: 0.75rem; color: var(--text-main); margin-top: 4px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--card-border); padding-top: 6px;"></div>
