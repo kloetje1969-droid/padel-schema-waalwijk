@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.31)</title>
+    <title>Padelschema - Rooster & Chat (v8.33)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -99,6 +99,21 @@
             border: 1px solid var(--card-border) !important;
         }
         
+        .booking-btn-green {
+            background-color: rgba(52, 211, 153, 0.15) !important;
+            color: var(--accent-green) !important;
+            border: 1px solid var(--accent-green) !important;
+            font-weight: 700 !important;
+            text-align: center;
+            text-align-last: center;
+            cursor: pointer;
+        }
+
+        .booking-btn-green::placeholder {
+            color: var(--accent-green);
+            opacity: 1;
+        }
+
         .booking-input-soft option {
             background-color: var(--card-bg);
             color: var(--text-main);
@@ -1315,10 +1330,10 @@
         </div>
         <div id="baanBoekingenBody">
             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                <select id="boekingDropdown" class="booking-input-soft" style="flex-grow: 1; min-width: 110px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;">
+                <select id="boekingDropdown" class="booking-input-soft booking-btn-green" style="flex-grow: 1; min-width: 110px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;">
                     <option value="">-- Wie boekt? --</option>
                 </select>
-                <select id="baanDropdown" class="booking-input-soft" style="min-width: 90px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;">
+                <select id="baanDropdown" class="booking-input-soft booking-btn-green" style="min-width: 90px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;">
                     <option value="">-- Baan --</option>
                     <option value="Baan 1">Baan 1</option>
                     <option value="Baan 2">Baan 2</option>
@@ -1334,7 +1349,7 @@
             </div>
 
             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 2px;">
-                <select id="slotTargetDropdown" class="booking-input-soft" style="flex-grow: 1; min-width: 130px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;" title="Kies welk slot in het speelschema moet worden aangepast">
+                <select id="slotTargetDropdown" class="booking-input-soft booking-btn-green" style="flex-grow: 1; min-width: 130px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;" title="Kies welk slot in het speelschema moet worden aangepast">
                     <option value="auto">🔄 Slot: Automatisch</option>
                     <option value="dinsdag">🟢 Slot: 1e wedstrijd (Di)</option>
                     <option value="donderdag">🟠 Slot: 2e wedstrijd (Do)</option>
@@ -1342,7 +1357,7 @@
             </div>
 
             <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
-                <input type="text" id="boekingDateTime" class="booking-input-soft" placeholder="📅 Speeldatum & Starttijd" onfocus="this.type='datetime-local'; this.focus();" style="padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; flex-grow: 1; font-weight: 500;">
+                <input type="text" id="boekingDateTime" class="booking-input-soft booking-btn-green" placeholder="📅 Speeldatum & Starttijd" onfocus="this.type='datetime-local'; this.focus();" style="padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; flex-grow: 1; font-weight: 500;">
                 <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
             </div>
 
@@ -1391,7 +1406,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.31</span>
+        <span>Padelschema v8.33</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1443,7 +1458,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.31";
+    const APP_VERSION = "8.33";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function getPadelIcon() {
