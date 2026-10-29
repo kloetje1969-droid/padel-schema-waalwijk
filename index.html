@@ -1927,6 +1927,11 @@
             renderSetsRanking();
         });
 
+        // EXTRA LISTENER: Zorgt ervoor dat wijzigingen in cyclusMeta direct worden opgepikt
+        db.ref('padelData/cyclusMeta').on('value', (snapshot) => {
+            checkAndStoreCyclusWinner();
+        });
+
         db.ref('padelData/presence').on('value', (snapshot) => {
             allStatuses = snapshot.val() || {};
             renderStatuses();
@@ -2072,16 +2077,13 @@
         return { gameCounts, matchCounts };
     }
 
-    // AANGEPAST: Bekendmaking wacht 30 minuten nadat alle uitslagen zijn ingevuld
     async function checkAndStoreCyclusWinner() {
         if (!overridesLoaded) return;
         const activeCyclusIdx = getActiveCyclusIndex();
         
-        // Controleer alle afgeronde én de huidige cyclus
         for (let cyclusIdx = 0; cyclusIdx <= activeCyclusIdx; cyclusIdx++) {
             if (cyclusClaimInFlight[cyclusIdx]) continue;
             
-            // Als de cyclus al definitief is opgeslagen, overslaan
             if (cyclusWinnaars && cyclusWinnaars[cyclusIdx] && cyclusWinnaars[cyclusIdx].winner) continue;
 
             cyclusClaimInFlight[cyclusIdx] = true;
@@ -2091,17 +2093,21 @@
                 const snap = await ref.once('value');
                 const existingData = snap.val();
 
-                // 1. Is er al een claim gelegd met een vertraging (claimAt)?
+                // Controleer of de claimAt timer in cyclusMeta of cyclusWinnaars is verstreken
+                let isTimePassed = false;
                 if (existingData && existingData.claimAt) {
-                    const now = Date.now();
-                    if (now < existingData.claimAt) {
-                        // De 30 minuten zijn nog NIET voorbij
-                        continue;
-                    }
-                } else {
-                    // Nog geen claim of geen vertragingstijdstip ingesteld
-                    continue;
+                    if (Date.now() >= existingData.claimAt) isTimePassed = true;
                 }
+                
+                if (!isTimePassed) {
+                    const metaSnap = await db.ref(`padelData/cyclusMeta`).once('value');
+                    const metaVal = metaSnap.val();
+                    if (metaVal && metaVal.claimAt && Date.now() >= metaVal.claimAt) {
+                        isTimePassed = true;
+                    }
+                }
+
+                if (!isTimePassed) continue;
 
                 const { gameCounts } = getGameCountsForCyclus(cyclusIdx);
                 
@@ -2222,7 +2228,6 @@
         }
     }
 
-    // AANGEPAST: Controleert of alle 12 wedstrijden van de cyclus ingevuld zijn & zet vertraging van 30 minuten
     async function saveMatchScore3Sets(matchId, p1, p2, p3, p4) {
         if (!currentUserName) {
             alert("Kies eerst je naam bovenin de app!");
@@ -2259,7 +2264,7 @@
 
         notifyServer(sysRef.key);
 
-        // CONTROLEER OF ALLE 12 WEDSTRIJDEN VAN DE CYCLUS ZIJN INGEVULD
+        // DYNAMISCHE CONTROLE OP HET EINDE VAN DE CYCLUS
         try {
             const parts = matchId.split('_');
             if (parts.length >= 3) {
@@ -2270,38 +2275,41 @@
                 const diffWeeks = Math.round((matchWeekStart.getTime() - referenceMonday.getTime()) / (1000 * 60 * 60 * 24 * 7));
                 const cyclusIndex = Math.floor(diffWeeks / 6);
 
-                let totalMatchesInCyclus = 0;
+                let totalExistingInCyclus = 0;
                 let filledMatchesInCyclus = 0;
 
-                // Tel alle 6 weken van de cyclus
-                for (let w = 0; w < 6; w++) {
-                    const cWeekMonday = new Date(referenceMonday.getTime() + (cyclusIndex * 6 + w) * 7 * 86400000);
-                    const cYear = getISOYear(cWeekMonday);
-                    const cWeek = getISOWeekNumber(cWeekMonday);
-                    const cWeekKey = `${cYear}_w${cWeek}`;
+                for (const mId in matchResults) {
+                    const mParts = mId.split('_');
+                    if (mParts.length < 3) continue;
+                    const mYear = parseInt(mParts[0], 10);
+                    const mWeek = parseInt(mParts[1].replace('w', ''), 10);
+                    const mWeekStart = isoWeekToMonday(mYear, mWeek);
+                    const mDiff = Math.round((mWeekStart.getTime() - referenceMonday.getTime()) / (1000 * 60 * 60 * 24 * 7));
+                    const mCyclus = Math.floor(mDiff / 6);
 
-                    ['dinsdag', 'donderdag'].forEach(slot => {
-                        totalMatchesInCyclus++;
-                        const mId = `${cWeekKey}_${slot}`;
-                        const res = matchResults[mId] || (mId === matchId ? matchData : null);
-                        
-                        // Een wedstrijd is geldig ingevuld als er setstanden zijn ingevoerd
+                    if (mCyclus === cyclusIndex) {
+                        totalExistingInCyclus++;
+                        const res = matchResults[mId];
                         if (res && (res.t1s1 !== '' || res.t2s1 !== '' || res.t1s2 !== '' || res.t2s2 !== '')) {
                             filledMatchesInCyclus++;
                         }
-                    });
+                    }
+                }
+                
+                // Voeg de huidige match ook toe aan de telling als hij nog niet in matchResults stond
+                if (totalExistingInCyclus === 0) {
+                    totalExistingInCyclus = 1;
+                    filledMatchesInCyclus = 1;
                 }
 
-                // Als álle 12 wedstrijden in de cyclus zijn ingevoerd: stel vertraging van 30 minuten in
-                if (filledMatchesInCyclus >= totalMatchesInCyclus) {
-                    const cyclusWinnerRef = db.ref(`padelData/cyclusWinnaars/${cyclusIndex}`);
-                    const snap = await cyclusWinnerRef.once('value');
+                if (totalExistingInCyclus > 0 && filledMatchesInCyclus >= totalExistingInCyclus) {
+                    const cyclusMetaRef = db.ref(`padelData/cyclusMeta`);
+                    const snap = await cyclusMetaRef.once('value');
                     const val = snap.val();
 
-                    // Alleen instellen als er nog geen definitieve winnaar is opgeslagen
-                    if (!val || !val.winner) {
+                    if (!val || !val.claimAt) {
                         const claimAt = Date.now() + (30 * 60 * 1000); // Nu + 30 minuten
-                        await cyclusWinnerRef.update({
+                        await cyclusMetaRef.update({
                             claimAt: claimAt,
                             lastMatchSavedAt: Date.now()
                         });
