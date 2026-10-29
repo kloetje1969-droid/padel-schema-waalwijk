@@ -1464,7 +1464,6 @@
     const APP_VERSION = "8.37";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
-    // Maakt getypte tekst veilig om in de pagina te tonen (voorkomt kapotte knoppen en onveilige code)
     function esc(v) {
         return String(v == null ? '' : v)
             .replace(/&/g, '&amp;')
@@ -1474,12 +1473,10 @@
             .replace(/'/g, '&#39;');
     }
 
-    // Veilige tekst als argument in een onclick="..." (werkt ook bij namen met een apostrof)
     function jsArg(v) {
         return esc(JSON.stringify(v == null ? '' : String(v)));
     }
 
-    // Alleen echte foto's/bestanden en gewone links toestaan als bijlage
     function safeUrl(u) {
         const url = String(u == null ? '' : u);
         return /^(data:(image|application)\/|https?:\/\/)/i.test(url) ? url : '';
@@ -1598,7 +1595,7 @@
     let messages = [];
     let weatherCache = {};
     const MAX_CHAT_MESSAGES = 100;
-    let lastSeenMessageKey = localStorage.getItem('padel_last_seen_key'); // null = nog niet ingesteld
+    let lastSeenMessageKey = localStorage.getItem('padel_last_seen_key');
     let isInitialMessageLoad = true;
     let fileBusy = false;
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
@@ -1699,7 +1696,6 @@
 
     async function notifyServer(messageKey) {
         try {
-            // Push uit (door Robert)? Dan niets versturen. Vlag wordt vers uit Firebase gelezen.
             const pushSnap = await db.ref('padelData/settings/pushGloballyEnabled').once('value');
             if (pushSnap.val() === false) return;
 
@@ -1764,7 +1760,6 @@
             });
 
             const updates = {};
-            // Deze telefoon hoort maar bij de naam die nu gekozen is: haal hem weg bij de andere namen
             basePlayers.forEach(naam => {
                 if (naam !== currentUserName) updates[`padelData/tokens/${naam}/${token}`] = null;
             });
@@ -1963,7 +1958,6 @@
             messages = lijst;
             isInitialMessageLoad = false;
 
-            // Eerste keer met deze telling: alles wat er nu staat telt als gelezen
             if (lastSeenMessageKey === null) {
                 lastSeenMessageKey = messages.length ? messages[messages.length - 1].key : '';
                 localStorage.setItem('padel_last_seen_key', lastSeenMessageKey);
@@ -2078,16 +2072,37 @@
         return { gameCounts, matchCounts };
     }
 
+    // AANGEPAST: Bekendmaking wacht 30 minuten nadat alle uitslagen zijn ingevuld
     async function checkAndStoreCyclusWinner() {
         if (!overridesLoaded) return;
         const activeCyclusIdx = getActiveCyclusIndex();
-        if (activeCyclusIdx <= 0) return;
-
-        for (let cyclusIdx = 0; cyclusIdx < activeCyclusIdx; cyclusIdx++) {
+        
+        // Controleer alle afgeronde én de huidige cyclus
+        for (let cyclusIdx = 0; cyclusIdx <= activeCyclusIdx; cyclusIdx++) {
             if (cyclusClaimInFlight[cyclusIdx]) continue;
+            
+            // Als de cyclus al definitief is opgeslagen, overslaan
+            if (cyclusWinnaars && cyclusWinnaars[cyclusIdx] && cyclusWinnaars[cyclusIdx].winner) continue;
+
             cyclusClaimInFlight[cyclusIdx] = true;
 
             try {
+                const ref = db.ref(`padelData/cyclusWinnaars/${cyclusIdx}`);
+                const snap = await ref.once('value');
+                const existingData = snap.val();
+
+                // 1. Is er al een claim gelegd met een vertraging (claimAt)?
+                if (existingData && existingData.claimAt) {
+                    const now = Date.now();
+                    if (now < existingData.claimAt) {
+                        // De 30 minuten zijn nog NIET voorbij
+                        continue;
+                    }
+                } else {
+                    // Nog geen claim of geen vertragingstijdstip ingesteld
+                    continue;
+                }
+
                 const { gameCounts } = getGameCountsForCyclus(cyclusIdx);
                 
                 const uniqueScoresDesc = [...new Set(basePlayers.map(p => gameCounts[p] || 0))].sort((a, b) => b - a);
@@ -2112,8 +2127,7 @@
                     summaryText += `\n🥉 3e plaats: ${thirdPlayers.join(', ')} (${bronsScore} games)`;
                 }
 
-                const ref = db.ref(`padelData/cyclusWinnaars/${cyclusIdx}`);
-                let wasAlreadyStored = Boolean(cyclusWinnaars && cyclusWinnaars[cyclusIdx]);
+                let wasAlreadyStored = Boolean(cyclusWinnaars && cyclusWinnaars[cyclusIdx] && cyclusWinnaars[cyclusIdx].winner);
                 
                 const result = await ref.transaction(current => {
                     if (current && current.winner === winnerText && Number(current.games) === maxGames) {
@@ -2128,8 +2142,8 @@
                             third: thirdPlayers
                         },
                         scores: gameCounts,
-                        timestamp: current && current.timestamp ? current.timestamp : Date.now(),
-                        updatedAt: current ? Date.now() : null
+                        timestamp: Date.now(),
+                        updatedAt: Date.now()
                     };
                 });
 
@@ -2181,7 +2195,7 @@
                 return;
             }
 
-            histContainer.innerHTML = Object.keys(cyclusWinnaars).sort((a, b) => Number(a) - Number(b)).map(idx => {
+            histContainer.innerHTML = Object.keys(cyclusWinnaars).filter(idx => cyclusWinnaars[idx] && cyclusWinnaars[idx].winner).sort((a, b) => Number(a) - Number(b)).map(idx => {
                 const wData = cyclusWinnaars[idx];
                 let podiumHtml = '';
                 if (wData.podium) {
@@ -2208,6 +2222,7 @@
         }
     }
 
+    // AANGEPAST: Controleert of alle 12 wedstrijden van de cyclus ingevuld zijn & zet vertraging van 30 minuten
     async function saveMatchScore3Sets(matchId, p1, p2, p3, p4) {
         if (!currentUserName) {
             alert("Kies eerst je naam bovenin de app!");
@@ -2243,6 +2258,60 @@
         });
 
         notifyServer(sysRef.key);
+
+        // CONTROLEER OF ALLE 12 WEDSTRIJDEN VAN DE CYCLUS ZIJN INGEVULD
+        try {
+            const parts = matchId.split('_');
+            if (parts.length >= 3) {
+                const year = parseInt(parts[0], 10);
+                const week = parseInt(parts[1].replace('w', ''), 10);
+                const referenceMonday = new Date(2026, 8, 21);
+                const matchWeekStart = isoWeekToMonday(year, week);
+                const diffWeeks = Math.round((matchWeekStart.getTime() - referenceMonday.getTime()) / (1000 * 60 * 60 * 24 * 7));
+                const cyclusIndex = Math.floor(diffWeeks / 6);
+
+                let totalMatchesInCyclus = 0;
+                let filledMatchesInCyclus = 0;
+
+                // Tel alle 6 weken van de cyclus
+                for (let w = 0; w < 6; w++) {
+                    const cWeekMonday = new Date(referenceMonday.getTime() + (cyclusIndex * 6 + w) * 7 * 86400000);
+                    const cYear = getISOYear(cWeekMonday);
+                    const cWeek = getISOWeekNumber(cWeekMonday);
+                    const cWeekKey = `${cYear}_w${cWeek}`;
+
+                    ['dinsdag', 'donderdag'].forEach(slot => {
+                        totalMatchesInCyclus++;
+                        const mId = `${cWeekKey}_${slot}`;
+                        const res = matchResults[mId] || (mId === matchId ? matchData : null);
+                        
+                        // Een wedstrijd is geldig ingevuld als er setstanden zijn ingevoerd
+                        if (res && (res.t1s1 !== '' || res.t2s1 !== '' || res.t1s2 !== '' || res.t2s2 !== '')) {
+                            filledMatchesInCyclus++;
+                        }
+                    });
+                }
+
+                // Als álle 12 wedstrijden in de cyclus zijn ingevoerd: stel vertraging van 30 minuten in
+                if (filledMatchesInCyclus >= totalMatchesInCyclus) {
+                    const cyclusWinnerRef = db.ref(`padelData/cyclusWinnaars/${cyclusIndex}`);
+                    const snap = await cyclusWinnerRef.once('value');
+                    const val = snap.val();
+
+                    // Alleen instellen als er nog geen definitieve winnaar is opgeslagen
+                    if (!val || !val.winner) {
+                        const claimAt = Date.now() + (30 * 60 * 1000); // Nu + 30 minuten
+                        await cyclusWinnerRef.update({
+                            claimAt: claimAt,
+                            lastMatchSavedAt: Date.now()
+                        });
+                        console.log(`Alle wedstrijden ingevuld voor cyclus ${cyclusIndex + 1}. Bekendmaking over 30 minuten.`);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Fout bij controleren cyclus-afronding:", e);
+        }
     }
 
     function renderBaanBoekingen() {
@@ -2470,13 +2539,12 @@
         if (kmh <= 11) return 2;
         if (kmh <= 19) return 3;
         if (kmh <= 28) return 4;
-        if (kmh <= 38) return 5;
-        if (kmh <= 49) return 6;
-        if (kmh <= 61) return 7;
-        if (kmh <= 74) return 8;
-        if (kmh <= 88) return 9;
-        if (kmh <= 102) return 10;
-        if (kmh <= 117) return 11;
+        if (kmh <= 49) return 5;
+        if (kmh <= 61) return 6;
+        if (kmh <= 74) return 7;
+        if (kmh <= 88) return 8;
+        if (kmh <= 102) return 9;
+        if (kmh <= 117) return 10;
         return 12;
     }
 
@@ -2780,7 +2848,6 @@
         let currentMonday = getMonday(now);
         currentMonday.setHours(0, 0, 0, 0);
 
-        // Laatste speeldag van deze week: minimaal donderdag, later als een wedstrijd is verplaatst (bijv. naar vrijdag of zaterdag)
         let lastDayOffset = 3;
         try {
             const weekKey = `${getISOYear(currentMonday)}_w${getISOWeekNumber(currentMonday)}`;
@@ -3578,7 +3645,6 @@
         const type = file.type || '';
         const kanVerkleinen = type.startsWith('image/') && type !== 'image/gif';
 
-        // Foto's worden automatisch kleiner gemaakt; overige bestanden mogen maximaal 2MB zijn
         if (kanVerkleinen && file.size > 20 * 1024 * 1024) {
             alert("De foto is te groot (maximaal 20MB).");
             inputEl.value = '';
@@ -3618,7 +3684,7 @@
             if (isSystem) {
                 return `
                     <div class="message system-update">
-                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div style="display: flex; justify-content: space-between; align- items: center; width: 100%;">
                             <span style="font-size: 0.75rem; color: var(--accent-blue); flex-grow: 1; white-space: pre-line; text-align: left; padding: 4px;">${esc(m.text)} ${tijdWeergave}</span>
                             ${deleteBtnHtml}
                         </div>
