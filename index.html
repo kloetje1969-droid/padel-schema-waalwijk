@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.34)</title>
+    <title>Padelschema - Rooster & Chat (v8.35)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1409,7 +1409,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.34</span>
+        <span>Padelschema v8.35</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1461,8 +1461,29 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.34";
+    const APP_VERSION = "8.35";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
+
+    // Maakt getypte tekst veilig om in de pagina te tonen (voorkomt kapotte knoppen en onveilige code)
+    function esc(v) {
+        return String(v == null ? '' : v)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // Veilige tekst als argument in een onclick="..." (werkt ook bij namen met een apostrof)
+    function jsArg(v) {
+        return esc(JSON.stringify(v == null ? '' : String(v)));
+    }
+
+    // Alleen echte foto's/bestanden en gewone links toestaan als bijlage
+    function safeUrl(u) {
+        const url = String(u == null ? '' : u);
+        return /^(data:(image|application)\/|https?:\/\/)/i.test(url) ? url : '';
+    }
 
     function getPadelIcon() {
         const now = new Date();
@@ -1512,7 +1533,10 @@
             }
         } catch (e) {}
     }
-    setInterval(checkAppVersion, 30000);
+    setInterval(checkAppVersion, 5 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkAppVersion();
+    });
 
     const firebaseConfig = {
         apiKey: "AIzaSyC2TvKuO8vSfzmaGu-CictLit5iuRnRFNU",
@@ -1567,13 +1591,16 @@
     ];
 
     let liveOverrides = {};
+    let overridesLoaded = false;
     let allStatuses = {};
     let allLastSeen = {};
     let absences = {};
     let messages = [];
     let weatherCache = {};
-    let lastSeenMessageCount = parseInt(localStorage.getItem('padel_last_seen_count') || '0');
+    const MAX_CHAT_MESSAGES = 100;
+    let lastSeenMessageKey = localStorage.getItem('padel_last_seen_key'); // null = nog niet ingesteld
     let isInitialMessageLoad = true;
+    let fileBusy = false;
     const userSessionId = 'sess_' + Math.random().toString(36).substring(2, 9);
 
     const PRESENCE_HEARTBEAT_MS = 10000;
@@ -1710,6 +1737,10 @@
             });
 
             const updates = {};
+            // Deze telefoon hoort maar bij de naam die nu gekozen is: haal hem weg bij de andere namen
+            basePlayers.forEach(naam => {
+                if (naam !== currentUserName) updates[`padelData/tokens/${naam}/${token}`] = null;
+            });
             updates[`padelData/tokens/${currentUserName}/${token}`] = {
                 createdAtFormatted: leesbareTijd
             };
@@ -1855,11 +1886,11 @@
         registerPushToken();
         applyDynamicIcons();
         
-        checkEnStartNieuweCyclus();
-
         db.ref('padelData/scheduleOverrides').on('value', (snapshot) => {
             liveOverrides = snapshot.val() || {};
+            overridesLoaded = true;
             renderAll();
+            checkAndStoreCyclusWinner();
         });
 
         db.ref('padelData/matchResults').on('value', (snapshot) => {
@@ -1896,14 +1927,19 @@
             renderBaanBoekingen();
         });
 
-        db.ref('padelData/messages').on('value', (snapshot) => {
-            const val = snapshot.val() || {};
-            messages = Object.keys(val).map(key => ({ key, ...val[key] }));
+        db.ref('padelData/messages').limitToLast(MAX_CHAT_MESSAGES).on('value', (snapshot) => {
+            const lijst = [];
+            snapshot.forEach(child => {
+                const v = child.val();
+                if (v && typeof v === 'object') lijst.push({ key: child.key, ...v });
+            });
+            messages = lijst;
             isInitialMessageLoad = false;
 
-            if (lastSeenMessageCount > messages.length) {
-                lastSeenMessageCount = messages.length;
-                localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
+            // Eerste keer met deze telling: alles wat er nu staat telt als gelezen
+            if (lastSeenMessageKey === null) {
+                lastSeenMessageKey = messages.length ? messages[messages.length - 1].key : '';
+                localStorage.setItem('padel_last_seen_key', lastSeenMessageKey);
             }
             updateAlertUI();
             renderChat();
@@ -1946,21 +1982,6 @@
         const newState = !globalPushEnabled;
         await db.ref('padelData/settings/pushGloballyEnabled').set(newState);
         showToast(newState ? "Pushnotificaties ingeschakeld" : "Pushnotificaties uitgeschakeld", newState ? "Het team ontvangt weer meldingen." : "Alle pushmeldingen voor het team zijn nu gepauzeerd.");
-    }
-
-    function checkEnStartNieuweCyclus() {
-        const cyclusRef = db.ref('padelData/cyclusMeta');
-        cyclusRef.once('value', (snapshot) => {
-            const data = snapshot.val();
-            const nu = Date.now();
-            const zesWekenMs = 6 * 7 * 24 * 60 * 60 * 1000;
-
-            if (!data || !data.startTijd || (nu - data.startTijd > zesWekenMs)) {
-                db.ref('padelData/baanBoekingenList').remove().catch(() => {});
-                db.ref('padelData/scheduleOverrides').remove().catch(() => {});
-                cyclusRef.set({ startTijd: nu });
-            }
-        });
     }
 
     function getActiveCyclusIndex() {
@@ -2031,6 +2052,7 @@
     }
 
     async function checkAndStoreCyclusWinner() {
+        if (!overridesLoaded) return;
         const activeCyclusIdx = getActiveCyclusIndex();
         if (activeCyclusIdx <= 0) return;
 
@@ -2141,16 +2163,16 @@
                     const t = Array.isArray(wData.podium.third) ? wData.podium.third.join(', ') : wData.podium.third;
                     
                     let pParts = [];
-                    if (f) pParts.push(`🥇 ${f}`);
-                    if (s) pParts.push(`🥈 ${s}`);
-                    if (t) pParts.push(`🥉 ${t}`);
+                    if (f) pParts.push(`🥇 ${esc(f)}`);
+                    if (s) pParts.push(`🥈 ${esc(s)}`);
+                    if (t) pParts.push(`🥉 ${esc(t)}`);
                     podiumHtml = `<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">${pParts.join(' | ')}</div>`;
                 }
                 return `
                     <div style="display: flex; flex-direction: column; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-weight: 600; color: var(--accent-orange);">Cyclus ${parseInt(idx, 10) + 1}</span>
-                            <span style="color: var(--text-main);">🏆 <strong>${wData.winner}</strong> (${wData.games} games)</span>
+                            <span style="color: var(--text-main);">🏆 <strong>${esc(wData.winner)}</strong> (${wData.games} games)</span>
                         </div>
                         ${podiumHtml}
                     </div>
@@ -2233,11 +2255,11 @@
             lijstContainer.innerHTML = `<div style="font-size: 0.72rem; color: var(--accent-blue); font-weight: 600; margin-bottom: 2px;">Geboekte momenten (deze cyclus):</div>` +
                 currentCyclusBoekingen.map(b => {
                     let formattedDt = formatExactDateTime(new Date(b.dateTime).getTime());
-                    let baanInfo = b.baan ? ` op <strong>${b.baan}</strong>` : '';
+                    let baanInfo = b.baan ? ` op <strong>${esc(b.baan)}</strong>` : '';
                     let canDelete = (currentUserName === "Robert" || b.player === currentUserName);
-                    let deleteBtn = canDelete ? `<button onclick="deleteBaanBoeking('${b.id}')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
+                    let deleteBtn = canDelete ? `<button onclick="deleteBaanBoeking(${jsArg(b.id)})" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
                     return `<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--card-border);">
-                        <span><span class="emoji-icon dynamic-ball-icon" style="font-size: 1rem;">${getPadelIcon()}</span> <strong>${b.player}</strong>${baanInfo}: ${formattedDt}</span>
+                        <span><span class="emoji-icon dynamic-ball-icon" style="font-size: 1rem;">${getPadelIcon()}</span> <strong>${esc(b.player)}</strong>${baanInfo}: ${formattedDt}</span>
                         ${deleteBtn}
                     </div>`;
                 }).join('');
@@ -2431,11 +2453,13 @@
         return 12;
     }
 
-    function getWeatherObject(dateObj) {
+    function getWeatherObject(dateObj, tijdStr) {
         const y = dateObj.getFullYear();
         const m = String(dateObj.getMonth() + 1).padStart(2, '0');
         const d = String(dateObj.getDate()).padStart(2, '0');
-        const key = `${y}-${m}-${d}T18:00`;
+        let uur = parseInt(String(tijdStr || '18:30').split(':')[0], 10);
+        if (isNaN(uur) || uur < 0 || uur > 23) uur = 18;
+        const key = `${y}-${m}-${d}T${String(uur).padStart(2, '0')}:00`;
         return weatherCache[key] || null;
     }
 
@@ -2450,7 +2474,7 @@
     function updateAlertUI() {
         const btn = document.getElementById("globalChatAlertBtn");
         const badge = document.getElementById("alertBadgeCount");
-        const unreadCount = messages.length - lastSeenMessageCount;
+        const unreadCount = messages.filter(m => m.key > (lastSeenMessageKey || '')).length;
 
         if (unreadCount > 0) {
             btn.classList.add("blinking");
@@ -2729,12 +2753,25 @@
         let currentMonday = getMonday(now);
         currentMonday.setHours(0, 0, 0, 0);
 
-        let thursdayOfThisWeek = new Date(currentMonday);
-        thursdayOfThisWeek.setDate(currentMonday.getDate() + 3);
-        thursdayOfThisWeek.setHours(23, 59, 59, 999);
+        // Laatste speeldag van deze week: minimaal donderdag, later als een wedstrijd is verplaatst (bijv. naar vrijdag of zaterdag)
+        let lastDayOffset = 3;
+        try {
+            const weekKey = `${getISOYear(currentMonday)}_w${getISOWeekNumber(currentMonday)}`;
+            const ov = liveOverrides[weekKey] || {};
+            [ov.customDinsdag, ov.customDonderdag].forEach(dagNaam => {
+                if (!dagNaam) return;
+                const idx = getDayIndexFromName(dagNaam);
+                const offset = (idx === 0 ? 7 : idx) - 1;
+                if (offset > lastDayOffset) lastDayOffset = offset;
+            });
+        } catch (e) {}
+
+        let lastMatchDay = new Date(currentMonday);
+        lastMatchDay.setDate(currentMonday.getDate() + lastDayOffset);
+        lastMatchDay.setHours(23, 59, 59, 999);
 
         let target = new Date(currentMonday);
-        if (now > thursdayOfThisWeek) target.setDate(target.getDate() + 7);
+        if (now > lastMatchDay) target.setDate(target.getDate() + 7);
         return target;
     }
 
@@ -2803,16 +2840,16 @@
             let dinsdagFormattedStr = dinsdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
             let donderdagFormattedStr = donderdagDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
 
-            let dinsdagWeatherObj = getWeatherObject(dinsdagDate);
-            let donderdagWeatherObj = getWeatherObject(donderdagDate);
+            let dinsdagWeatherObj = getWeatherObject(dinsdagDate, activeDinsdagTijd);
+            let donderdagWeatherObj = getWeatherObject(donderdagDate, activeDonderdagTijd);
 
             let dinsdagWeather = formatWeatherBadge(dinsdagWeatherObj);
             let donderdagWeather = formatWeatherBadge(donderdagWeatherObj);
 
-            let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && (dinsdagWeatherObj.rainProbability >= 60 || dinsdagWeatherObj.rain > 1.0)) 
+            let dinsdagRainAlert = (!diCancelled && dinsdagWeatherObj && (dinsdagWeatherObj.rainProbability >= 60 && dinsdagWeatherObj.rain >= 1.0)) 
                 ? `<div class="rain-alert">🌧️ Let op: ${dinsdagWeatherObj.rainProbability || 0}% kans op regen (${dinsdagWeatherObj.rain} mm)!</div>` : '';
             
-            let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && (donderdagWeatherObj.rainProbability >= 60 || donderdagWeatherObj.rain > 1.0)) 
+            let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && (donderdagWeatherObj.rainProbability >= 60 && donderdagWeatherObj.rain >= 1.0)) 
                 ? `<div class="rain-alert">🌧️ Let op: ${donderdagWeatherObj.rainProbability || 0}% kans op regen (${donderdagWeatherObj.rain} mm)!</div>` : '';
 
             let dinsdagAbsentees = diCancelled ? [] : dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
@@ -2906,7 +2943,7 @@
                                 </div>
                                 <div class="set-column-wrapper" style="flex: 0 0 auto;">
                                     <div class="set-column-title">&nbsp;</div>
-                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${diMatchId}', '${dinsdagPlayers[0]}', '${dinsdagPlayers[1]}', '${dinsdagPlayers[2]}', '${dinsdagPlayers[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
+                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${diMatchId}', ${jsArg(dinsdagPlayers[0])}, ${jsArg(dinsdagPlayers[1])}, ${jsArg(dinsdagPlayers[2])}, ${jsArg(dinsdagPlayers[3])})" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
                                 </div>
                             </div>
                         </div>` : ''}
@@ -2962,7 +2999,7 @@
                                 </div>
                                 <div class="set-column-wrapper" style="flex: 0 0 auto;">
                                     <div class="set-column-title">&nbsp;</div>
-                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${doMatchId}', '${donderdagPlayers[0]}', '${donderdagPlayers[1]}', '${donderdagPlayers[2]}', '${donderdagPlayers[3]}')" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
+                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${doMatchId}', ${jsArg(donderdagPlayers[0])}, ${jsArg(donderdagPlayers[1])}, ${jsArg(donderdagPlayers[2])}, ${jsArg(donderdagPlayers[3])})" style="padding: 4px 8px; font-size: 0.7rem;">💾</button>
                                 </div>
                             </div>
                         </div>` : ''}
@@ -3090,7 +3127,7 @@
                 if (isAbsent) cls += " absent-player";
             }
 
-            return `<span class="${cls}">${p}</span>`;
+            return `<span class="${cls}">${esc(p)}</span>`;
         };
 
         const team1 = players.slice(0, 2).map(createChip).join('');
@@ -3151,7 +3188,7 @@
         tbody.innerHTML = allKeys.map(p => {
             const isMe = (p === currentUserName);
             const data = counts[p];
-            let displayName = p;
+            let displayName = esc(p);
             if (isMe) displayName += ' (jij)';
             if (data.isSub) displayName += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
 
@@ -3209,7 +3246,7 @@
         tbody.innerHTML = allTablePlayers.map(p => {
             const isMe = (p === currentUserName);
             const isSub = !basePlayers.includes(p);
-            let nameDisplay = p;
+            let nameDisplay = esc(p);
             if (isMe) nameDisplay += ' (jij)';
             if (isSub) nameDisplay += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
 
@@ -3232,7 +3269,7 @@
 
                         rowHtml += `
                             <td>
-                                <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence('${p}', '${uniqueWeekKey}', '${day}', ${wn})">
+                                <button class="absence-btn ${isAbsent ? 'absent' : ''}" ${isDisabled ? 'disabled' : ''} onclick="toggleAbsence(${jsArg(p)}, '${uniqueWeekKey}', '${day}', ${wn})">
                                     ${isAbsent ? 'Afwezig' : 'Aanwezig'}
                                 </button>
                             </td>
@@ -3296,7 +3333,7 @@
 
                 let pVal = (currentPlayers && currentPlayers[i]) ? currentPlayers[i] : basePlayers[i];
                 if (currentUserName !== "Robert" && !availableOpts.includes(pVal)) {
-                    sel.innerHTML = `<option value="${pVal}">${pVal}</option>` + sel.innerHTML;
+                    sel.innerHTML = `<option value="${esc(pVal)}">${esc(pVal)}</option>` + sel.innerHTML;
                 }
 
                 if (basePlayers.includes(pVal) || (currentUserName !== "Robert" && pVal === currentUserName)) {
@@ -3436,32 +3473,108 @@
         return isToday ? timeStr : `${msgDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })} ${timeStr}`;
     }
 
+    function compressImageToDataUrl(file, maxSide, quality) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                try {
+                    let w = img.naturalWidth;
+                    let h = img.naturalHeight;
+                    const scale = Math.min(1, maxSide / Math.max(w, h));
+                    w = Math.max(1, Math.round(w * scale));
+                    h = Math.max(1, Math.round(h * scale));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.drawImage(img, 0, 0, w, h);
+                    URL.revokeObjectURL(url);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                } catch (e) {
+                    URL.revokeObjectURL(url);
+                    reject(e);
+                }
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error('Afbeelding niet leesbaar'));
+            };
+            img.src = url;
+        });
+    }
+
+    function setChosenFile(dataUrl, naam, type) {
+        selectedFileBase64 = dataUrl;
+        selectedFileName = naam;
+        selectedFileType = type;
+
+        const chatInput = document.getElementById('chatInput');
+        if (type.includes('pdf')) {
+            chatInput.placeholder = "📄 PDF gekozen: " + naam + "...";
+        } else if (type.includes('image')) {
+            chatInput.placeholder = "📷 Foto gekozen: " + naam + "...";
+        } else {
+            chatInput.placeholder = "📎 Bestand gekozen: " + naam + "...";
+        }
+    }
+
+    function readFileAsIs(file, inputEl) {
+        if (file.size > 2 * 1024 * 1024) {
+            alert("Het bestand is te groot (maximaal 2MB).");
+            inputEl.value = '';
+            document.getElementById('chatInput').placeholder = "Typ een bericht...";
+            fileBusy = false;
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            setChosenFile(e.target.result, file.name, file.type || '');
+            fileBusy = false;
+        };
+        reader.onerror = function() {
+            alert("Het bestand kon niet worden gelezen.");
+            inputEl.value = '';
+            fileBusy = false;
+        };
+        reader.readAsDataURL(file);
+    }
+
     function handleFileSelect(event) {
-        const file = event.target.files[0];
+        const inputEl = event.target;
+        const file = inputEl.files[0];
         if (!file) return;
 
-        if (file.size > 4 * 1024 * 1024) {
-            alert("Het bestand is te groot (maximaal 4MB).");
-            event.target.value = '';
+        const chatInput = document.getElementById('chatInput');
+        const type = file.type || '';
+        const kanVerkleinen = type.startsWith('image/') && type !== 'image/gif';
+
+        // Foto's worden automatisch kleiner gemaakt; overige bestanden mogen maximaal 2MB zijn
+        if (kanVerkleinen && file.size > 20 * 1024 * 1024) {
+            alert("De foto is te groot (maximaal 20MB).");
+            inputEl.value = '';
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            selectedFileBase64 = e.target.result;
-            selectedFileName = file.name;
-            selectedFileType = file.type;
-            
-            const chatInput = document.getElementById('chatInput');
-            if (selectedFileType.includes('pdf')) {
-                chatInput.placeholder = "📄 PDF gekozen: " + file.name + "...";
-            } else if (selectedFileType.includes('image')) {
-                chatInput.placeholder = "📷 Foto gekozen: " + file.name + "...";
-            } else {
-                chatInput.placeholder = "📎 Bestand gekozen: " + file.name + "...";
-            }
-        };
-        reader.readAsDataURL(file);
+        selectedFileBase64 = null;
+        selectedFileName = null;
+        selectedFileType = null;
+        fileBusy = true;
+
+        if (kanVerkleinen) {
+            chatInput.placeholder = "📷 Foto wordt verkleind...";
+            compressImageToDataUrl(file, 1280, 0.72)
+                .then(dataUrl => {
+                    const basis = file.name.replace(/\.[^.]+$/, '') || 'foto';
+                    setChosenFile(dataUrl, basis + '.jpg', 'image/jpeg');
+                    fileBusy = false;
+                })
+                .catch(() => readFileAsIs(file, inputEl));
+        } else {
+            readFileAsIs(file, inputEl);
+        }
     }
 
     function renderChat() {
@@ -3479,7 +3592,7 @@
                 return `
                     <div class="message system-update">
                         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                            <span style="font-size: 0.75rem; color: var(--accent-blue); flex-grow: 1; white-space: pre-line; text-align: left; padding: 4px;">${m.text} ${tijdWeergave}</span>
+                            <span style="font-size: 0.75rem; color: var(--accent-blue); flex-grow: 1; white-space: pre-line; text-align: left; padding: 4px;">${esc(m.text)} ${tijdWeergave}</span>
                             ${deleteBtnHtml}
                         </div>
                     </div>
@@ -3489,14 +3602,14 @@
             let attachmentHtml = '';
             if (m.fileUrl) {
                 if (m.fileType && m.fileType.includes('image')) {
-                    attachmentHtml = `<img src="${m.fileUrl}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 4px; cursor: pointer; object-fit: cover;" onclick="openImageModal('${m.fileUrl}')">`;
+                    attachmentHtml = `<img src="${safeUrl(m.fileUrl)}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 4px; cursor: pointer; object-fit: cover;" onclick="openImageModal(this.src)">`;
                 } else {
                     let icon = m.fileType && m.fileType.includes('pdf') ? '📄' : '📎';
                     attachmentHtml = `
-                        <a href="${m.fileUrl}" download="${m.fileName || 'document'}" target="_blank" style="display: flex; align-items: center; gap: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 10px; border-radius: 6px; color: var(--accent-blue); text-decoration: none; margin-top: 4px; font-weight: 500;">
+                        <a href="${safeUrl(m.fileUrl)}" download="${esc(m.fileName || 'document')}" target="_blank" style="display: flex; align-items: center; gap: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 10px; border-radius: 6px; color: var(--accent-blue); text-decoration: none; margin-top: 4px; font-weight: 500;">
                             <span style="font-size: 1.2rem;">${icon}</span>
                             <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1;">
-                                <div style="font-size: 0.8rem; font-weight: bold;">${m.fileName || 'Bijlage openen'}</div>
+                                <div style="font-size: 0.8rem; font-weight: bold;">${esc(m.fileName || 'Bijlage openen')}</div>
                                 <div style="font-size: 0.65rem; color: var(--text-muted);">Klik om te downloaden/bekijken</div>
                             </div>
                         </a>
@@ -3504,12 +3617,12 @@
                 }
             }
 
-            let textHtml = (m.text && m.text !== "(Bestand)" && m.text !== "(Foto)") ? `<span>${m.text}</span>` : '';
+            let textHtml = (m.text && m.text !== "(Bestand)" && m.text !== "(Foto)") ? `<span>${esc(m.text)}</span>` : '';
 
             return `
                 <div class="message ${isSelf ? 'self' : ''}">
                     <div class="message-header">
-                        <span class="author">${m.author} ${tijdWeergave}</span>
+                        <span class="author">${esc(m.author)} ${tijdWeergave}</span>
                         ${deleteBtnHtml}
                     </div>
                     ${textHtml}
@@ -3523,6 +3636,11 @@
     async function sendMessage() {
         if (!currentUserName) {
             alert("Kies eerst je naam bovenin de app voordat je een bericht stuurt!");
+            return;
+        }
+
+        if (fileBusy) {
+            alert("Even wachten, de bijlage wordt nog verwerkt.");
             return;
         }
 
@@ -3581,8 +3699,8 @@
     }
 
     function scrollToChat() {
-        lastSeenMessageCount = messages.length;
-        localStorage.setItem('padel_last_seen_count', lastSeenMessageCount);
+        lastSeenMessageKey = messages.length ? messages[messages.length - 1].key : '';
+        localStorage.setItem('padel_last_seen_key', lastSeenMessageKey);
         updateAlertUI();
         document.getElementById('chatCardSection').scrollIntoView({ behavior: 'smooth' });
     }
