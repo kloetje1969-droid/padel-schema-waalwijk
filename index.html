@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.30)</title>
+    <title>Padelschema - Rooster & Chat (v8.31)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1391,7 +1391,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.30</span>
+        <span>Padelschema v8.31</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1443,7 +1443,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.30";
+    const APP_VERSION = "8.31";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function getPadelIcon() {
@@ -1654,6 +1654,10 @@
 
     async function notifyServer(messageKey) {
         try {
+            // Push uit (door Robert)? Dan niets versturen. Vlag wordt vers uit Firebase gelezen.
+            const pushSnap = await db.ref('padelData/settings/pushGloballyEnabled').once('value');
+            if (pushSnap.val() === false) return;
+
             const user = firebase.auth().currentUser;
             const token = user ? await user.getIdToken() : '';
             fetch('/api/notify', {
