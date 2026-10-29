@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.33)</title>
+    <title>Padelschema - Rooster & Chat (v8.34)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1357,7 +1357,10 @@
             </div>
 
             <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
-                <input type="text" id="boekingDateTime" class="booking-input-soft booking-btn-green" placeholder="📅 Speeldatum & Starttijd" onfocus="this.type='datetime-local'; this.focus();" style="padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; flex-grow: 1; font-weight: 500;">
+                <div style="position: relative; flex-grow: 1; display: flex;">
+                    <button type="button" id="boekingDateTimeBtn" class="booking-input-soft booking-btn-green" onclick="openBoekingDatePicker()" style="width: 100%; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;">📅 Speeldatum &amp; Starttijd</button>
+                    <input type="datetime-local" id="boekingDateTime" tabindex="-1" aria-hidden="true" onchange="onBoekingDateChange()" style="position: absolute; left: 0; bottom: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; border: 0; padding: 0;">
+                </div>
                 <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
             </div>
 
@@ -1406,7 +1409,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.33</span>
+        <span>Padelschema v8.34</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1458,7 +1461,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.33";
+    const APP_VERSION = "8.34";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function getPadelIcon() {
@@ -2241,6 +2244,42 @@
         }
     }
 
+    function openBoekingDatePicker() {
+        const input = document.getElementById('boekingDateTime');
+        if (!input) return;
+        try {
+            if (typeof input.showPicker === 'function') {
+                input.showPicker();
+                return;
+            }
+        } catch (e) {}
+        input.focus();
+        input.click();
+    }
+
+    function onBoekingDateChange() {
+        const input = document.getElementById('boekingDateTime');
+        const btn = document.getElementById('boekingDateTimeBtn');
+        if (!input || !btn) return;
+        if (!input.value) {
+            resetBoekingDateLabel();
+            return;
+        }
+        const d = new Date(input.value);
+        if (isNaN(d.getTime())) {
+            resetBoekingDateLabel();
+            return;
+        }
+        const datumStr = d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+        const tijdStr = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+        btn.textContent = `📅 ${datumStr} om ${tijdStr}`;
+    }
+
+    function resetBoekingDateLabel() {
+        const btn = document.getElementById('boekingDateTimeBtn');
+        if (btn) btn.textContent = '📅 Speeldatum & Starttijd';
+    }
+
     async function registreerBoekingDropdown() {
         const select = document.getElementById('boekingDropdown');
         const baanSelect = document.getElementById('baanDropdown');
@@ -2322,8 +2361,8 @@
             select.value = "";
             baanSelect.value = "";
             if (slotTargetSelect) slotTargetSelect.value = "auto";
-            dateInput.type = "text";
             dateInput.value = "";
+            resetBoekingDateLabel();
 
             showToast("Baan geboekt & Schema bijgewerkt!", `Tijd en dag zijn automatisch overgezet naar speelschema week ${weekNum}.`);
         } catch (error) {
