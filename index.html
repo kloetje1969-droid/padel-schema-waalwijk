@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.36)</title>
+    <title>Padelschema - Rooster & Chat (v8.37)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1409,7 +1409,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.36</span>
+        <span>Padelschema v8.37</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1461,7 +1461,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.36";
+    const APP_VERSION = "8.37";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     // Maakt getypte tekst veilig om in de pagina te tonen (voorkomt kapotte knoppen en onveilige code)
@@ -1715,6 +1715,33 @@
                 keepalive: true
             }).catch(() => {});
         } catch (e) {}
+    }
+
+    async function requestPushPermission() {
+        if (typeof Notification === 'undefined' || !messaging) {
+            showToast("Meldingen niet beschikbaar", "Deze browser ondersteunt geen pushmeldingen. Op een iPhone: zet de app eerst op je beginscherm.", true);
+            return;
+        }
+        if (Notification.permission === 'denied') {
+            showToast("Meldingen geblokkeerd", "Sta meldingen toe voor deze website in de instellingen van je browser.", true);
+            updatePushPermissionButtonUI();
+            return;
+        }
+        try {
+            const result = await Notification.requestPermission();
+            updatePushPermissionButtonUI();
+            if (result === 'granted') {
+                if (!currentUserName) {
+                    showToast("Meldingen toegestaan", "Kies nu je naam bovenin, dan worden meldingen op deze telefoon gekoppeld.");
+                    return;
+                }
+                await registerPushToken();
+                showToast("Meldingen actief", "Je ontvangt nu meldingen, ook als de app dicht is.");
+            }
+        } catch (err) {
+            console.error("Meldingen aanzetten mislukt:", err);
+            showToast("Meldingen mislukt", "Probeer het later nog eens.", true);
+        }
     }
 
     async function registerPushToken() {
