@@ -1927,7 +1927,6 @@
             renderSetsRanking();
         });
 
-        // EXTRA LISTENER: Zorgt ervoor dat wijzigingen in cyclusMeta direct worden opgepikt
         db.ref('padelData/cyclusMeta').on('value', (snapshot) => {
             checkAndStoreCyclusWinner();
         });
@@ -2021,6 +2020,13 @@
     let cyclusClaimInFlight = {};
 
     function getGameCountsForCyclus(cyclusIndex) {
+        // ALS DE CYCLUS AL EEN BEKENDGEMAAKTE WINNAAR HEEFT, TOON DIRECT 0 GAMES VOOR DIT KLASSEMENT
+        if (cyclusWinnaars && cyclusWinnaars[cyclusIndex] && cyclusWinnaars[cyclusIndex].winner) {
+            const zeroCounts = {};
+            basePlayers.forEach(p => zeroCounts[p] = 0);
+            return { gameCounts: zeroCounts, matchCounts: {} };
+        }
+
         const referenceMonday = new Date(2026, 8, 21);
         const gameCounts = {};
         const matchCounts = {};
@@ -2093,7 +2099,6 @@
                 const snap = await ref.once('value');
                 const existingData = snap.val();
 
-                // Controleer of de claimAt timer in cyclusMeta of cyclusWinnaars is verstreken
                 let isTimePassed = false;
                 if (existingData && existingData.claimAt) {
                     if (Date.now() >= existingData.claimAt) isTimePassed = true;
@@ -2109,7 +2114,38 @@
 
                 if (!isTimePassed) continue;
 
-                const { gameCounts } = getGameCountsForCyclus(cyclusIdx);
+                // Haal de gamecounts op ZONDER de winnaar-check zodat we de echte eindstand kunnen berekenen
+                const referenceMonday = new Date(2026, 8, 21);
+                const gameCounts = {};
+                basePlayers.forEach(p => gameCounts[p] = 0);
+
+                for (const matchId in matchResults) {
+                    const parts = matchId.split('_');
+                    if (parts.length < 3) continue;
+                    const year = parseInt(parts[0], 10);
+                    const week = parseInt(parts[1].replace('w', ''), 10);
+                    const slotKey = parts[2];
+                    if (!Number.isFinite(year) || !Number.isFinite(week)) continue;
+
+                    const matchWeekStart = isoWeekToMonday(year, week);
+                    const diffWeeks = Math.round((matchWeekStart.getTime() - referenceMonday.getTime()) / (1000 * 60 * 60 * 24 * 7));
+                    if (Math.floor(diffWeeks / 6) !== cyclusIdx) continue;
+
+                    const res = matchResults[matchId];
+                    if (!res || !Array.isArray(res.players) || res.players.length !== 4) continue;
+
+                    const t1Games = (Number(res.t1s1) || 0) + (Number(res.t1s2) || 0) + (Number(res.t1s3) || 0);
+                    const t2Games = (Number(res.t2s1) || 0) + (Number(res.t2s2) || 0) + (Number(res.t2s3) || 0);
+
+                    const templateIndex = ((diffWeeks % 6) + 6) % 6;
+                    const defaultSlotPlayers = defaultTemplate[templateIndex][slotKey] || [];
+
+                    [{ player: res.players[0], games: t1Games }, { player: res.players[1], games: t1Games }, { player: res.players[2], games: t2Games }, { player: res.players[3], games: t2Games }].forEach(item => {
+                        if (item.player && defaultSlotPlayers.includes(item.player) && basePlayers.includes(item.player)) {
+                            gameCounts[item.player] = (gameCounts[item.player] || 0) + item.games;
+                        }
+                    });
+                }
                 
                 const uniqueScoresDesc = [...new Set(basePlayers.map(p => gameCounts[p] || 0))].sort((a, b) => b - a);
                 const maxGames = uniqueScoresDesc[0] || 0;
@@ -2264,7 +2300,6 @@
 
         notifyServer(sysRef.key);
 
-        // DYNAMISCHE CONTROLE OP HET EINDE VAN DE CYCLUS
         try {
             const parts = matchId.split('_');
             if (parts.length >= 3) {
@@ -2296,7 +2331,6 @@
                     }
                 }
                 
-                // Voeg de huidige match ook toe aan de telling als hij nog niet in matchResults stond
                 if (totalExistingInCyclus === 0) {
                     totalExistingInCyclus = 1;
                     filledMatchesInCyclus = 1;
@@ -2308,7 +2342,7 @@
                     const val = snap.val();
 
                     if (!val || !val.claimAt) {
-                        const claimAt = Date.now() + (30 * 60 * 1000); // Nu + 30 minuten
+                        const claimAt = Date.now() + (30 * 60 * 1000);
                         await cyclusMetaRef.update({
                             claimAt: claimAt,
                             lastMatchSavedAt: Date.now()
