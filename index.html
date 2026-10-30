@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.43)</title>
+    <title>Padelschema - Rooster & Chat (v8.45)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1409,7 +1409,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.43</span>
+        <span>Padelschema v8.45</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1461,7 +1461,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.43";
+    const APP_VERSION = "8.45";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function esc(v) {
@@ -1586,6 +1586,12 @@
       { dinsdag: ["Marcel", "Dennis", "Ronald", "Sander"], donderdag: ["Marcel", "Sander", "Mark", "Robert"] },
       { dinsdag: ["Dennis", "Robert", "Sander", "Ronald"], donderdag: ["Marcel", "Dennis", "Mark", "Ronald"] }
     ];
+
+    // Het schema van week 1 zoals dat in cyclus 1 is gespeeld (daarna is het standaardschema van week 1 gewijzigd)
+    const SCHEMA_WEEK1_CYCLUS1 = {
+        dinsdag: ["Mark", "Robert", "Ronald", "Sander"],
+        donderdag: ["Sander", "Robert", "Marcel", "Dennis"]
+    };
 
     let liveOverrides = {};
     let overridesLoaded = false;
@@ -2051,7 +2057,9 @@
             if (!res || !Array.isArray(res.players) || res.players.length !== 4) continue;
 
             const templateIndex = ((diffWeeks % 6) + 6) % 6;
-            const tpl = defaultTemplate[templateIndex];
+            let tpl = defaultTemplate[templateIndex];
+            // Cyclus 1 (week 39) is gespeeld met het oude schema van week 1; die telt voor de historie met dat schema mee
+            if (cyclusIndex === 0 && templateIndex === 0) tpl = SCHEMA_WEEK1_CYCLUS1;
             const defaultSlotPlayers = tpl[slotKey] || []; 
 
             const t1Games = (Number(res.t1s1) || 0) + (Number(res.t1s2) || 0) + (Number(res.t1s3) || 0);
@@ -2175,6 +2183,66 @@
         }
     }
 
+    let geopendeCycli = {};
+
+    function toggleCyclusWedstrijden(idx) {
+        const lijst = document.getElementById(`cyclusWedstrijden_${idx}`);
+        const pijl = document.getElementById(`cyclusPijl_${idx}`);
+        if (!lijst) return;
+        const openen = lijst.style.display === 'none';
+        lijst.style.display = openen ? 'flex' : 'none';
+        if (pijl) pijl.innerText = openen ? '▲ Sluiten' : '▼ Open';
+        geopendeCycli[idx] = openen;
+    }
+
+    // Alle gespeelde wedstrijden van een cyclus, op volgorde, met de uitslag per set
+    function bouwCyclusWedstrijdenHtml(cyclusIndex) {
+        const referenceMonday = new Date(2026, 8, 21);
+        const kaarten = [];
+
+        for (let w = 0; w < 6; w++) {
+            const weekMaandag = new Date(referenceMonday);
+            weekMaandag.setDate(referenceMonday.getDate() + (cyclusIndex * 6 + w) * 7);
+            const weekKey = `${getISOYear(weekMaandag)}_w${getISOWeekNumber(weekMaandag)}`;
+            const weekNr = getISOWeekNumber(weekMaandag);
+            const overrides = liveOverrides[weekKey] || {};
+
+            ['dinsdag', 'donderdag'].forEach(slot => {
+                const res = matchResults[`${weekKey}_${slot}`];
+                if (!res) return;
+
+                const spelers = Array.isArray(res.players) ? res.players : Object.values(res.players || {});
+                if (spelers.length < 4) return;
+
+                const hoofdSlot = slot.charAt(0).toUpperCase() + slot.slice(1);
+                const dagIdx = getDayIndexFromName(overrides[`custom${hoofdSlot}`] || slot);
+                const datum = new Date(weekMaandag);
+                datum.setDate(weekMaandag.getDate() + ((dagIdx === 0 ? 7 : dagIdx) - 1));
+                const datumTekst = datum.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+
+                const sets = [];
+                [[res.t1s1, res.t2s1], [res.t1s2, res.t2s2], [res.t1s3, res.t2s3]].forEach((set, i) => {
+                    const a = Number(set[0]) || 0;
+                    const b = Number(set[1]) || 0;
+                    if (a > 0 || b > 0 || i === 0) sets.push(`${a}-${b}`);
+                });
+
+                kaarten.push(`
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px;">
+                        <div style="font-size: 0.68rem; color: var(--text-muted);">Week ${weekNr} · ${esc(datumTekst)}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-main);">${esc(spelers[0])} &amp; ${esc(spelers[1])} <span class="vs-text">vs</span> ${esc(spelers[2])} &amp; ${esc(spelers[3])}</div>
+                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-blue);">${esc(sets.join(' · '))}</div>
+                    </div>
+                `);
+            });
+        }
+
+        if (kaarten.length === 0) {
+            return `<div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Geen wedstrijden met uitslag gevonden.</div>`;
+        }
+        return kaarten.join('');
+    }
+
     function naarLijst(v) {
         if (Array.isArray(v)) return v.filter(Boolean);
         if (v && typeof v === 'object') return Object.values(v).filter(Boolean);
@@ -2223,7 +2291,7 @@
 
         const histContainer = document.getElementById('historischeUitslagenContainer');
         if (histContainer) {
-            const afgerondeCycli = Object.keys(cyclusWinnaars || {}).filter(idx => cyclusWinnaars[idx] && cyclusWinnaars[idx].winner);
+            const afgerondeCycli = Object.keys(cyclusWinnaars || {}).filter(idx => /^[0-9]+$/.test(idx) && cyclusWinnaars[idx] && cyclusWinnaars[idx].winner);
             if (afgerondeCycli.length === 0) {
                 histContainer.innerHTML = `<div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Nog geen afgeronde cycli beschikbaar.</div>`;
                 return;
@@ -2252,10 +2320,17 @@
 
                 const regels = bouwPodiumRegels(eerste, tweede, derde, gamesVan, wedstrijdenVan);
 
+                const isOpen = !!geopendeCycli[idx];
                 return `
                     <div style="display: flex; flex-direction: column; gap: 3px; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
-                        <div style="font-weight: 700; color: var(--accent-orange);">🏆 Uitslag KingKong podium Cyclus ${cyclusNr}</div>
+                        <div onclick="toggleCyclusWedstrijden(${jsArg(idx)})" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                            <div style="font-weight: 700; color: var(--accent-orange);">🏆 Uitslag KingKong podium Cyclus ${cyclusNr}</div>
+                            <span class="collapse-arrow" id="cyclusPijl_${idx}">${isOpen ? '▲ Sluiten' : '▼ Open'}</span>
+                        </div>
                         ${regels.map(r => `<div style="font-size: 0.8rem; color: var(--text-main);">${esc(r)}</div>`).join('')}
+                        <div id="cyclusWedstrijden_${idx}" style="display: ${isOpen ? 'flex' : 'none'}; flex-direction: column; gap: 6px; margin-top: 6px; border-top: 1px solid var(--card-border); padding-top: 6px;">
+                            ${bouwCyclusWedstrijdenHtml(parseInt(idx, 10))}
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -2523,6 +2598,27 @@
                 scheduleUpdates[`${slotKey}Tijd`] = gekozenTijdStr;
                 heeftOverrideNodig = true;
             }
+        }
+
+        // 2b. Valt de boeking weer op de standaarddag of -tijd, haal dan een eerdere afwijking van deze week weg
+        let doelSlot;
+        if (targetSlot === 'dinsdag' || targetSlot === 'donderdag') {
+            doelSlot = targetSlot;
+        } else if (gekozenDagNaam === 'dinsdag' || gekozenDagNaam === 'donderdag') {
+            doelSlot = gekozenDagNaam;
+        } else {
+            doelSlot = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
+        }
+        const bestaandeWeek = liveOverrides[uniqueWeekKey] || {};
+        const doelDagSleutel = 'custom' + doelSlot.charAt(0).toUpperCase() + doelSlot.slice(1);
+        const doelTijdSleutel = `${doelSlot}Tijd`;
+        if (scheduleUpdates[doelDagSleutel] === undefined && bestaandeWeek[doelDagSleutel]) {
+            scheduleUpdates[doelDagSleutel] = null;
+            heeftOverrideNodig = true;
+        }
+        if (scheduleUpdates[doelTijdSleutel] === undefined && bestaandeWeek[doelTijdSleutel]) {
+            scheduleUpdates[doelTijdSleutel] = null;
+            heeftOverrideNodig = true;
         }
 
         // 3. Alleen wegschrijven naar scheduleOverrides als het echt afwijkt
