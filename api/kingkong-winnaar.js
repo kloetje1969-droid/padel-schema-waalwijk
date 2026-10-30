@@ -26,12 +26,22 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Niet geautoriseerd' });
     }
 
-    // 2. Bepaal de actieve cyclus op basis van de datum
+    // 2. Bepaal de *zojuist afgeronde* cyclus
+    // We trekken een aantal dagen af of kijken naar de vorige cyclusindex, 
+    // zodat het script pas triggert voor een cyclus die helemaal voorbij is.
     const now = new Date();
-    const referenceMonday = new Date(Date.UTC(2026, 8, 21));
+    const referenceMonday = new Date(Date.UTC(2026, 8, 21)); // 21 sep 2026
     const currentMonday = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
     const diffWeeks = Math.round((currentMonday.getTime() - referenceMonday.getTime()) / (7 * 86400000));
-    const activeCyclusIndex = Math.max(0, Math.floor(diffWeeks / 6));
+    
+    // We nemen de huidige cyclusindex, maar we willen de *vorige* (afgeronde) cyclus berekenen.
+    // Of we controleren of we ons in de 6e week van de cyclus bevinden. 
+    // Simpelste manier: pak de cyclus op basis van (diffWeeks - 1) zodat het pas na 6 weken wordt vastgelegd.
+    const targetCyclusIndex = Math.floor((diffWeeks - 1) / 6);
+    
+    if (targetCyclusIndex < 0) {
+      return res.status(200).json({ success: true, message: 'Geen afgeronde cyclus gevonden om te verwerken.' });
+    }
 
     // 3. Haal gegevens op uit Firebase
     const snap = await db.ref('padelData').once('value');
@@ -39,7 +49,7 @@ export default async function handler(req, res) {
     const matchResults = data.matchResults || {};
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
 
-    // 4. Bereken de games per speler voor deze cyclus
+    // 4. Bereken de games per speler voor die specifieke afgeronde cyclus
     const gameCounts = {};
     basePlayers.forEach(p => gameCounts[p] = 0);
 
@@ -57,7 +67,9 @@ export default async function handler(req, res) {
 
       const matchDiffWeeks = Math.round((matchWeekStart - referenceMonday.getTime()) / (7 * 86400000));
       const matchCyclus = Math.floor(matchDiffWeeks / 6);
-      if (matchCyclus !== activeCyclusIndex) continue;
+      
+      // We kijken nu streng naar de doelcyclus
+      if (matchCyclus !== targetCyclusIndex) continue;
 
       const resData = matchResults[matchId];
       if (!resData || !Array.isArray(resData.players) || resData.players.length !== 4) continue;
@@ -79,14 +91,20 @@ export default async function handler(req, res) {
       });
     }
 
-    // 5. Bepaal de winnaar
+    // 5. Bepaal de winnaar van deze afgeronde cyclus
     const uniqueScoresDesc = [...new Set(basePlayers.map(p => gameCounts[p] || 0))].sort((a, b) => b - a);
     const maxGames = uniqueScoresDesc[0] || 0;
-    const firstPlayers = maxGames > 0 ? basePlayers.filter(p => (gameCounts[p] || 0) === maxGames) : [];
-    const winnerText = firstPlayers.join(', ') || "Nog geen winnaar";
+    
+    // Als er helemaal geen games zijn gespeeld in die cyclus, slaan we niets op
+    if (maxGames === 0) {
+      return res.status(200).json({ success: true, message: `Cyclus ${targetCyclusIndex + 1} heeft nog geen gespeelde wedstrijden, niets opgeslagen.` });
+    }
 
-    // 6. Sla op in Firebase
-    await db.ref(`padelData/cyclusWinnaars/${activeCyclusIndex}`).update({
+    const firstPlayers = basePlayers.filter(p => (gameCounts[p] || 0) === maxGames);
+    const winnerText = firstPlayers.join(', ');
+
+    // 6. Sla definitief op in Firebase onder de juiste cyclus
+    await db.ref(`padelData/cyclusWinnaars/${targetCyclusIndex}`).update({
       winner: winnerText,
       games: maxGames,
       scores: gameCounts,
@@ -96,7 +114,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ 
       success: true, 
-      message: `KingKong winnaar voor cyclus ${activeCyclusIndex + 1} (${winnerText}) succesvol vastgelegd!` 
+      message: `KingKong winnaar voor afgeronde cyclus ${targetCyclusIndex + 1} (${winnerText}) succesvol vastgelegd!` 
     });
 
   } catch (error) {
