@@ -2229,7 +2229,7 @@
                 return;
             }
 
-            histContainer.innerHTML = afgerondeCycli.sort((x, y) => Number(x) - Number(y)).map(idx => {
+            histContainer.innerHTML = afgerondeCycli.sort((y, x) => Number(x) - Number(y)).map(idx => {
                 const wData = cyclusWinnaars[idx];
                 const cyclusNr = parseInt(idx, 10) + 1;
                 const pod = wData.podium || {};
