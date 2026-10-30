@@ -80,7 +80,10 @@ export default async function handler(req, res) {
       }
     }
     
-    if (text.length > 120) text = text.slice(0, 117) + '...';
+    // Gewone meldingen worden afgekapt; het KingKong-podium krijgt meer ruimte zodat alle plaatsen te lezen zijn
+    const isPodium = isSystem && text.startsWith('🏆 Uitslag KingKong podium');
+    const maxLengte = isPodium ? 400 : 120;
+    if (text.length > maxLengte) text = text.slice(0, maxLengte - 3) + '...';
 
     const tokensData = await getTokensByPlayer();
     const recipients = Object.keys(tokensData);
