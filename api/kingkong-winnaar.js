@@ -27,16 +27,11 @@ export default async function handler(req, res) {
     }
 
     // 2. Bepaal de *zojuist afgeronde* cyclus
-    // We trekken een aantal dagen af of kijken naar de vorige cyclusindex, 
-    // zodat het script pas triggert voor een cyclus die helemaal voorbij is.
     const now = new Date();
     const referenceMonday = new Date(Date.UTC(2026, 8, 21)); // 21 sep 2026
     const currentMonday = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
     const diffWeeks = Math.round((currentMonday.getTime() - referenceMonday.getTime()) / (7 * 86400000));
     
-    // We nemen de huidige cyclusindex, maar we willen de *vorige* (afgeronde) cyclus berekenen.
-    // Of we controleren of we ons in de 6e week van de cyclus bevinden. 
-    // Simpelste manier: pak de cyclus op basis van (diffWeeks - 1) zodat het pas na 6 weken wordt vastgelegd.
     const targetCyclusIndex = Math.floor((diffWeeks - 1) / 6);
     
     if (targetCyclusIndex < 0) {
@@ -49,7 +44,21 @@ export default async function handler(req, res) {
     const matchResults = data.matchResults || {};
     const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
 
-    // 4. Bereken de games per speler voor die specifieke afgeronde cyclus
+    const defaultTemplate = [
+      { dinsdag: ["Sander", "Dennis", "Mark", "Robert"], donderdag: ["Marcel", "Ronald", "Sander", "Robert"] },
+      { dinsdag: ["Marcel", "Mark", "Ronald", "Robert"], donderdag: ["Mark", "Sander", "Ronald", "Dennis"] },
+      { dinsdag: ["Marcel", "Robert", "Mark", "Dennis"], donderdag: ["Marcel", "Ronald", "Sander", "Robert"] },
+      { dinsdag: ["Marcel", "Sander", "Mark", "Dennis"], donderdag: ["Mark", "Ronald", "Dennis", "Robert"] },
+      { dinsdag: ["Marcel", "Dennis", "Ronald", "Sander"], donderdag: ["Marcel", "Sander", "Mark", "Robert"] },
+      { dinsdag: ["Dennis", "Robert", "Sander", "Ronald"], donderdag: ["Marcel", "Dennis", "Mark", "Ronald"] }
+    ];
+
+    const SCHEMA_WEEK1_CYCLUS1 = {
+        dinsdag: ["Mark", "Robert", "Ronald", "Sander"],
+        donderdag: ["Sander", "Robert", "Marcel", "Dennis"]
+    };
+
+    // 4. Bereken de games per speler voor die specifieke afgeronde cyclus (exclusief invallers)
     const gameCounts = {};
     basePlayers.forEach(p => gameCounts[p] = 0);
 
@@ -58,6 +67,7 @@ export default async function handler(req, res) {
       if (parts.length < 3) continue;
       const year = parseInt(parts[0], 10);
       const week = parseInt(parts[1].replace('w', ''), 10);
+      const slotKey = parts[2];
       if (!Number.isFinite(year) || !Number.isFinite(week)) continue;
 
       let d = new Date(Date.UTC(year, 0, 4));
@@ -68,11 +78,15 @@ export default async function handler(req, res) {
       const matchDiffWeeks = Math.round((matchWeekStart - referenceMonday.getTime()) / (7 * 86400000));
       const matchCyclus = Math.floor(matchDiffWeeks / 6);
       
-      // We kijken nu streng naar de doelcyclus
       if (matchCyclus !== targetCyclusIndex) continue;
 
       const resData = matchResults[matchId];
       if (!resData || !Array.isArray(resData.players) || resData.players.length !== 4) continue;
+
+      const templateIndex = ((matchDiffWeeks % 6) + 6) % 6;
+      let tpl = defaultTemplate[templateIndex];
+      if (targetCyclusIndex === 0 && templateIndex === 0) tpl = SCHEMA_WEEK1_CYCLUS1;
+      const defaultSlotPlayers = tpl[slotKey] || [];
 
       const t1Games = (Number(resData.t1s1) || 0) + (Number(resData.t1s2) || 0) + (Number(resData.t1s3) || 0);
       const t2Games = (Number(resData.t2s1) || 0) + (Number(resData.t2s2) || 0) + (Number(resData.t2s3) || 0);
@@ -85,8 +99,12 @@ export default async function handler(req, res) {
       ];
 
       matchPlayerScores.forEach(item => {
-        if (item.player && basePlayers.includes(item.player)) {
-          gameCounts[item.player] = (gameCounts[item.player] || 0) + item.games;
+        const p = item.player;
+        if (!p || !basePlayers.includes(p)) return;
+
+        // Alleen meetellen als de speler ook echt in het basisschema voor dit slot stond
+        if (defaultSlotPlayers.includes(p)) {
+          gameCounts[p] = (gameCounts[p] || 0) + item.games;
         }
       });
     }
@@ -95,7 +113,6 @@ export default async function handler(req, res) {
     const uniqueScoresDesc = [...new Set(basePlayers.map(p => gameCounts[p] || 0))].sort((a, b) => b - a);
     const maxGames = uniqueScoresDesc[0] || 0;
     
-    // Als er helemaal geen games zijn gespeeld in die cyclus, slaan we niets op
     if (maxGames === 0) {
       return res.status(200).json({ success: true, message: `Cyclus ${targetCyclusIndex + 1} heeft nog geen gespeelde wedstrijden, niets opgeslagen.` });
     }
