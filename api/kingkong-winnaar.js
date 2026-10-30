@@ -58,9 +58,13 @@ export default async function handler(req, res) {
         donderdag: ["Sander", "Robert", "Marcel", "Dennis"]
     };
 
-    // 4. Bereken de games per speler voor die specifieke afgeronde cyclus (exclusief invallers)
+    // 4. Bereken de games en wedstrijden per speler (invallers tellen qua games niet mee, qua wedstrijden wel)
     const gameCounts = {};
-    basePlayers.forEach(p => gameCounts[p] = 0);
+    const matchCounts = {};
+    basePlayers.forEach(p => {
+      gameCounts[p] = 0;
+      matchCounts[p] = 0;
+    });
 
     for (const matchId in matchResults) {
       const parts = matchId.split('_');
@@ -102,7 +106,10 @@ export default async function handler(req, res) {
         const p = item.player;
         if (!p || !basePlayers.includes(p)) return;
 
-        // Alleen meetellen als de speler ook echt in het basisschema voor dit slot stond
+        // Wedstrijdtelling telt mee voor iedereen uit de vaste groep die meespeelt
+        matchCounts[p] = (matchCounts[p] || 0) + 1;
+
+        // Games tellen ALLEEN mee als deze vaste speler op zijn eigen originele slot stond
         if (defaultSlotPlayers.includes(p)) {
           gameCounts[p] = (gameCounts[p] || 0) + item.games;
         }
@@ -125,6 +132,7 @@ export default async function handler(req, res) {
       winner: winnerText,
       games: maxGames,
       scores: gameCounts,
+      matches: matchCounts,
       timestamp: Date.now(),
       bekendgemaaktDoorServer: true
     });
