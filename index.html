@@ -1587,7 +1587,6 @@
       { dinsdag: ["Dennis", "Robert", "Sander", "Ronald"], donderdag: ["Marcel", "Dennis", "Mark", "Ronald"] }
     ];
 
-    // Het schema van week 1 zoals dat in cyclus 1 is gespeeld (daarna is het standaardschema van week 1 gewijzigd)
     const SCHEMA_WEEK1_CYCLUS1 = {
         dinsdag: ["Mark", "Robert", "Ronald", "Sander"],
         donderdag: ["Sander", "Robert", "Marcel", "Dennis"]
@@ -2074,14 +2073,13 @@
                 const p = item.player;
                 if (!p || !basePlayers.includes(p)) return;
 
-                // STRIKTE CONTROLE: Tel games en wedstrijden ALLEEN mee als deze vaste speler 
-                // ook daadwerkelijk in het officiële basisschema (defaultSlotPlayers) staat voor dit slot.
-                // Speelt hij hier als invaller? Dan telt het niet mee voor het klassement!
-                const isOriginalPlayerForThisSlot = defaultSlotPlayers.includes(p);
+                // Wedstrijdtelling telt mee voor iedereen uit de vaste groep die meespeelt
+                matchCounts[p] = (matchCounts[p] || 0) + 1;
 
+                // Games tellen ALLEEN mee als deze vaste speler op zijn eigen originele slot stond
+                const isOriginalPlayerForThisSlot = defaultSlotPlayers.includes(p);
                 if (isOriginalPlayerForThisSlot) {
                     gameCounts[p] = (gameCounts[p] || 0) + item.games;
-                    matchCounts[p] = (matchCounts[p] || 0) + 1;
                 }
             });
         }
