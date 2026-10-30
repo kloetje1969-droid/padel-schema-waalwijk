@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.41)</title>
+    <title>Padelschema - Rooster & Chat (v8.42)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1409,7 +1409,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.41</span>
+        <span>Padelschema v8.42</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1461,7 +1461,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.41";
+    const APP_VERSION = "8.42";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function esc(v) {
@@ -2551,12 +2551,13 @@
         if (kmh <= 11) return 2;
         if (kmh <= 19) return 3;
         if (kmh <= 28) return 4;
-        if (kmh <= 49) return 5;
-        if (kmh <= 61) return 6;
-        if (kmh <= 74) return 7;
-        if (kmh <= 88) return 8;
-        if (kmh <= 102) return 9;
-        if (kmh <= 117) return 10;
+        if (kmh <= 38) return 5;
+        if (kmh <= 49) return 6;
+        if (kmh <= 61) return 7;
+        if (kmh <= 74) return 8;
+        if (kmh <= 88) return 9;
+        if (kmh <= 102) return 10;
+        if (kmh <= 117) return 11;
         return 12;
     }
 
