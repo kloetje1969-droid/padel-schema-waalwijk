@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.42)</title>
+    <title>Padelschema - Rooster & Chat (v8.43)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1409,7 +1409,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.42</span>
+        <span>Padelschema v8.43</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1461,7 +1461,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.42";
+    const APP_VERSION = "8.43";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function esc(v) {
@@ -2135,12 +2135,11 @@
                 const winnerText = firstPlayers.join(', ');
                 
                 // Podiumtekst: elke speler op een eigen regel (games en aantal wedstrijden), gedeelde plaatsen onder elkaar
-                const podiumRegel = (medaille, plaats, naam, score) =>
-                    `${medaille} ${plaats}e plaats: ${naam} (${score} games, ${matchCounts[naam] || 0} Wedstr)`;
-                const podiumRegels = [];
-                firstPlayers.forEach(naam => podiumRegels.push(podiumRegel('🥇', 1, naam, goudScore)));
-                secondPlayers.forEach(naam => podiumRegels.push(podiumRegel('🥈', 2, naam, zilverScore)));
-                thirdPlayers.forEach(naam => podiumRegels.push(podiumRegel('🥉', 3, naam, bronsScore)));
+                const podiumRegels = bouwPodiumRegels(
+                    firstPlayers, secondPlayers, thirdPlayers,
+                    naam => gameCounts[naam] || 0,
+                    naam => matchCounts[naam] || 0
+                );
                 const summaryText = podiumRegels.join('\n');
 
                 let wasAlreadyStored = Boolean(cyclusWinnaars && cyclusWinnaars[cyclusIdx] && cyclusWinnaars[cyclusIdx].winner);
@@ -2158,6 +2157,7 @@
                             third: thirdPlayers
                         },
                         scores: gameCounts,
+                        matches: matchCounts,
                         timestamp: Date.now(),
                         updatedAt: Date.now()
                     };
@@ -2173,6 +2173,23 @@
                 cyclusClaimInFlight[cyclusIdx] = false;
             }
         }
+    }
+
+    function naarLijst(v) {
+        if (Array.isArray(v)) return v.filter(Boolean);
+        if (v && typeof v === 'object') return Object.values(v).filter(Boolean);
+        return v ? [String(v)] : [];
+    }
+
+    // Eén plek voor de podiumtekst, zodat de chat en "Historische uitslagen" altijd precies hetzelfde tonen
+    function bouwPodiumRegels(eerste, tweede, derde, gamesVan, wedstrijdenVan) {
+        const regel = (medaille, plaats, naam) =>
+            `${medaille} ${plaats}e plaats: ${naam} (${gamesVan(naam)} games, ${wedstrijdenVan(naam)} Wedstr)`;
+        return [
+            ...eerste.map(n => regel('🥇', 1, n)),
+            ...tweede.map(n => regel('🥈', 2, n)),
+            ...derde.map(n => regel('🥉', 3, n))
+        ];
     }
 
     function renderSetsRanking() {
@@ -2212,27 +2229,33 @@
                 return;
             }
 
-            histContainer.innerHTML = Object.keys(cyclusWinnaars).filter(idx => cyclusWinnaars[idx] && cyclusWinnaars[idx].winner).sort((a, b) => Number(a) - Number(b)).map(idx => {
+            histContainer.innerHTML = afgerondeCycli.sort((x, y) => Number(x) - Number(y)).map(idx => {
                 const wData = cyclusWinnaars[idx];
-                let podiumHtml = '';
-                if (wData.podium) {
-                    const f = Array.isArray(wData.podium.first) ? wData.podium.first.join(', ') : wData.podium.first;
-                    const s = Array.isArray(wData.podium.second) ? wData.podium.second.join(', ') : wData.podium.second;
-                    const t = Array.isArray(wData.podium.third) ? wData.podium.third.join(', ') : wData.podium.third;
-                    
-                    let pParts = [];
-                    if (f) pParts.push(`🥇 ${esc(f)}`);
-                    if (s) pParts.push(`🥈 ${esc(s)}`);
-                    if (t) pParts.push(`🥉 ${esc(t)}`);
-                    podiumHtml = `<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">${pParts.join(' | ')}</div>`;
-                }
+                const cyclusNr = parseInt(idx, 10) + 1;
+                const pod = wData.podium || {};
+
+                let eerste = naarLijst(pod.first);
+                const tweede = naarLijst(pod.second);
+                const derde = naarLijst(pod.third);
+                if (eerste.length === 0 && wData.winner) eerste = String(wData.winner).split(', ');
+
+                const scores = wData.scores || {};
+                const gamesVan = naam => {
+                    if (scores[naam] !== undefined) return Number(scores[naam]) || 0;
+                    return eerste.includes(naam) ? (Number(wData.games) || 0) : 0;
+                };
+
+                // Aantal wedstrijden: bewaard bij de bekendmaking, anders uit de uitslagen berekend (oudere cycli)
+                const bewaard = (wData.matches && typeof wData.matches === 'object') ? wData.matches : null;
+                const berekend = bewaard ? null : getGameCountsForCyclus(parseInt(idx, 10), true).matchCounts;
+                const wedstrijdenVan = naam => bewaard ? (Number(bewaard[naam]) || 0) : ((berekend && berekend[naam]) || 0);
+
+                const regels = bouwPodiumRegels(eerste, tweede, derde, gamesVan, wedstrijdenVan);
+
                 return `
-                    <div style="display: flex; flex-direction: column; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: 600; color: var(--accent-orange);">Cyclus ${parseInt(idx, 10) + 1}</span>
-                            <span style="color: var(--text-main);">🏆 <strong>${esc(wData.winner)}</strong> (${wData.games} games)</span>
-                        </div>
-                        ${podiumHtml}
+                    <div style="display: flex; flex-direction: column; gap: 3px; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
+                        <div style="font-weight: 700; color: var(--accent-orange);">🏆 Uitslag KingKong podium Cyclus ${cyclusNr}</div>
+                        ${regels.map(r => `<div style="font-size: 0.8rem; color: var(--text-main);">${esc(r)}</div>`).join('')}
                     </div>
                 `;
             }).join('');
