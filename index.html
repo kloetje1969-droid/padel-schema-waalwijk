@@ -2023,7 +2023,6 @@
     let cyclusClaimInFlight = {};
 
     function getGameCountsForCyclus(cyclusIndex, negeerWinnaar) {
-        // Heeft deze cyclus al een bekendgemaakte winnaar? Dan toont het klassement 0 games (nieuwe telling)
         if (!negeerWinnaar && cyclusWinnaars && cyclusWinnaars[cyclusIndex] && cyclusWinnaars[cyclusIndex].winner) {
             const zeroCounts = {};
             basePlayers.forEach(p => zeroCounts[p] = 0);
@@ -2058,7 +2057,6 @@
 
             const templateIndex = ((diffWeeks % 6) + 6) % 6;
             let tpl = defaultTemplate[templateIndex];
-            // Cyclus 1 (week 39) is gespeeld met het oude schema van week 1; die telt voor de historie met dat schema mee
             if (cyclusIndex === 0 && templateIndex === 0) tpl = SCHEMA_WEEK1_CYCLUS1;
             const defaultSlotPlayers = tpl[slotKey] || []; 
 
@@ -2074,11 +2072,14 @@
 
             matchPlayerScores.forEach(item => {
                 const p = item.player;
-                if (!p) return;
+                if (!p || !basePlayers.includes(p)) return;
 
+                // STRIKTE CONTROLE: Tel games en wedstrijden ALLEEN mee als deze vaste speler 
+                // ook daadwerkelijk in het officiële basisschema (defaultSlotPlayers) staat voor dit slot.
+                // Speelt hij hier als invaller? Dan telt het niet mee voor het klassement!
                 const isOriginalPlayerForThisSlot = defaultSlotPlayers.includes(p);
 
-                if (isOriginalPlayerForThisSlot && basePlayers.includes(p)) {
+                if (isOriginalPlayerForThisSlot) {
                     gameCounts[p] = (gameCounts[p] || 0) + item.games;
                     matchCounts[p] = (matchCounts[p] || 0) + 1;
                 }
@@ -2109,14 +2110,11 @@
                     isTimePassed = true;
                 }
 
-                // Alle wedstrijden van de cyclus staan erin, maar de wachttijd van 30 minuten is nog niet gestart
-                // (bijv. omdat de laatste uitslag al eerder is ingevuld): start de wachttijd nu.
                 if (!isTimePassed && !(existingData && existingData.claimAt) && isCyclusVolledigIngevuld(cyclusIdx)) {
                     await ref.update({ claimAt: Date.now() + (30 * 60 * 1000), lastMatchSavedAt: Date.now() });
                     continue;
                 }
 
-                // Vangnet: cyclus is al ruim 3 dagen afgelopen maar nooit volledig ingevuld? Maak dan toch bekend met wat er is.
                 if (!isTimePassed) {
                     const cyclusEinde = new Date(2026, 8, 21);
                     cyclusEinde.setDate(cyclusEinde.getDate() + (cyclusIdx + 1) * 6 * 7);
@@ -2125,7 +2123,6 @@
 
                 if (!isTimePassed) continue;
 
-                // De echte eindstand (zonder de nul-stand van een al bekendgemaakte cyclus)
                 const { gameCounts, matchCounts } = getGameCountsForCyclus(cyclusIdx, true);
 
                 const uniqueScoresDesc = [...new Set(basePlayers.map(p => gameCounts[p] || 0))].sort((a, b) => b - a);
@@ -2142,7 +2139,6 @@
 
                 const winnerText = firstPlayers.join(', ');
                 
-                // Podiumtekst: elke speler op een eigen regel (games en aantal wedstrijden), gedeelde plaatsen onder elkaar
                 const podiumRegels = bouwPodiumRegels(
                     firstPlayers, secondPlayers, thirdPlayers,
                     naam => gameCounts[naam] || 0,
@@ -2185,7 +2181,6 @@
 
     let geopendeCycli = {};
 
-    // Jaartal van een cyclus, of 2026/2027 als de cyclus over de jaarwisseling loopt
     function cyclusJaarTekst(cyclusIndex) {
         const start = new Date(2026, 8, 21);
         start.setDate(start.getDate() + cyclusIndex * 6 * 7);
@@ -2195,7 +2190,6 @@
         const j2 = einde.getFullYear();
         return j1 === j2 ? `${j1}` : `${j1}/${j2}`;
     }
-
 
     function toggleCyclusWedstrijden(idx) {
         const lijst = document.getElementById(`cyclusWedstrijden_${idx}`);
@@ -2207,7 +2201,6 @@
         geopendeCycli[idx] = openen;
     }
 
-    // Alle gespeelde wedstrijden van een cyclus, op volgorde, met de uitslag per set
     function bouwCyclusWedstrijdenHtml(cyclusIndex) {
         const referenceMonday = new Date(2026, 8, 21);
         const kaarten = [];
@@ -2263,7 +2256,6 @@
         return v ? [String(v)] : [];
     }
 
-    // Eén plek voor de podiumtekst, zodat de chat en "Historische uitslagen" altijd precies hetzelfde tonen
     function bouwPodiumRegels(eerste, tweede, derde, gamesVan, wedstrijdenVan) {
         const regel = (medaille, plaats, naam) =>
             `${medaille} ${plaats}e plaats: ${naam} (${gamesVan(naam)} games, ${wedstrijdenVan(naam)} Wedstr)`;
@@ -2327,7 +2319,6 @@
                     return eerste.includes(naam) ? (Number(wData.games) || 0) : 0;
                 };
 
-                // Aantal wedstrijden: bewaard bij de bekendmaking, anders uit de uitslagen berekend (oudere cycli)
                 const bewaard = (wData.matches && typeof wData.matches === 'object') ? wData.matches : null;
                 const berekend = bewaard ? null : getGameCountsForCyclus(parseInt(idx, 10), true).matchCounts;
                 const wedstrijdenVan = naam => bewaard ? (Number(bewaard[naam]) || 0) : ((berekend && berekend[naam]) || 0);
@@ -2357,7 +2348,6 @@
         }
     }
 
-    // Zijn alle (niet afgelaste) wedstrijden van deze cyclus ingevuld? extraMatchId = net opgeslagen wedstrijd
     function isCyclusVolledigIngevuld(cyclusIndex, extraMatchId) {
         const referenceMonday = new Date(2026, 8, 21);
         let totaal = 0;
@@ -2429,13 +2419,11 @@
                     const snap = await cyclusWinnerRef.once('value');
                     const val = snap.val();
 
-                    // Alleen als er nog geen winnaar is bekendgemaakt; elke nieuwe uitslag start de 30 minuten opnieuw
                     if (!val || !val.winner) {
                         await cyclusWinnerRef.update({
                             claimAt: Date.now() + (30 * 60 * 1000),
                             lastMatchSavedAt: Date.now()
                         });
-                        console.log(`Alle wedstrijden ingevuld voor cyclus ${cyclusIndex + 1}. Bekendmaking over 30 minuten.`);
                     }
                 }
             }
@@ -2529,141 +2517,134 @@
     }
 
     async function registreerBoekingDropdown() {
-    const select = document.getElementById('boekingDropdown');
-    const baanSelect = document.getElementById('baanDropdown');
-    const slotTargetSelect = document.getElementById('slotTargetDropdown');
-    const dateInput = document.getElementById('boekingDateTime');
-    
-    const gekozenSpeler = select.value;
-    const gekozenBaan = baanSelect.value;
-    const targetSlot = slotTargetSelect ? slotTargetSelect.value : 'auto';
-    const gekozenDatum = dateInput.value;
+        const select = document.getElementById('boekingDropdown');
+        const baanSelect = document.getElementById('baanDropdown');
+        const slotTargetSelect = document.getElementById('slotTargetDropdown');
+        const dateInput = document.getElementById('boekingDateTime');
+        
+        const gekozenSpeler = select.value;
+        const gekozenBaan = baanSelect.value;
+        const targetSlot = slotTargetSelect ? slotTargetSelect.value : 'auto';
+        const gekozenDatum = dateInput.value;
 
-    if (!gekozenSpeler) {
-        alert("Selecteer eerst een speler uit het menu!");
-        return;
-    }
+        if (!gekozenSpeler) {
+            alert("Selecteer eerst een speler uit het menu!");
+            return;
+        }
 
-    if (!gekozenBaan) {
-        alert("Selecteer welke baan er is geboekt (Baan 1 t/m 10)!");
-        return;
-    }
+        if (!gekozenBaan) {
+            alert("Selecteer welke baan er is geboekt (Baan 1 t/m 10)!");
+            return;
+        }
 
-    if (!gekozenDatum) {
-        alert("Kies alstublieft een datum en tijd in het invoerveld!");
-        return;
-    }
+        if (!gekozenDatum) {
+            alert("Kies alstublieft een datum en tijd in het invoerveld!");
+            return;
+        }
 
-    try {
-        // 1. Sla de boeking altijd op in de algemene boekinglijst
-        const newRef = db.ref('padelData/baanBoekingenList').push();
-        await newRef.set({
-            player: gekozenSpeler,
-            baan: gekozenBaan,
-            dateTime: gekozenDatum,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        });
+        try {
+            const newRef = db.ref('padelData/baanBoekingenList').push();
+            await newRef.set({
+                player: gekozenSpeler,
+                baan: gekozenBaan,
+                dateTime: gekozenDatum,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
 
-        const bookingDate = new Date(gekozenDatum);
-        const yearNum = getISOYear(bookingDate);
-        const weekNum = getISOWeekNumber(bookingDate);
-        const uniqueWeekKey = `${yearNum}_w${weekNum}`;
+            const bookingDate = new Date(gekozenDatum);
+            const yearNum = getISOYear(bookingDate);
+            const weekNum = getISOWeekNumber(bookingDate);
+            const uniqueWeekKey = `${yearNum}_w${weekNum}`;
 
-        const jsDayIndex = bookingDate.getDay();
-        const dayNamesMap = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
-        const gekozenDagNaam = dayNamesMap[jsDayIndex];
+            const jsDayIndex = bookingDate.getDay();
+            const dayNamesMap = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+            const gekozenDagNaam = dayNamesMap[jsDayIndex];
 
-        const hours = String(bookingDate.getHours()).padStart(2, '0');
-        const minutes = String(bookingDate.getMinutes()).padStart(2, '0');
-        const gekozenTijdStr = `${hours}:${minutes}`;
+            const hours = String(bookingDate.getHours()).padStart(2, '0');
+            const minutes = String(bookingDate.getMinutes()).padStart(2, '0');
+            const gekozenTijdStr = `${hours}:${minutes}`;
 
-        let scheduleUpdates = {};
-        let heeftOverrideNodig = false;
+            let scheduleUpdates = {};
+            let heeftOverrideNodig = false;
 
-        // 2. Bepaal of we een override nodig hebben (alleen bij afwijking van standaard)
-        if (targetSlot === 'dinsdag') {
-            if (gekozenDagNaam !== 'dinsdag') {
-                scheduleUpdates[`customDinsdag`] = gekozenDagNaam;
-                heeftOverrideNodig = true;
-            }
-            if (gekozenTijdStr !== '18:30') {
-                scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
-                heeftOverrideNodig = true;
-            }
-        } else if (targetSlot === 'donderdag') {
-            if (gekozenDagNaam !== 'donderdag') {
-                scheduleUpdates[`customDonderdag`] = gekozenDagNaam;
-                heeftOverrideNodig = true;
-            }
-            if (gekozenTijdStr !== '18:30') {
-                scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
-                heeftOverrideNodig = true;
-            }
-        } else {
-            // Automatische detectie: standaard is dinsdag of donderdag om 18:30
-            if (gekozenDagNaam === 'dinsdag' && gekozenTijdStr !== '18:30') {
-                scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
-                heeftOverrideNodig = true;
-            } else if (gekozenDagNaam === 'donderdag' && gekozenTijdStr !== '18:30') {
-                scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
-                heeftOverrideNodig = true;
-            } else if (gekozenDagNaam !== 'dinsdag' && gekozenDagNaam !== 'donderdag') {
-                // Valt het op een andere dag (bijv. woensdag)? Dan wel koppelen aan een slot
-                const slotKey = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
-                if (slotKey === 'dinsdag') {
+            if (targetSlot === 'dinsdag') {
+                if (gekozenDagNaam !== 'dinsdag') {
                     scheduleUpdates[`customDinsdag`] = gekozenDagNaam;
-                } else {
-                    scheduleUpdates[`customDonderdag`] = gekozenDagNaam;
+                    heeftOverrideNodig = true;
                 }
-                scheduleUpdates[`${slotKey}Tijd`] = gekozenTijdStr;
+                if (gekozenTijdStr !== '18:30') {
+                    scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
+                    heeftOverrideNodig = true;
+                }
+            } else if (targetSlot === 'donderdag') {
+                if (gekozenDagNaam !== 'donderdag') {
+                    scheduleUpdates[`customDonderdag`] = gekozenDagNaam;
+                    heeftOverrideNodig = true;
+                }
+                if (gekozenTijdStr !== '18:30') {
+                    scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
+                    heeftOverrideNodig = true;
+                }
+            } else {
+                if (gekozenDagNaam === 'dinsdag' && gekozenTijdStr !== '18:30') {
+                    scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
+                    heeftOverrideNodig = true;
+                } else if (gekozenDagNaam === 'donderdag' && gekozenTijdStr !== '18:30') {
+                    scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
+                    heeftOverrideNodig = true;
+                } else if (gekozenDagNaam !== 'dinsdag' && gekozenDagNaam !== 'donderdag') {
+                    const slotKey = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
+                    if (slotKey === 'dinsdag') {
+                        scheduleUpdates[`customDinsdag`] = gekozenDagNaam;
+                    } else {
+                        scheduleUpdates[`customDonderdag`] = gekozenDagNaam;
+                    }
+                    scheduleUpdates[`${slotKey}Tijd`] = gekozenTijdStr;
+                    heeftOverrideNodig = true;
+                }
+            }
+
+            let doelSlot;
+            if (targetSlot === 'dinsdag' || targetSlot === 'donderdag') {
+                doelSlot = targetSlot;
+            } else if (gekozenDagNaam === 'dinsdag' || gekozenDagNaam === 'donderdag') {
+                doelSlot = gekozenDagNaam;
+            } else {
+                doelSlot = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
+            }
+            const bestaandeWeek = liveOverrides[uniqueWeekKey] || {};
+            const doelDagSleutel = 'custom' + doelSlot.charAt(0).toUpperCase() + doelSlot.slice(1);
+            const doelTijdSleutel = `${doelSlot}Tijd`;
+            if (scheduleUpdates[doelDagSleutel] === undefined && bestaandeWeek[doelDagSleutel]) {
+                scheduleUpdates[doelDagSleutel] = null;
                 heeftOverrideNodig = true;
             }
-        }
+            if (scheduleUpdates[doelTijdSleutel] === undefined && bestaandeWeek[doelTijdSleutel]) {
+                scheduleUpdates[doelTijdSleutel] = null;
+                heeftOverrideNodig = true;
+            }
 
-        // 2b. Valt de boeking weer op de standaarddag of -tijd, haal dan een eerdere afwijking van deze week weg
-        let doelSlot;
-        if (targetSlot === 'dinsdag' || targetSlot === 'donderdag') {
-            doelSlot = targetSlot;
-        } else if (gekozenDagNaam === 'dinsdag' || gekozenDagNaam === 'donderdag') {
-            doelSlot = gekozenDagNaam;
-        } else {
-            doelSlot = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
-        }
-        const bestaandeWeek = liveOverrides[uniqueWeekKey] || {};
-        const doelDagSleutel = 'custom' + doelSlot.charAt(0).toUpperCase() + doelSlot.slice(1);
-        const doelTijdSleutel = `${doelSlot}Tijd`;
-        if (scheduleUpdates[doelDagSleutel] === undefined && bestaandeWeek[doelDagSleutel]) {
-            scheduleUpdates[doelDagSleutel] = null;
-            heeftOverrideNodig = true;
-        }
-        if (scheduleUpdates[doelTijdSleutel] === undefined && bestaandeWeek[doelTijdSleutel]) {
-            scheduleUpdates[doelTijdSleutel] = null;
-            heeftOverrideNodig = true;
-        }
+            if (heeftOverrideNodig) {
+                await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}`).update(scheduleUpdates);
+            }
 
-        // 3. Alleen wegschrijven naar scheduleOverrides als het echt afwijkt
-        if (heeftOverrideNodig) {
-            await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}`).update(scheduleUpdates);
+            const formattedDt = formatExactDateTime(bookingDate.getTime());
+            const schemaMelding = heeftOverrideNodig ? " (Speelschema aangepast)" : "";
+            const berichtTekst = `${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${formattedDt}!${schemaMelding}`;
+            await addSystemMessageIfUnique(berichtTekst);
+
+            select.value = "";
+            baanSelect.value = "";
+            if (slotTargetSelect) slotTargetSelect.value = "auto";
+            dateInput.value = "";
+            resetBoekingDateLabel();
+
+            showToast("Baan geboekt!", heeftOverrideNodig ? "Tijd/dag afwijkt van standaard, schema bijgewerkt." : "Boeking opgeslagen.");
+        } catch (error) {
+            console.error("Fout bij registreren boeking:", error);
+            alert("Er ging iets mis bij het opslaan.");
         }
-
-        const formattedDt = formatExactDateTime(bookingDate.getTime());
-        const schemaMelding = heeftOverrideNodig ? " (Speelschema aangepast)" : "";
-        const berichtTekst = `${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${formattedDt}!${schemaMelding}`;
-        await addSystemMessageIfUnique(berichtTekst);
-
-        // Velden resetten
-        select.value = "";
-        baanSelect.value = "";
-        if (slotTargetSelect) slotTargetSelect.value = "auto";
-        dateInput.value = "";
-        resetBoekingDateLabel();
-
-        showToast("Baan geboekt!", heeftOverrideNodig ? "Tijd/dag afwijkt van standaard, schema bijgewerkt." : "Boeking opgeslagen.");
-    } catch (error) {
-        console.error("Fout bij registreren boeking:", error);
-        alert("Er ging iets mis bij het opslaan.");
     }
-}
         
     async function deleteBaanBoeking(id) {
         if (confirm("Weet je zeker dat je deze boeking wilt verwijderen?\n\nLet op: het speelschema wordt niet teruggezet. Pas de dag en tijd daar zelf aan als dat nodig is.")) {
