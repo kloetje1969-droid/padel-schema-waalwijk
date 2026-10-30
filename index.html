@@ -2434,96 +2434,121 @@
     }
 
     async function registreerBoekingDropdown() {
-        const select = document.getElementById('boekingDropdown');
-        const baanSelect = document.getElementById('baanDropdown');
-        const slotTargetSelect = document.getElementById('slotTargetDropdown');
-        const dateInput = document.getElementById('boekingDateTime');
-        
-        const gekozenSpeler = select.value;
-        const gekozenBaan = baanSelect.value;
-        const targetSlot = slotTargetSelect ? slotTargetSelect.value : 'auto';
-        const gekozenDatum = dateInput.value;
+    const select = document.getElementById('boekingDropdown');
+    const baanSelect = document.getElementById('baanDropdown');
+    const slotTargetSelect = document.getElementById('slotTargetDropdown');
+    const dateInput = document.getElementById('boekingDateTime');
+    
+    const gekozenSpeler = select.value;
+    const gekozenBaan = baanSelect.value;
+    const targetSlot = slotTargetSelect ? slotTargetSelect.value : 'auto';
+    const gekozenDatum = dateInput.value;
 
-        if (!gekozenSpeler) {
-            alert("Selecteer eerst een speler uit het menu!");
-            return;
-        }
-
-        if (!gekozenBaan) {
-            alert("Selecteer welke baan er is geboekt (Baan 1 t/m 10)!");
-            return;
-        }
-
-        if (!gekozenDatum) {
-            alert("Kies alstublieft een datum en tijd in het invoerveld!");
-            return;
-        }
-
-        try {
-            const newRef = db.ref('padelData/baanBoekingenList').push();
-            await newRef.set({
-                player: gekozenSpeler,
-                baan: gekozenBaan,
-                dateTime: gekozenDatum,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            const bookingDate = new Date(gekozenDatum);
-            const yearNum = getISOYear(bookingDate);
-            const weekNum = getISOWeekNumber(bookingDate);
-            const uniqueWeekKey = `${yearNum}_w${weekNum}`;
-
-            const jsDayIndex = bookingDate.getDay();
-            const dayNamesMap = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
-            const gekozenDagNaam = dayNamesMap[jsDayIndex];
-
-            const hours = String(bookingDate.getHours()).padStart(2, '0');
-            const minutes = String(bookingDate.getMinutes()).padStart(2, '0');
-            const gekozenTijdStr = `${hours}:${minutes}`;
-
-            let scheduleUpdates = {};
-
-            if (targetSlot === 'dinsdag') {
-                scheduleUpdates[`customDinsdag`] = gekozenDagNaam;
-                scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
-            } else if (targetSlot === 'donderdag') {
-                scheduleUpdates[`customDonderdag`] = gekozenDagNaam;
-                scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
-            } else {
-                if (gekozenDagNaam === 'dinsdag') {
-                    scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
-                } else if (gekozenDagNaam === 'donderdag') {
-                    scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
-                } else {
-                    if (jsDayIndex >= 1 && jsDayIndex <= 3) {
-                        scheduleUpdates[`customDinsdag`] = gekozenDagNaam;
-                        scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
-                    } else {
-                        scheduleUpdates[`customDonderdag`] = gekozenDagNaam;
-                        scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
-                    }
-                }
-            }
-
-            await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}`).update(scheduleUpdates);
-
-            const formattedDt = formatExactDateTime(bookingDate.getTime());
-            const berichtTekst = `${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${formattedDt}! (Speelschema direct aangepast)`;
-            await addSystemMessageIfUnique(berichtTekst);
-
-            select.value = "";
-            baanSelect.value = "";
-            if (slotTargetSelect) slotTargetSelect.value = "auto";
-            dateInput.value = "";
-            resetBoekingDateLabel();
-
-            showToast("Baan geboekt & Schema bijgewerkt!", `Tijd en dag zijn automatisch overgezet naar speelschema week ${weekNum}.`);
-        } catch (error) {
-            console.error("Fout bij registreren boeking:", error);
-            alert("Er ging iets mis bij het opslaan.");
-        }
+    if (!gekozenSpeler) {
+        alert("Selecteer eerst een speler uit het menu!");
+        return;
     }
 
+    if (!gekozenBaan) {
+        alert("Selecteer welke baan er is geboekt (Baan 1 t/m 10)!");
+        return;
+    }
+
+    if (!gekozenDatum) {
+        alert("Kies alstublieft een datum en tijd in het invoerveld!");
+        return;
+    }
+
+    try {
+        // 1. Sla de boeking altijd op in de algemene boekinglijst
+        const newRef = db.ref('padelData/baanBoekingenList').push();
+        await newRef.set({
+            player: gekozenSpeler,
+            baan: gekozenBaan,
+            dateTime: gekozenDatum,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        const bookingDate = new Date(gekozenDatum);
+        const yearNum = getISOYear(bookingDate);
+        const weekNum = getISOWeekNumber(bookingDate);
+        const uniqueWeekKey = `${yearNum}_w${weekNum}`;
+
+        const jsDayIndex = bookingDate.getDay();
+        const dayNamesMap = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+        const gekozenDagNaam = dayNamesMap[jsDayIndex];
+
+        const hours = String(bookingDate.getHours()).padStart(2, '0');
+        const minutes = String(bookingDate.getMinutes()).padStart(2, '0');
+        const gekozenTijdStr = `${hours}:${minutes}`;
+
+        let scheduleUpdates = {};
+        let heeftOverrideNodig = false;
+
+        // 2. Bepaal of we een override nodig hebben (alleen bij afwijking van standaard)
+        if (targetSlot === 'dinsdag') {
+            if (gekozenDagNaam !== 'dinsdag') {
+                scheduleUpdates[`customDinsdag`] = gekozenDagNaam;
+                heeftOverrideNodig = true;
+            }
+            if (gekozenTijdStr !== '18:30') {
+                scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
+                heeftOverrideNodig = true;
+            }
+        } else if (targetSlot === 'donderdag') {
+            if (gekozenDagNaam !== 'donderdag') {
+                scheduleUpdates[`customDonderdag`] = gekozenDagNaam;
+                heeftOverrideNodig = true;
+            }
+            if (gekozenTijdStr !== '18:30') {
+                scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
+                heeftOverrideNodig = true;
+            }
+        } else {
+            // Automatische detectie: standaard is dinsdag of donderdag om 18:30
+            if (gekozenDagNaam === 'dinsdag' && gekozenTijdStr !== '18:30') {
+                scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
+                heeftOverrideNodig = true;
+            } else if (gekozenDagNaam === 'donderdag' && gekozenTijdStr !== '18:30') {
+                scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
+                heeftOverrideNodig = true;
+            } else if (gekozenDagNaam !== 'dinsdag' && gekozenDagNaam !== 'donderdag') {
+                // Valt het op een andere dag (bijv. woensdag)? Dan wel koppelen aan een slot
+                const slotKey = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
+                if (slotKey === 'dinsdag') {
+                    scheduleUpdates[`customDinsdag`] = gekozenDagNaam;
+                } else {
+                    scheduleUpdates[`customDonderdag`] = gekozenDagNaam;
+                }
+                scheduleUpdates[`${slotKey}Tijd`] = gekozenTijdStr;
+                heeftOverrideNodig = true;
+            }
+        }
+
+        // 3. Alleen wegschrijven naar scheduleOverrides als het echt afwijkt
+        if (heeftOverrideNodig) {
+            await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}`).update(scheduleUpdates);
+        }
+
+        const formattedDt = formatExactDateTime(bookingDate.getTime());
+        const schemaMelding = heeftOverrideNodig ? " (Speelschema aangepast)" : "";
+        const berichtTekst = `${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${formattedDt}!${schemaMelding}`;
+        await addSystemMessageIfUnique(berichtTekst);
+
+        // Velden resetten
+        select.value = "";
+        baanSelect.value = "";
+        if (slotTargetSelect) slotTargetSelect.value = "auto";
+        dateInput.value = "";
+        resetBoekingDateLabel();
+
+        showToast("Baan geboekt!", heeftOverrideNodig ? "Tijd/dag afwijkt van standaard, schema bijgewerkt." : "Boeking opgeslagen.");
+    } catch (error) {
+        console.error("Fout bij registreren boeking:", error);
+        alert("Er ging iets mis bij het opslaan.");
+    }
+}
+        
     async function deleteBaanBoeking(id) {
         if (confirm("Weet je zeker dat je deze boeking wilt verwijderen?\n\nLet op: het speelschema wordt niet teruggezet. Pas de dag en tijd daar zelf aan als dat nodig is.")) {
             await db.ref(`padelData/baanBoekingenList/${id}`).remove();
