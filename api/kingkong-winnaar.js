@@ -1,17 +1,35 @@
-import { db, isCronAuthorized, amsterdamNow } from './padel.js';
+import admin from 'firebase-admin';
+
+// Vangnet om te zorgen dat Firebase Admin niet dubbel wordt gestart
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
+      }),
+      databaseURL: "https://padel-app-b8362-default-rtdb.europe-west1.firebasedatabase.app"
+    });
+  } catch (e) {
+    console.error('Firebase Admin init error:', e);
+  }
+}
+
+const db = admin.database();
 
 export default async function handler(req, res) {
   try {
     // 1. Beveiligingscontrole via de cron-secret
-    if (!isCronAuthorized(req)) {
+    const secret = req.headers['x-cron-secret'] || req.query.secret;
+    if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
       return res.status(401).json({ error: 'Niet geautoriseerd' });
     }
 
-    const nl = amsterdamNow();
-
-    // 2. Bepaal de actieve cyclus
+    // 2. Bepaal de actieve cyclus op basis van de datum
+    const now = new Date();
     const referenceMonday = new Date(Date.UTC(2026, 8, 21));
-    const currentMonday = new Date(Date.UTC(nl.year, nl.month - 1, nl.day));
+    const currentMonday = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
     const diffWeeks = Math.round((currentMonday.getTime() - referenceMonday.getTime()) / (7 * 86400000));
     const activeCyclusIndex = Math.max(0, Math.floor(diffWeeks / 6));
 
