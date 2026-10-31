@@ -2210,12 +2210,25 @@
             const weekNr = getISOWeekNumber(weekMaandag);
             const overrides = liveOverrides[weekKey] || {};
 
+            const templateIndex = ((w % 6) + 6) % 6;
+            let tpl = defaultTemplate[templateIndex];
+            if (cyclusIndex === 0 && templateIndex === 0) tpl = SCHEMA_WEEK1_CYCLUS1;
+
             ['dinsdag', 'donderdag'].forEach(slot => {
                 const res = matchResults[`${weekKey}_${slot}`];
                 if (!res) return;
 
                 const spelers = Array.isArray(res.players) ? res.players : Object.values(res.players || {});
                 if (spelers.length < 4) return;
+
+                const defaultSlotPlayers = (tpl && tpl[slot]) || [];
+                const formatNaam = (naam) => {
+                    const isVastEnOrigineel = defaultSlotPlayers.includes(naam);
+                    if (!isVastEnOrigineel) {
+                        return `<span style="text-decoration: line-through; opacity: 0.7;">${esc(naam)}</span>`;
+                    }
+                    return esc(naam);
+                };
 
                 const hoofdSlot = slot.charAt(0).toUpperCase() + slot.slice(1);
                 const dagIdx = getDayIndexFromName(overrides[`custom${hoofdSlot}`] || slot);
@@ -2235,7 +2248,7 @@
                 kaarten.push(`
                     <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px;">
                         <div style="font-size: 0.68rem; color: var(--text-muted);">Week ${weekNr} · ${esc(datumTekst)} · ${esc(tijdTekst)}</div>
-                        <div style="font-size: 0.8rem; color: var(--text-main);">${esc(spelers[0])} &amp; ${esc(spelers[1])} <span class="vs-text">vs</span> ${esc(spelers[2])} &amp; ${esc(spelers[3])}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-main);">${formatNaam(spelers[0])} &amp; ${formatNaam(spelers[1])} <span class="vs-text">vs</span> ${formatNaam(spelers[2])} &amp; ${formatNaam(spelers[3])}</div>
                         <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-blue);">${esc(sets.join(' · '))}</div>
                     </div>
                 `);
