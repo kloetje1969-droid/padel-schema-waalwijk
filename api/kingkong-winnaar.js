@@ -53,7 +53,10 @@ function leesMatchId(matchId) {
   };
 }
 
-// Games en wedstrijden per vaste speler in een cyclus (zelfde telling als het KingKong-klassement)
+// Games en wedstrijden per vaste speler in een cyclus (zelfde telling als het KingKong-klassement in de app):
+//  - Invallers (niet in BASE_PLAYERS) tellen nergens mee.
+//  - Vaste spelers die meespelen krijgen altijd +1 wedstrijd.
+//  - Games tellen alleen mee als de vaste speler op zijn eigen originele slot stond.
 function berekenTellingen(matchResults, cyclusIndex) {
   const gameCounts = {};
   const matchCounts = {};
@@ -85,10 +88,16 @@ function berekenTellingen(matchResults, cyclusIndex) {
 
     scores.forEach(item => {
       const p = item.player;
-      if (!p) return;
-      if (defaultSlotPlayers.includes(p) && BASE_PLAYERS.includes(p)) {
+
+      // Invallers (niet in BASE_PLAYERS) krijgen geen games en geen wedstrijden
+      if (!p || !BASE_PLAYERS.includes(p)) return;
+
+      // Wedstrijdtelling: telt mee voor iedere vaste speler die meespeelt
+      matchCounts[p] = (matchCounts[p] || 0) + 1;
+
+      // Games tellen ALLEEN mee als deze vaste speler op zijn eigen originele slot stond
+      if (defaultSlotPlayers.includes(p)) {
         gameCounts[p] = (gameCounts[p] || 0) + item.games;
-        matchCounts[p] = (matchCounts[p] || 0) + 1;
       }
     });
   }
@@ -275,7 +284,7 @@ async function verwerkCycli(nowMs) {
         } else {
           const body = tekst.length > MAX_PUSH_TEKENS ? tekst.slice(0, MAX_PUSH_TEKENS - 3) + '...' : tekst;
           const result = await sendToTokens(tokens, {
-            title: '🎾 Padel update',
+            title: '🔔 Padel update',
             body,
             tag: berichtKey || `kingkong-${cyclusIdx}`
           });
