@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.46)</title>
+    <title>Padelschema - Rooster & Chat (v8.47)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1409,7 +1409,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.46</span>
+        <span>Padelschema v8.47</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1461,7 +1461,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.46";
+    const APP_VERSION = "8.47";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function esc(v) {
@@ -2267,14 +2267,21 @@
         return v ? [String(v)] : [];
     }
 
-    function bouwPodiumRegels(eerste, tweede, derde, gamesVan, wedstrijdenVan) {
-        const regel = (medaille, plaats, naam) =>
-            `${medaille} ${plaats}e plaats: ${naam} (${gamesVan(naam)} games, ${wedstrijdenVan(naam)} Wedstr)`;
+    function bouwPodiumRijen(eerste, tweede, derde, gamesVan, wedstrijdenVan) {
+        const rij = (medaille, plaats, naam) => ({
+            links: `${medaille} ${plaats}e plaats: ${naam}`,
+            rechts: `(${gamesVan(naam)} games, ${wedstrijdenVan(naam)} Wedstr)`
+        });
         return [
-            ...eerste.map(n => regel('🥇', 1, n)),
-            ...tweede.map(n => regel('🥈', 2, n)),
-            ...derde.map(n => regel('🥉', 3, n))
+            ...eerste.map(n => rij('🥇', 1, n)),
+            ...tweede.map(n => rij('🥈', 2, n)),
+            ...derde.map(n => rij('🥉', 3, n))
         ];
+    }
+
+    function bouwPodiumRegels(eerste, tweede, derde, gamesVan, wedstrijdenVan) {
+        return bouwPodiumRijen(eerste, tweede, derde, gamesVan, wedstrijdenVan)
+            .map(r => `${r.links} ${r.rechts}`);
     }
 
     function renderSetsRanking() {
@@ -2334,7 +2341,7 @@
                 const berekend = bewaard ? null : getGameCountsForCyclus(parseInt(idx, 10), true).matchCounts;
                 const wedstrijdenVan = naam => bewaard ? (Number(bewaard[naam]) || 0) : ((berekend && berekend[naam]) || 0);
 
-                const regels = bouwPodiumRegels(eerste, tweede, derde, gamesVan, wedstrijdenVan);
+                const podiumRijen = bouwPodiumRijen(eerste, tweede, derde, gamesVan, wedstrijdenVan);
 
                 const isOpen = !!geopendeCycli[idx];
                 return `
@@ -2349,7 +2356,9 @@
                             </div>
                             <span class="collapse-arrow" id="cyclusPijl_${idx}">${isOpen ? '▲ Sluiten' : '▼ Open'}</span>
                         </div>
-                        ${regels.map(r => `<div style="font-size: 0.8rem; color: var(--text-main);">${esc(r)}</div>`).join('')}
+                        <div style="display: grid; grid-template-columns: max-content max-content; column-gap: 8px; row-gap: 3px; font-size: 0.8rem; color: var(--text-main);">
+                            ${podiumRijen.map(r => `<span>${esc(r.links)}</span><span>${esc(r.rechts)}</span>`).join('')}
+                        </div>
                         <div id="cyclusWedstrijden_${idx}" style="display: ${isOpen ? 'flex' : 'none'}; flex-direction: column; gap: 6px; margin-top: 6px; border-top: 1px solid var(--card-border); padding-top: 6px;">
                             ${bouwCyclusWedstrijdenHtml(parseInt(idx, 10))}
                         </div>
