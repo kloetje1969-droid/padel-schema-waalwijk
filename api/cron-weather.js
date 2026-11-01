@@ -40,6 +40,12 @@ async function getRainForecast(dateKey, targetHour) {
   };
 }
 
+// Robert kan alle pushmeldingen uitzetten (knop in de app)
+async function pushStaatUit() {
+  const snap = await db.ref('padelData/settings/pushGloballyEnabled').once('value');
+  return snap.val() === false;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     res.setHeader('Allow', 'GET, POST');
@@ -78,6 +84,11 @@ export default async function handler(req, res) {
           doelTijd: `${pad2(Math.floor(target / 60))}:${pad2(target % 60)}`,
           huidigeTijd: `${pad2(nl.hour)}:${pad2(nl.minute)}`
         });
+        continue;
+      }
+
+      if (await pushStaatUit()) {
+        results.push({ ...info, status: 'Push staat uit, geen weerpush verstuurd' });
         continue;
       }
 
