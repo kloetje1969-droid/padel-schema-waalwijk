@@ -1541,23 +1541,6 @@
 
     const emojiIconHtml = `<span class="emoji-icon dynamic-ball-icon">${getPadelIcon()}</span>`;
 
-    let inactivityTimer;
-    const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
-
-    function resetInactivityTimer() {
-        clearTimeout(inactivityTimer);
-        inactivityTimer = setTimeout(() => {
-            sessionStorage.removeItem('padel_unlocked');
-            document.getElementById('pinInput').value = '';
-            document.getElementById('pinOverlay').style.display = 'flex';
-            document.getElementById('pinInput').focus();
-        }, INACTIVITY_TIMEOUT_MS);
-    }
-
-    ['click', 'touchstart', 'mousemove', 'keypress'].forEach(eventType => {
-        document.addEventListener(eventType, resetInactivityTimer, { passive: true });
-    });
-
     async function checkAppVersion() {
         try {
             const res = await fetch('index.html?v=' + Date.now(), { cache: 'no-store' });
@@ -1591,20 +1574,10 @@
     }
     const db = firebase.database();
     
-    // Inloggen gaat via de server (api/login): de pincode wordt daar gecontroleerd.
     let authResolve;
     const authReady = new Promise((resolve) => { authResolve = resolve; });
     let isRobertAuthed = false;
     let loginBezig = false;
-
-    // Robert blijft op zijn eigen apparaat 30 dagen herkend, ook na vergrendelen of een nieuwe sessie.
-    const ROBERT_ONTHOUDEN_MS = 30 * 24 * 60 * 60 * 1000;
-    function robertNogGeldig() {
-        try {
-            const t = Number(localStorage.getItem('padel_robert_since') || 0);
-            return t > 0 && (Date.now() - t) < ROBERT_ONTHOUDEN_MS;
-        } catch (e) { return false; }
-    }
 
     function getDeviceId() {
         let id = '';
@@ -1640,24 +1613,9 @@
         }
         if (!resp.ok) { const err = new Error('server'); err.code = 'server'; throw err; }
         const data = await resp.json();
-        if (!robert) {
-            // De groepscode is goed. Is dit apparaat al als Robert ingelogd (en nog geldig), dan blijft dat zo.
-            try {
-                const cur = firebase.auth().currentUser;
-                if (cur && robertNogGeldig()) {
-                    const t = await cur.getIdTokenResult();
-                    if (t.claims.lid === true && t.claims.robert === true) {
-                        isRobertAuthed = true;
-                        return data;
-                    }
-                }
-            } catch (e) {}
-        }
+        
         await firebase.auth().signInWithCustomToken(data.token);
         isRobertAuthed = data.robert === true;
-        if (isRobertAuthed) {
-            try { localStorage.setItem('padel_robert_since', String(Date.now())); } catch (e) {}
-        }
         return data;
     }
 
@@ -1681,7 +1639,6 @@
         });
     }
 
-    // Wie als Robert was gekozen maar zijn eigen pincode nog niet heeft ingevoerd, kiest opnieuw zijn naam.
     function naUnlockControle() {
         if (currentUserName === "Robert" && !isRobertAuthed) {
             currentUserName = "";
@@ -1753,17 +1710,16 @@
         updatePushPermissionButtonUI();
         applyDynamicIcons();
 
-        if (sessionStorage.getItem('padel_unlocked') === 'true') {
+        if (localStorage.getItem('padel_unlocked') === 'true') {
             checkBestaandeLogin().then((st) => {
                 if (st.ok) {
-                    isRobertAuthed = st.robert === true && robertNogGeldig();
+                    isRobertAuthed = st.robert === true;
                     document.getElementById('pinOverlay').style.display = 'none';
                     naUnlockControle();
                     authResolve();
                     initApp();
-                    resetInactivityTimer();
                 } else {
-                    sessionStorage.removeItem('padel_unlocked');
+                    localStorage.removeItem('padel_unlocked');
                     document.getElementById('pinInput').focus();
                 }
             });
@@ -2027,14 +1983,13 @@
         loginBezig = true;
         try {
             await loginMetPin(pin, false);
-            sessionStorage.setItem('padel_unlocked', 'true');
+            localStorage.setItem('padel_unlocked', 'true');
             errDiv.style.display = 'none';
             input.value = '';
             document.getElementById('pinOverlay').style.display = 'none';
             naUnlockControle();
             authResolve();
             initApp();
-            resetInactivityTimer();
         } catch (e) {
             errDiv.textContent = loginFoutTekst(e, 'app');
             errDiv.style.display = 'block';
@@ -2225,10 +2180,8 @@
                 const p = item.player;
                 if (!p || !basePlayers.includes(p)) return;
 
-                // Wedstrijdtelling telt mee voor iedereen uit de vaste groep die meespeelt
                 matchCounts[p] = (matchCounts[p] || 0) + 1;
 
-                // Games tellen ALLEEN mee als deze vaste speler op zijn eigen originele slot stond
                 const isOriginalPlayerForThisSlot = defaultSlotPlayers.includes(p);
                 if (isOriginalPlayerForThisSlot) {
                     gameCounts[p] = (gameCounts[p] || 0) + item.games;
