@@ -2,6 +2,8 @@ import { db, getTokensByPlayer, sendToTokens } from '../lib/padel.js';
 
 // De app roept dit aan nadat er een chatbericht of systeembericht is opgeslagen.
 const BLOKKEER_ZONDER_LOGIN = true;
+// Alleen ingelogde spelers (met de pincode via api/login) mogen een melding laten sturen.
+const VEREIS_LIDMAATSCHAP = true;
 
 async function controleerInlog(req) {
   const header = req.headers['authorization'] || '';
@@ -10,6 +12,9 @@ async function controleerInlog(req) {
   try {
     const { getAuth } = await import('firebase-admin/auth');
     const decoded = await getAuth().verifyIdToken(token);
+    if (VEREIS_LIDMAATSCHAP && decoded.lid !== true) {
+      return { ok: false, reden: 'geen spelerslid (pincode niet gebruikt)' };
+    }
     return { ok: true, uid: decoded.uid };
   } catch (e) {
     return { ok: false, reden: e.code || e.message };
