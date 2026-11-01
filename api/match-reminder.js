@@ -14,6 +14,12 @@ import {
 const REMIND_BEFORE_START_MIN = 60; // herinnering 1 uur voor aanvang
 const WINDOW_MIN = 30;              // mag maximaal 30 minuten na het doeltijdstip draaien
 
+// Robert kan alle pushmeldingen uitzetten (knop in de app)
+async function pushStaatUit() {
+  const snap = await db.ref('padelData/settings/pushGloballyEnabled').once('value');
+  return snap.val() === false;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     res.setHeader('Allow', 'GET, POST');
@@ -52,6 +58,11 @@ export default async function handler(req, res) {
           doelTijd: `${pad2(Math.floor(target / 60))}:${pad2(target % 60)}`,
           huidigeTijd: `${pad2(nl.hour)}:${pad2(nl.minute)}`
         });
+        continue;
+      }
+
+      if (await pushStaatUit()) {
+        results.push({ ...info, status: 'Push staat uit, geen herinnering verstuurd.' });
         continue;
       }
 
