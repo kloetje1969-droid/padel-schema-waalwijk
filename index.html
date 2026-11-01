@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.53)</title>
+    <title>Padelschema - Rooster & Chat (v8.55)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1245,7 +1245,7 @@
     <div class="pin-box">
         <h2>🔒 Padel App</h2>
         <p>Voer de pincode in om toegang te krijgen:</p>
-        <input type="password" id="pinInput" maxlength="4" placeholder="••••" onkeypress="handlePinKey(event)">
+        <input type="password" id="pinInput" maxlength="32" placeholder="••••••" autocomplete="off" onkeypress="handlePinKey(event)">
         <div id="pinError" class="pin-error">Onjuiste pincode. Probeer het opnieuw.</div>
         <button class="btn-primary" onclick="checkPin()">Ontgrendelen</button>
     </div>
@@ -1255,7 +1255,7 @@
     <div class="pin-box">
         <h2>🔒 Beveiligd</h2>
         <p>Voer de pincode voor Robert in:</p>
-        <input type="password" id="robertPinInput" maxlength="4" placeholder="••••" onkeypress="handleRobertPinKey(event)">
+        <input type="password" id="robertPinInput" maxlength="32" placeholder="••••••" autocomplete="off" onkeypress="handleRobertPinKey(event)">
         <div id="robertPinError" class="pin-error">Onjuiste pincode voor Robert.</div>
         <div class="modal-buttons" style="justify-content: center; margin-top: 10px;">
             <button class="btn-cancel" onclick="cancelRobertSelect()">Annuleren</button>
@@ -1449,7 +1449,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.53</span>
+        <span>Padelschema v8.55</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1501,7 +1501,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.53";
+    const APP_VERSION = "8.55";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function esc(v) {
@@ -1591,13 +1591,104 @@
     }
     const db = firebase.database();
     
-    const authReady = firebase.auth().signInAnonymously()
-      .then((userCredential) => {
-          console.log("Anoniem ingelogd:", userCredential.user.uid);
-      })
-      .catch((error) => {
-          console.error("Anonieme login mislukt:", error.message);
-      });
+    // Inloggen gaat via de server (api/login): de pincode wordt daar gecontroleerd.
+    let authResolve;
+    const authReady = new Promise((resolve) => { authResolve = resolve; });
+    let isRobertAuthed = false;
+    let loginBezig = false;
+
+    // Robert blijft op zijn eigen apparaat 30 dagen herkend, ook na vergrendelen of een nieuwe sessie.
+    const ROBERT_ONTHOUDEN_MS = 30 * 24 * 60 * 60 * 1000;
+    function robertNogGeldig() {
+        try {
+            const t = Number(localStorage.getItem('padel_robert_since') || 0);
+            return t > 0 && (Date.now() - t) < ROBERT_ONTHOUDEN_MS;
+        } catch (e) { return false; }
+    }
+
+    function getDeviceId() {
+        let id = '';
+        try { id = localStorage.getItem('padel_device_id') || ''; } catch (e) {}
+        if (!/^[A-Za-z0-9-]{16,64}$/.test(id)) {
+            id = (window.crypto && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : ('d' + Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2));
+            id = id.replace(/[^A-Za-z0-9-]/g, '');
+            if (id.length < 16) id += '0123456789abcdef';
+            id = id.slice(0, 64);
+            try { localStorage.setItem('padel_device_id', id); } catch (e) {}
+        }
+        return id;
+    }
+
+    async function loginMetPin(pin, robert) {
+        let resp;
+        try {
+            resp = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin: pin, robert: !!robert, deviceId: getDeviceId() })
+            });
+        } catch (e) {
+            const err = new Error('netwerk'); err.code = 'netwerk'; throw err;
+        }
+        if (resp.status === 401) { const err = new Error('onjuist'); err.code = 'onjuist'; throw err; }
+        if (resp.status === 429) {
+            let minuten = 15;
+            try { const j = await resp.json(); if (j && j.minuten) minuten = j.minuten; } catch (e) {}
+            const err = new Error('geblokkeerd'); err.code = 'geblokkeerd'; err.minuten = minuten; throw err;
+        }
+        if (!resp.ok) { const err = new Error('server'); err.code = 'server'; throw err; }
+        const data = await resp.json();
+        if (!robert) {
+            // De groepscode is goed. Is dit apparaat al als Robert ingelogd (en nog geldig), dan blijft dat zo.
+            try {
+                const cur = firebase.auth().currentUser;
+                if (cur && robertNogGeldig()) {
+                    const t = await cur.getIdTokenResult();
+                    if (t.claims.lid === true && t.claims.robert === true) {
+                        isRobertAuthed = true;
+                        return data;
+                    }
+                }
+            } catch (e) {}
+        }
+        await firebase.auth().signInWithCustomToken(data.token);
+        isRobertAuthed = data.robert === true;
+        if (isRobertAuthed) {
+            try { localStorage.setItem('padel_robert_since', String(Date.now())); } catch (e) {}
+        }
+        return data;
+    }
+
+    function loginFoutTekst(e, rol) {
+        if (e && e.code === 'onjuist') return rol === 'robert' ? 'Onjuiste pincode voor Robert.' : 'Onjuiste pincode. Probeer het opnieuw.';
+        if (e && e.code === 'geblokkeerd') return 'Te veel pogingen. Probeer het over ' + e.minuten + ' minuten opnieuw.';
+        if (e && e.code === 'netwerk') return 'Geen verbinding met de server. Probeer het opnieuw.';
+        return 'Inloggen is niet gelukt. Probeer het later opnieuw.';
+    }
+
+    function checkBestaandeLogin() {
+        return new Promise((resolve) => {
+            const unsub = firebase.auth().onAuthStateChanged(async (u) => {
+                unsub();
+                if (!u) return resolve({ ok: false });
+                try {
+                    const t = await u.getIdTokenResult();
+                    resolve({ ok: t.claims.lid === true, robert: t.claims.robert === true });
+                } catch (e) { resolve({ ok: false }); }
+            });
+        });
+    }
+
+    // Wie als Robert was gekozen maar zijn eigen pincode nog niet heeft ingevoerd, kiest opnieuw zijn naam.
+    function naUnlockControle() {
+        if (currentUserName === "Robert" && !isRobertAuthed) {
+            currentUserName = "";
+            myOriginalUserName = "";
+            try { localStorage.removeItem('padel_current_user'); } catch (e) {}
+        }
+    }
 
     let messaging = null;
     try {
@@ -1663,9 +1754,19 @@
         applyDynamicIcons();
 
         if (sessionStorage.getItem('padel_unlocked') === 'true') {
-            document.getElementById('pinOverlay').style.display = 'none';
-            initApp();
-            resetInactivityTimer();
+            checkBestaandeLogin().then((st) => {
+                if (st.ok) {
+                    isRobertAuthed = st.robert === true && robertNogGeldig();
+                    document.getElementById('pinOverlay').style.display = 'none';
+                    naUnlockControle();
+                    authResolve();
+                    initApp();
+                    resetInactivityTimer();
+                } else {
+                    sessionStorage.removeItem('padel_unlocked');
+                    document.getElementById('pinInput').focus();
+                }
+            });
         } else {
             document.getElementById('pinInput').focus();
         }
@@ -1917,19 +2018,30 @@
         pulling = false;
     });
 
-    function checkPin() {
-        const inputVal = document.getElementById('pinInput').value;
+    async function checkPin() {
+        if (loginBezig) return;
+        const input = document.getElementById('pinInput');
         const errDiv = document.getElementById('pinError');
-
-        if (inputVal === "0416") {
+        const pin = input.value;
+        if (!pin) return;
+        loginBezig = true;
+        try {
+            await loginMetPin(pin, false);
             sessionStorage.setItem('padel_unlocked', 'true');
+            errDiv.style.display = 'none';
+            input.value = '';
             document.getElementById('pinOverlay').style.display = 'none';
+            naUnlockControle();
+            authResolve();
             initApp();
             resetInactivityTimer();
-        } else {
+        } catch (e) {
+            errDiv.textContent = loginFoutTekst(e, 'app');
             errDiv.style.display = 'block';
-            document.getElementById('pinInput').value = '';
-            document.getElementById('pinInput').focus();
+            input.value = '';
+            input.focus();
+        } finally {
+            loginBezig = false;
         }
     }
 
@@ -2839,17 +2951,26 @@
         }
     }
 
-    function confirmRobertPin() {
-        const pinVal = document.getElementById('robertPinInput').value;
+    async function confirmRobertPin() {
+        if (loginBezig) return;
+        const input = document.getElementById('robertPinInput');
         const errDiv = document.getElementById('robertPinError');
-
-        if (pinVal === "1412") {
+        const pinVal = input.value;
+        if (!pinVal) return;
+        loginBezig = true;
+        try {
+            await loginMetPin(pinVal, true);
+            errDiv.style.display = 'none';
+            input.value = '';
             document.getElementById('pinModal').style.display = 'none';
             completeUserChange("Robert");
-        } else {
+        } catch (e) {
+            errDiv.textContent = loginFoutTekst(e, 'robert');
             errDiv.style.display = 'block';
-            document.getElementById('robertPinInput').value = '';
-            document.getElementById('robertPinInput').focus();
+            input.value = '';
+            input.focus();
+        } finally {
+            loginBezig = false;
         }
     }
 
