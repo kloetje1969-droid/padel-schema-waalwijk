@@ -355,6 +355,12 @@
             100% { opacity: 0.3; transform: scale(0.8); }
         }
 
+        @keyframes blinkGreen {
+            0% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #34d399; }
+            100% { opacity: 0.3; transform: scale(0.8); }
+        }
+
         @keyframes pulseConnection {
             0% { opacity: 0.6; text-shadow: none; }
             50% { opacity: 1; text-shadow: 0 0 10px rgba(56, 189, 248, 0.6); }
@@ -383,6 +389,13 @@
             font-weight: bold;
         }
 
+        .status-badge.online-player {
+            border-color: #34d399;
+            background: rgba(52, 211, 153, 0.15);
+            box-shadow: 0 0 6px rgba(52, 211, 153, 0.25);
+            font-weight: 600;
+        }
+
         .status-line {
             display: flex;
             align-items: center;
@@ -408,6 +421,11 @@
         .status-dot.online {
             background: #38bdf8;
             animation: blinkBlue 1.5s infinite ease-in-out;
+        }
+
+        .status-badge.online-player .status-dot.online {
+            background: #34d399;
+            animation: blinkGreen 1.5s infinite ease-in-out;
         }
 
         .status-dot.offline {
@@ -604,16 +622,15 @@
             white-space: nowrap;
         }
 
-       .match-row-wrapper {
+        .match-row-wrapper {
             display: flex;
             flex-direction: column;
             background: rgba(0, 0, 0, 0.25);
-            border: 1px solid var(--accent-blue); /* Dezelfde blauwe kleur als de set-titels */
+            border: 1px solid rgba(56, 189, 248, 0.4);
             border-radius: 12px;
             margin-bottom: 12px;
             overflow: hidden;
         }
-
 
         .match-row-wrapper:last-child {
             margin-bottom: 0;
@@ -3089,8 +3106,15 @@
                     }
                 }
 
+                let badgeClass = '';
+                if (isMe && isOnline) {
+                    badgeClass = 'me';
+                } else if (!isMe && isOnline) {
+                    badgeClass = 'online-player';
+                }
+
                 return `
-                    <div class="status-badge ${isMe ? 'me' : ''}">
+                    <div class="status-badge ${badgeClass}">
                         <div class="status-line">
                             <span class="status-dot ${isOnline ? 'online' : 'offline'}"></span>
                             <span>${player}</span>
