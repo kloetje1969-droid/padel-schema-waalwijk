@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (V8.59)</title>
+    <title>Padelschema - Rooster & Chat (V8.60)</title>
     
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/icon-192.png">
@@ -1485,7 +1485,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema V8.59</span>
+        <span>Padelschema V8.60</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1537,7 +1537,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.59";
+    const APP_VERSION = "8.60";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function esc(v) {
@@ -2781,6 +2781,8 @@
             } else {
                 doelSlot = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
             }
+            const voorMoment = slotMoment(uniqueWeekKey, doelSlot);
+            const wasAangepast = voorMoment.dag !== doelSlot || voorMoment.tijd !== STANDAARD_TIJD;
             const bestaandeWeek = liveOverrides[uniqueWeekKey] || {};
             const doelDagSleutel = 'custom' + doelSlot.charAt(0).toUpperCase() + doelSlot.slice(1);
             const doelTijdSleutel = `${doelSlot}Tijd`;
@@ -2800,11 +2802,15 @@
             const datumStr = bookingDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
             const tijdStr = bookingDate.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
             
-            // Alleen '(speelschema aangepast)' toevoegen als het geen standaard dag of tijd is
-            const schemaMelding = (!isStandaardMoment && heeftOverrideNodig) ? " (speelschema aangepast)" : "";
+            // Alleen bij een niet-standaard dag of tijd komt er een toevoeging achter de melding
+            const schemaMelding = !isStandaardMoment ? " (Wedstrijd aangepaste dag en/of tijd)" : "";
             const berichtTekst = `${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${datumStr} om ${tijdStr} uur.${schemaMelding}`;
             
             await addSystemMessageIfUnique(berichtTekst);
+            // Stond de wedstrijd verplaatst en valt de boeking weer op het standaard moment? Dan een melding dat het terug is gezet.
+            if (isStandaardMoment && heeftOverrideNodig && wasAangepast) {
+                await addSystemMessageIfUnique(bouwSchemaMelding(uniqueWeekKey, doelSlot, doelSlot, STANDAARD_TIJD));
+            }
             select.value = "";
             baanSelect.value = "";
             if (slotTargetSelect) slotTargetSelect.value = "auto";
@@ -3523,10 +3529,42 @@
         els.forEach(el => { fitOneLineEl(el); fitObserver.observe(el); });
     }
 
+    const STANDAARD_TIJD = '18:30';
+    const DAGNAMEN_NL = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+
+    // Dag en tijd waarop een wedstrijd (slot) op dit moment staat
+    function slotMoment(uniqueWeekKey, slotKey) {
+        const ov = liveOverrides[uniqueWeekKey] || {};
+        const dagKey = 'custom' + slotKey.charAt(0).toUpperCase() + slotKey.slice(1);
+        return {
+            dag: ov[dagKey] || slotKey,
+            tijd: ov[slotKey + 'Tijd'] || ov[dagKey + 'Tijd'] || STANDAARD_TIJD
+        };
+    }
+
+    // Chatmelding bij een wijziging van dag en/of tijd, of bij terugzetten naar het standaard moment
+    function bouwSchemaMelding(uniqueWeekKey, slotKey, dag, tijd) {
+        const delen = uniqueWeekKey.split('_w');
+        const weekNr = parseInt(delen[1], 10);
+        const maandag = isoWeekToMonday(parseInt(delen[0], 10), weekNr);
+        let dagIdx = DAGNAMEN_NL.indexOf(dag);
+        if (dagIdx < 0) dagIdx = DAGNAMEN_NL.indexOf(slotKey);
+        const datum = new Date(maandag);
+        datum.setDate(maandag.getDate() + dagIdx);
+        const datumTekst = datum.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+        const naam = `${slotKey}-wedstrijd van week ${weekNr}`;
+        if (dag === slotKey && tijd === STANDAARD_TIJD) {
+            return `✅ De ${naam} staat weer op het standaard moment: ${datumTekst} om ${tijd} uur.`;
+        }
+        return `📅 De ${naam} is aangepast naar ${datumTekst} om ${tijd} uur.`;
+    }
+
     async function updateWeekDay(uniqueWeekKey, slotKey, newDay) {
+        const voor = slotMoment(uniqueWeekKey, slotKey);
+        if (voor.dag === newDay) return;
         let path = `padelData/scheduleOverrides/${uniqueWeekKey}/custom${slotKey.charAt(0).toUpperCase() + slotKey.slice(1)}`;
         await db.ref(path).set(newDay);
-        await addSystemMessageIfUnique(`📅 Een speeldag in week ${uniqueWeekKey.split('_w')[1]} is gewijzigd naar ${newDay}.`);
+        await addSystemMessageIfUnique(bouwSchemaMelding(uniqueWeekKey, slotKey, newDay, voor.tijd));
     }
 
     const tijdConcepten = {};
@@ -3575,7 +3613,7 @@
         try {
             await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}/${slotKey}Tijd`).set(newTime);
             showToast("Tijd opgeslagen", `Speeltijd gewijzigd naar ${newTime}`);
-            await addSystemMessageIfUnique(`⏰ Speeltijd voor ${slotKey} in week ${uniqueWeekKey.split('_w')[1]} is gewijzigd naar ${newTime}.`);
+            await addSystemMessageIfUnique(bouwSchemaMelding(uniqueWeekKey, slotKey, slotMoment(uniqueWeekKey, slotKey).dag, newTime));
             return 'ok';
         } catch (err) {
             console.error("Tijd opslaan mislukt:", err);
