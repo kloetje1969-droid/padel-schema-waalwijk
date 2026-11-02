@@ -777,7 +777,7 @@
         .set-column-title {
             font-size: 0.65rem;
             font-weight: 700;
-            color: var(--accent-blue);
+            color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.04em;
             text-align: center;
@@ -790,6 +790,24 @@
             justify-content: center;
             gap: 4px;
             width: 100%;
+        }
+
+        .set-input-box input {
+            width: 32px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #374151 !important;
+            color: #d1d5db !important;
+            border: 1px solid #4b5563 !important;
+            border-radius: 4px;
+            padding: 3px;
+            text-align: center;
+            outline: none;
+        }
+
+        .set-input-box input:focus {
+            border-color: var(--accent-blue) !important;
+            box-shadow: 0 0 5px rgba(56, 189, 248, 0.4);
         }
 
         .match-date {
