@@ -1256,6 +1256,17 @@
         .players-container .vs-text {
             flex: 0 0 auto;
         }
+
+        /* Heel smalle schermen (320 px, bijv. iPhone SE 1e generatie): namen en setvakjes iets compacter */
+        @media (max-width: 345px) {
+            .players-container { gap: 3px; }
+            .player-chip { padding: 4px 5px; font-size: 0.78rem; }
+            .vs-text { margin: 0 1px; font-size: 0.7rem; }
+            .match-score-section { padding: 8px 6px; }
+            .sets-inputs-grid { gap: 4px; }
+            .set-input-box { gap: 2px; }
+            .set-input-box input { width: 26px !important; }
+        }
     </style>
 </head>
 <body>
@@ -1526,7 +1537,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.58";
+    const APP_VERSION = "8.59";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function esc(v) {
@@ -2718,8 +2729,8 @@
             let heeftOverrideNodig = false;
 
             // Bepaal of dit een standaard speelmoment is (dinsdag of donderdag om 18:30)
-            const isStandaardDinsdag = (targetSlot === 'dinsdag' || (targetSlot === 'auto' && gekozenDagNaam === 'dinsdag')) && gekozenTijdStr === '18:30';
-            const isStandaardDonderdag = (targetSlot === 'donderdag' || (targetSlot === 'auto' && gekozenDagNaam === 'donderdag')) && gekozenTijdStr === '18:30';
+            const isStandaardDinsdag = (targetSlot === 'dinsdag' || targetSlot === 'auto') && gekozenDagNaam === 'dinsdag' && gekozenTijdStr === '18:30';
+            const isStandaardDonderdag = (targetSlot === 'donderdag' || targetSlot === 'auto') && gekozenDagNaam === 'donderdag' && gekozenTijdStr === '18:30';
             const isStandaardMoment = isStandaardDinsdag || isStandaardDonderdag;
 
             if (!isStandaardMoment) {
@@ -2760,29 +2771,30 @@
                     }
                 }
 
-                let doelSlot;
-                if (targetSlot === 'dinsdag' || targetSlot === 'donderdag') {
-                    doelSlot = targetSlot;
-                } else if (gekozenDagNaam === 'dinsdag' || gekozenDagNaam === 'donderdag') {
-                    doelSlot = gekozenDagNaam;
-                } else {
-                    doelSlot = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
-                }
-                const bestaandeWeek = liveOverrides[uniqueWeekKey] || {};
-                const doelDagSleutel = 'custom' + doelSlot.charAt(0).toUpperCase() + doelSlot.slice(1);
-                const doelTijdSleutel = `${doelSlot}Tijd`;
-                if (scheduleUpdates[doelDagSleutel] === undefined && bestaandeWeek[doelDagSleutel]) {
-                    scheduleUpdates[doelDagSleutel] = null;
-                    heeftOverrideNodig = true;
-                }
-                if (scheduleUpdates[doelTijdSleutel] === undefined && bestaandeWeek[doelTijdSleutel]) {
-                    scheduleUpdates[doelTijdSleutel] = null;
-                    heeftOverrideNodig = true;
-                }
+            }
 
-                if (heeftOverrideNodig) {
-                    await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}`).update(scheduleUpdates);
-                }
+            let doelSlot;
+            if (targetSlot === 'dinsdag' || targetSlot === 'donderdag') {
+                doelSlot = targetSlot;
+            } else if (gekozenDagNaam === 'dinsdag' || gekozenDagNaam === 'donderdag') {
+                doelSlot = gekozenDagNaam;
+            } else {
+                doelSlot = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
+            }
+            const bestaandeWeek = liveOverrides[uniqueWeekKey] || {};
+            const doelDagSleutel = 'custom' + doelSlot.charAt(0).toUpperCase() + doelSlot.slice(1);
+            const doelTijdSleutel = `${doelSlot}Tijd`;
+            if (scheduleUpdates[doelDagSleutel] === undefined && bestaandeWeek[doelDagSleutel]) {
+                scheduleUpdates[doelDagSleutel] = null;
+                heeftOverrideNodig = true;
+            }
+            if (scheduleUpdates[doelTijdSleutel] === undefined && bestaandeWeek[doelTijdSleutel]) {
+                scheduleUpdates[doelTijdSleutel] = null;
+                heeftOverrideNodig = true;
+            }
+
+            if (heeftOverrideNodig) {
+                await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}`).update(scheduleUpdates);
             }
 
             const datumStr = bookingDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
