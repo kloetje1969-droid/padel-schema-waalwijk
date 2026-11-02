@@ -641,6 +641,8 @@
             padding: 12px;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            text-align: center;
             gap: 8px;
             width: 100%;
             background: transparent;
@@ -649,7 +651,7 @@
 
         .match-header-line {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             flex-wrap: nowrap;
             width: 100%;
@@ -658,14 +660,16 @@
 
         .match-actions-line {
             display: flex;
+            justify-content: center;
             width: 100%;
         }
 
         .match-actions-line .btn-wijzig {
-            width: 100%;
+            width: auto;
+            display: inline-flex;
             justify-content: center;
             font-size: 0.8rem;
-            padding: 7px 10px;
+            padding: 6px 14px;
             white-space: nowrap;
             border: none;
         }
@@ -673,13 +677,14 @@
         .match-day-date {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 5px;
             font-size: calc(0.9rem * var(--s, 1));
             font-weight: 700;
             color: var(--accent-blue);
             flex-wrap: nowrap;
             row-gap: 4px;
-            flex-grow: 1;
+            width: 100%;
             min-width: 0;
         }
 
@@ -710,6 +715,7 @@
         .tijd-input-wrapper {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 1px;
             flex-shrink: 0;
         }
@@ -742,10 +748,12 @@
         .match-sub-info {
             display: flex;
             align-items: center;
+            justify-content: center;
             flex-wrap: nowrap;
             min-width: 0;
             gap: 6px;
             margin-bottom: 2px;
+            width: 100%;
         }
 
         .match-score-section {
@@ -757,11 +765,12 @@
             border-radius: 8px;
             border: 1px solid var(--card-border);
             width: 100%;
+            align-items: center;
         }
 
         .sets-inputs-grid {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             gap: 8px;
             align-items: center;
             width: 100%;
@@ -773,6 +782,7 @@
             align-items: center;
             gap: 3px;
             flex: 1;
+            max-width: 75px;
         }
 
         .set-column-title {
@@ -845,6 +855,7 @@
             gap: 5px;
             flex-wrap: nowrap;
             align-items: center;
+            justify-content: center;
             overflow-x: auto;
             overflow-y: hidden;
             white-space: nowrap;
@@ -939,10 +950,12 @@
             font-weight: 500;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
             border-radius: 6px;
             margin-top: 4px;
             margin-bottom: 2px;
+            width: 100%;
         }
 
         .rain-alert {
@@ -954,10 +967,12 @@
             font-weight: 500;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
             border-radius: 6px;
             margin-top: 2px;
             margin-bottom: 2px;
+            width: 100%;
         }
 
         .table-scroll-wrapper { 
@@ -2728,7 +2743,6 @@
             let scheduleUpdates = {};
             let heeftOverrideNodig = false;
 
-            // Bepaal of dit een standaard speelmoment is (dinsdag of donderdag om 18:30)
             const isStandaardDinsdag = (targetSlot === 'dinsdag' || targetSlot === 'auto') && gekozenDagNaam === 'dinsdag' && gekozenTijdStr === '18:30';
             const isStandaardDonderdag = (targetSlot === 'donderdag' || targetSlot === 'auto') && gekozenDagNaam === 'donderdag' && gekozenTijdStr === '18:30';
             const isStandaardMoment = isStandaardDinsdag || isStandaardDonderdag;
@@ -2802,12 +2816,10 @@
             const datumStr = bookingDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
             const tijdStr = bookingDate.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
             
-            // Alleen bij een niet-standaard dag of tijd komt er een toevoeging achter de melding
             const schemaMelding = !isStandaardMoment ? " (Wedstrijd aangepaste dag en/of tijd)" : "";
             const berichtTekst = `${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${datumStr} om ${tijdStr} uur.${schemaMelding}`;
             
             await addSystemMessageIfUnique(berichtTekst);
-            // Stond de wedstrijd verplaatst en valt de boeking weer op het standaard moment? Dan een melding dat het terug is gezet.
             if (isStandaardMoment && heeftOverrideNodig && wasAangepast) {
                 await addSystemMessageIfUnique(bouwSchemaMelding(uniqueWeekKey, doelSlot, doelSlot, STANDAARD_TIJD));
             }
@@ -3532,7 +3544,6 @@
     const STANDAARD_TIJD = '18:30';
     const DAGNAMEN_NL = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
 
-    // Dag en tijd waarop een wedstrijd (slot) op dit moment staat
     function slotMoment(uniqueWeekKey, slotKey) {
         const ov = liveOverrides[uniqueWeekKey] || {};
         const dagKey = 'custom' + slotKey.charAt(0).toUpperCase() + slotKey.slice(1);
@@ -3542,7 +3553,6 @@
         };
     }
 
-    // Chatmelding bij een wijziging van dag en/of tijd, of bij terugzetten naar het standaard moment
     function bouwSchemaMelding(uniqueWeekKey, slotKey, dag, tijd) {
         const delen = uniqueWeekKey.split('_w');
         const weekNr = parseInt(delen[1], 10);
