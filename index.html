@@ -6,9 +6,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (v8.58)</title>
+    <title>Padelschema - Rooster & Chat (V8.59)</title>
     
     <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -776,8 +777,8 @@
 
         .set-column-title {
             font-size: 0.65rem;
-            font-weight: 800;
-            color: #38bdf8;
+            font-weight: 700;
+            color: var(--accent-blue);
             text-transform: uppercase;
             letter-spacing: 0.04em;
             text-align: center;
@@ -790,29 +791,6 @@
             justify-content: center;
             gap: 4px;
             width: 100%;
-        }
-
-        .set-input-box input {
-            color: #d1d5db !important;
-            font-weight: 600 !important;
-        }
-
-        .set-input-box input {
-            width: 32px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: #374151 !important;
-            color: #d1d5db !important;
-            border: 1px solid #4b5563 !important;
-            border-radius: 4px;
-            padding: 3px;
-            text-align: center;
-            outline: none;
-        }
-
-        .set-input-box input:focus {
-            border-color: var(--accent-blue) !important;
-            box-shadow: 0 0 5px rgba(56, 189, 248, 0.4);
         }
 
         .match-date {
@@ -1496,7 +1474,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema v8.58</span>
+        <span>Padelschema V8.59</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
