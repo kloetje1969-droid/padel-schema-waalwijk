@@ -64,7 +64,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             font-weight: 600;
             pointer-events: auto;
             animation: slideDownIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
@@ -90,7 +90,7 @@
         }
 
         .emoji-icon {
-            font-size: 1.4rem;
+            font-size: 1.6rem;
             vertical-align: middle;
         }
 
@@ -130,7 +130,7 @@
             align-items: center;
             justify-content: center;
             color: var(--accent-blue);
-            font-size: 0.8rem;
+            font-size: 0.95rem;
             font-weight: 600;
             transition: transform 0.2s ease;
             background-color: var(--card-bg);
@@ -185,13 +185,13 @@
 
         .pin-box h2 {
             color: var(--accent-blue);
-            font-size: 1.3rem;
+            font-size: 1.5rem;
             margin-bottom: 4px;
         }
 
         .pin-box p {
             color: var(--text-muted);
-            font-size: 0.85rem;
+            font-size: 1rem;
         }
 
         .pin-box input {
@@ -209,7 +209,7 @@
 
         .pin-error {
             color: var(--danger);
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             display: none;
         }
 
@@ -246,7 +246,7 @@
         }
 
         h1 {
-            font-size: 1.7rem;
+            font-size: 2rem;
             font-weight: 800;
             color: var(--accent-blue);
             letter-spacing: -0.025em;
@@ -278,7 +278,7 @@
             padding: 6px 12px;
             border-radius: 10px;
             border: 1px solid var(--card-border);
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             flex: 1;
         }
 
@@ -296,12 +296,12 @@
             font-weight: 700;
             outline: none;
             cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             width: 100%;
         }
 
         .db-connection-status {
-            font-size: 0.72rem; 
+            font-size: 0.85rem; 
             color: #38bdf8; 
             display: flex; 
             align-items: center; 
@@ -328,7 +328,7 @@
             border: 1px solid var(--card-border);
             padding: 5px 12px;
             border-radius: 8px;
-            font-size: 0.72rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
             display: flex;
             align-items: center;
@@ -374,7 +374,7 @@
             color: var(--text-main);
             padding: 6px 10px;
             border-radius: 8px;
-            font-size: 0.72rem;
+            font-size: 0.85rem;
             font-weight: 500;
             display: flex;
             flex-direction: column;
@@ -405,7 +405,7 @@
         }
 
         .status-time {
-            font-size: 0.6rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
             font-weight: normal;
             text-align: center;
@@ -452,7 +452,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 0.8rem;
+            font-size: 0.95rem;
             width: 100%;
             transition: background 0.2s;
         }
@@ -469,9 +469,9 @@
         .alert-badge-count {
             background: #dc2626;
             color: white;
-            font-size: 0.65rem;
+            font-size: 0.75rem;
             font-weight: 900;
-            padding: 1px 5px;
+            padding: 1px 6px;
             border-radius: 6px;
             display: none;
         }
@@ -501,7 +501,7 @@
         }
 
         .collapse-arrow {
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             font-weight: 600;
             color: var(--accent-blue);
             background: rgba(56, 189, 248, 0.1);
@@ -533,7 +533,7 @@
         }
 
         .section-title {
-            font-size: 1rem;
+            font-size: 1.15rem;
             font-weight: 600;
             color: var(--accent-blue);
             display: flex;
@@ -551,7 +551,7 @@
         }
 
         .bron-knmi-label {
-            font-size: 0.68rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
             opacity: 0.7;
             font-weight: 500;
@@ -564,7 +564,7 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            font-size: 0.7rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
             padding: 6px 4px;
             opacity: 0.7;
@@ -584,7 +584,7 @@
             background: rgba(255, 255, 255, 0.02);
             padding: 12px 14px;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 1.1rem;
             color: #e5e7eb;
             border-bottom: 1px solid var(--card-border);
             text-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
@@ -612,7 +612,7 @@
         }
 
         .schema-week-tag {
-            font-size: 0.8rem;
+            font-size: 0.95rem;
             font-weight: 700;
             color: var(--accent-blue);
             background: rgba(56, 189, 248, 0.1);
@@ -631,6 +631,8 @@
             border-radius: 12px;
             margin-bottom: 12px;
             overflow: hidden;
+            padding: 14px; /* Aangepast: hoger gemaakte weekblokken via padding */
+            gap: 12px;
         }
 
         .match-row-wrapper:last-child {
@@ -638,7 +640,7 @@
         }
 
         .match-row {
-            padding: 16px 14px;
+            padding: 4px 0;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -668,7 +670,7 @@
             width: auto;
             display: inline-flex;
             justify-content: center;
-            font-size: 0.9rem;
+            font-size: 1.05rem;
             padding: 8px 16px;
             white-space: nowrap;
             border: none;
@@ -679,7 +681,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            font-size: calc(1.05rem * var(--s, 1));
+            font-size: calc(1.2rem * var(--s, 1));
             font-weight: 700;
             color: var(--accent-blue);
             flex-wrap: nowrap;
@@ -693,7 +695,7 @@
             border: 1px solid var(--card-border);
             padding: 6px 8px;
             border-radius: 6px;
-            font-size: calc(0.95rem * var(--s, 1));
+            font-size: calc(1.1rem * var(--s, 1));
             font-weight: 700;
             outline: none;
             cursor: pointer;
@@ -726,11 +728,11 @@
             border: 1px solid var(--card-border);
             padding: 6px 0;
             border-radius: 6px;
-            font-size: calc(0.95rem * var(--s, 1));
+            font-size: calc(1.1rem * var(--s, 1));
             font-weight: 700;
             font-family: inherit;
             outline: none;
-            width: calc(28px * var(--s, 1));
+            width: calc(34px * var(--s, 1));
             box-sizing: border-box;
             text-align: center;
         }
@@ -742,7 +744,7 @@
         .tijd-sep {
             color: var(--accent-blue);
             font-weight: 700;
-            font-size: calc(1.05rem * var(--s, 1));
+            font-size: calc(1.2rem * var(--s, 1));
         }
 
         .match-sub-info {
@@ -786,7 +788,7 @@
         }
 
         .set-column-title {
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             font-weight: 700;
             color: var(--accent-blue);
             text-transform: uppercase;
@@ -805,7 +807,7 @@
 
         .match-date {
             flex-shrink: 0;
-            font-size: calc(0.95rem * var(--s, 1));
+            font-size: calc(1.1rem * var(--s, 1));
             font-weight: 700;
             text-transform: uppercase;
             white-space: nowrap;
@@ -825,7 +827,7 @@
             color: #38bdf8;
             padding: 6px 10px;
             border-radius: 6px;
-            font-size: calc(0.95rem * var(--s, 1));
+            font-size: calc(1.05rem * var(--s, 1));
             font-weight: 500;
             display: inline-flex;
             align-items: center;
@@ -842,7 +844,7 @@
             margin-left: 4px;
             white-space: nowrap;
             flex-shrink: 0;
-            font-size: calc(0.95rem * var(--s, 1));
+            font-size: calc(1.05rem * var(--s, 1));
         }
 
         .weather-sun {
@@ -875,7 +877,7 @@
             color: #d1d5db;
             padding: 6px 12px;
             border-radius: 6px;
-            font-size: 0.95rem;
+            font-size: 1.05rem;
             font-weight: 600;
             white-space: nowrap;
         }
@@ -914,7 +916,7 @@
 
         .vs-text {
             color: var(--text-muted);
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             font-weight: 600;
             margin: 0 4px;
         }
@@ -926,7 +928,7 @@
             padding: 6px 10px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.95rem;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
@@ -946,7 +948,7 @@
             border: 1px solid rgba(248, 113, 113, 0.3);
             color: #fca5a5;
             padding: 8px 12px;
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             font-weight: 500;
             display: flex;
             align-items: center;
@@ -963,7 +965,7 @@
             border-top: 1px solid rgba(248, 113, 113, 0.3);
             color: #fca5a5;
             padding: 8px 12px;
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             font-weight: 500;
             display: flex;
             align-items: center;
@@ -986,13 +988,13 @@
         .stats-table, .absence-table { 
             width: 100%; 
             border-collapse: collapse; 
-            font-size: 0.75rem; 
+            font-size: 0.9rem; 
             white-space: nowrap; 
             background: var(--bg-color); 
         }
         
         .stats-table th, .stats-table td, .absence-table th, .absence-table td { 
-            padding: 6px 8px; 
+            padding: 8px 10px; 
             text-align: center; 
             border-bottom: 1px solid var(--card-border); 
         }
@@ -1016,9 +1018,9 @@
             background: rgba(56, 189, 248, 0.15); 
             color: #38bdf8; 
             border: 1px solid #38bdf8; 
-            padding: 4px 8px; 
+            padding: 6px 10px; 
             border-radius: 5px; 
-            font-size: 0.7rem; 
+            font-size: 0.85rem; 
             cursor: pointer; 
             font-weight: bold; 
         }
@@ -1045,7 +1047,7 @@
             display: flex; 
             flex-direction: column; 
             gap: 6px; 
-            font-size: 0.8rem; 
+            font-size: 0.95rem; 
         }
         
         .message { 
@@ -1081,7 +1083,7 @@
         }
         
         .message .author { 
-            font-size: 0.65rem; 
+            font-size: 0.8rem; 
             color: var(--text-muted); 
             font-weight: 600; 
         }
@@ -1095,7 +1097,7 @@
             border: none; 
             color: var(--text-muted); 
             cursor: pointer; 
-            font-size: 0.7rem; 
+            font-size: 0.85rem; 
         }
 
         .chat-input-row { 
@@ -1127,7 +1129,7 @@
             outline: none; 
             font-size: 16px; 
             resize: none; 
-            min-height: 38px;
+            min-height: 42px;
             max-height: 120px; 
             line-height: 1.4;
             font-family: inherit;
@@ -1142,9 +1144,9 @@
             border-radius: 6px; 
             cursor: pointer; 
             font-weight: 800; 
-            font-size: 0.85rem; 
+            font-size: 0.95rem; 
             box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
-            height: 38px;
+            height: 42px;
             flex-shrink: 0;
         }
 
@@ -1177,7 +1179,7 @@
         
         .modal-content h3 { 
             color: #7dd3fc; 
-            font-size: 1.05rem; 
+            font-size: 1.2rem; 
             line-height: 1.3;
             overflow-wrap: anywhere;
             margin-bottom: 12px; 
@@ -1189,7 +1191,7 @@
         
         .player-select-group label { 
             display: block; 
-            font-size: 0.75rem; 
+            font-size: 0.9rem; 
             color: var(--text-muted); 
             margin-bottom: 3px; 
             font-weight: 600; 
@@ -1233,7 +1235,7 @@
             border-radius: 6px; 
             cursor: pointer; 
             font-weight: 600; 
-            font-size: 0.85rem; 
+            font-size: 0.95rem; 
         }
 
         #pinModal {
@@ -1275,8 +1277,8 @@
         /* Heel smalle schermen (320 px, bijv. iPhone SE 1e generatie): namen en setvakjes iets compacter */
         @media (max-width: 345px) {
             .players-container { gap: 3px; }
-            .player-chip { padding: 4px 5px; font-size: 0.85rem; }
-            .vs-text { margin: 0 1px; font-size: 0.75rem; }
+            .player-chip { padding: 4px 5px; font-size: 0.95rem; }
+            .vs-text { margin: 0 1px; font-size: 0.85rem; }
             .match-score-section { padding: 8px 6px; }
             .sets-inputs-grid { gap: 4px; }
             .set-input-box { gap: 2px; }
@@ -1367,7 +1369,7 @@
     <div class="card">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
-                <div class="section-title" style="font-size: 0.95rem;">📊 Statistieken (Huidige Reeks)</div>
+                <div class="section-title" style="font-size: 1.05rem;">📊 Statistieken (Huidige Reeks)</div>
                 <span class="collapse-arrow">▼ Open</span>
             </summary>
             <div class="collapsible-body">
@@ -1391,11 +1393,11 @@
     <div class="card">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
-                <div class="section-title" style="font-size: 0.95rem;">📅 Afwezigheid / Vakantie</div>
+                <div class="section-title" style="font-size: 1.05rem;">📅 Afwezigheid / Vakantie</div>
                 <span class="collapse-arrow">▼ Open</span>
             </summary>
             <div class="collapsible-body">
-                <p style="font-size: 0.75rem; color: var(--text-muted);">Vaste spelers kunnen alleen hun eigen afwezigheid aanpassen. Invallers kunnen door iedereen worden aangemeld/afgemeld.</p>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Vaste spelers kunnen alleen hun eigen afwezigheid aanpassen. Invallers kunnen door iedereen worden aangemeld/afgemeld.</p>
                 <div class="table-scroll-wrapper">
                     <table class="absence-table">
                         <thead>
@@ -1413,7 +1415,7 @@
     <!-- MODULE: BAAN BOEKEN -->
     <div class="card">
         <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
-            <div class="section-title" style="font-size: 0.95rem;">
+            <div class="section-title" style="font-size: 1.05rem;">
                 <span class="emoji-icon dynamic-ball-icon">🥎</span>
                 Baan Boeken
             </div>
@@ -1421,10 +1423,10 @@
         </div>
         <div id="baanBoekingenBody">
             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                <select id="boekingDropdown" class="booking-input-soft booking-btn-green" style="flex-grow: 1; min-width: 110px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;">
+                <select id="boekingDropdown" class="booking-input-soft booking-btn-green" style="flex-grow: 1; min-width: 110px; padding: 8px; border-radius: 6px; font-size: 0.95rem; outline: none; font-weight: 500;">
                     <option value="">-- Wie boekt? --</option>
                 </select>
-                <select id="baanDropdown" class="booking-input-soft booking-btn-green" style="min-width: 90px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;">
+                <select id="baanDropdown" class="booking-input-soft booking-btn-green" style="min-width: 90px; padding: 8px; border-radius: 6px; font-size: 0.95rem; outline: none; font-weight: 500;">
                     <option value="">-- Baan --</option>
                     <option value="Baan 1">Baan 1</option>
                     <option value="Baan 2">Baan 2</option>
@@ -1440,7 +1442,7 @@
             </div>
 
             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 2px;">
-                <select id="slotTargetDropdown" class="booking-input-soft booking-btn-green" style="flex-grow: 1; min-width: 130px; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;" title="Kies welk slot in het speelschema moet worden aangepast">
+                <select id="slotTargetDropdown" class="booking-input-soft booking-btn-green" style="flex-grow: 1; min-width: 130px; padding: 8px; border-radius: 6px; font-size: 0.95rem; outline: none; font-weight: 500;" title="Kies welk slot in het speelschema moet worden aangepast">
                     <option value="auto">🔄 Slot: Automatisch</option>
                     <option value="dinsdag">🟢 Slot: 1e wedstrijd (Di)</option>
                     <option value="donderdag">🟠 Slot: 2e wedstrijd (Do)</option>
@@ -1449,13 +1451,13 @@
 
             <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
                 <div style="position: relative; flex-grow: 1; display: flex;">
-                    <button type="button" id="boekingDateTimeBtn" class="booking-input-soft booking-btn-green" onclick="openBoekingDatePicker()" style="width: 100%; padding: 8px; border-radius: 6px; font-size: 0.85rem; outline: none; font-weight: 500;">📅 Speeldatum &amp; Starttijd</button>
+                    <button type="button" id="boekingDateTimeBtn" class="booking-input-soft booking-btn-green" onclick="openBoekingDatePicker()" style="width: 100%; padding: 8px; border-radius: 6px; font-size: 0.95rem; outline: none; font-weight: 500;">📅 Speeldatum &amp; Starttijd</button>
                     <input type="datetime-local" id="boekingDateTime" tabindex="-1" aria-hidden="true" onchange="onBoekingDateChange()" style="position: absolute; left: 0; bottom: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; border: 0; padding: 0;">
                 </div>
                 <button class="btn-primary" onclick="registreerBoekingDropdown()" style="height: auto; padding: 8px 14px;">Boek</button>
             </div>
 
-            <div id="baanBoekingLijst" style="font-size: 0.75rem; color: var(--text-main); margin-top: 4px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--card-border); padding-top: 6px;"></div>
+            <div id="baanBoekingLijst" style="font-size: 0.85rem; color: var(--text-main); margin-top: 4px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--card-border); padding-top: 6px;"></div>
         </div>
     </div>
 
@@ -1463,11 +1465,11 @@
     <div class="card">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
-                <div class="section-title" style="font-size: 0.95rem;">🦧 KingKong of the Court 🦧</div>
+                <div class="section-title" style="font-size: 1.05rem;">🦧 KingKong of the Court 🦧</div>
                 <span class="collapse-arrow">▼ Open</span>
             </summary>
             <div class="collapsible-body" id="setsRankingContainer" style="display: flex; flex-direction: column; gap: 6px;">
-                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Games berekenen...</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">Games berekenen...</div>
             </div>
         </details>
     </div>
@@ -1476,24 +1478,24 @@
     <div class="card">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
-                <div class="section-title" style="font-size: 0.95rem;">🏆 Historische uitslagen</div>
+                <div class="section-title" style="font-size: 1.05rem;">🏆 Historische uitslagen</div>
                 <span class="collapse-arrow">▼ Open</span>
             </summary>
             <div class="collapsible-body" id="historischeUitslagenContainer" style="display: flex; flex-direction: column; gap: 6px;">
-                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Historie laden...</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">Historie laden...</div>
             </div>
         </details>
     </div>
 
     <div class="card" id="chatCardSection">
         <div class="card-header">
-            <div class="section-title" style="font-size: 0.95rem;">💬 Team Chat</div>
+            <div class="section-title" style="font-size: 1.05rem;">💬 Team Chat</div>
             <button class="btn-edit" id="clearAllChatBtn" onclick="clearAllChat()" style="display: none;">Alles wissen</button>
         </div>
         <div class="chat-messages" id="chatWindow"></div>
         <div class="chat-input-row">
             <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx" style="display: none;" onchange="handleFileSelect(event)">
-            <button class="push-btn" onclick="document.getElementById('fileInput').click()" title="Foto of PDF bijvoegen" style="padding: 9px 10px; font-size: 1rem; height: 38px;">📎</button>
+            <button class="push-btn" onclick="document.getElementById('fileInput').click()" title="Foto of PDF bijvoegen" style="padding: 9px 10px; font-size: 1.1rem; height: 42px;">📎</button>
             <textarea id="chatInput" rows="1" placeholder="Typ een bericht..." onkeydown="handleKeyDown(event)"></textarea>
             <button class="btn-primary" onclick="sendMessage()">Verzend</button>
         </div>
@@ -1501,7 +1503,7 @@
 
     <div class="app-footer-row">
         <span>Padelschema V8.60</span>
-        <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
+        <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
 </div>
@@ -1534,7 +1536,7 @@
         </div>
 
         <div class="modal-buttons">
-            <button class="btn-edit" id="modalToggleCancelBtn" onclick="handleModalToggleAfgelast()" style="font-size: 0.8rem; padding: 7px 10px;">
+            <button class="btn-edit" id="modalToggleCancelBtn" onclick="handleModalToggleAfgelast()" style="font-size: 0.95rem; padding: 7px 10px;">
                 🚫 Afgelasten
             </button>
             <div class="modal-buttons-right">
@@ -1957,7 +1959,7 @@
         toast.innerHTML = `
             ${emojiIconHtml}
             <div style="flex-grow: 1;">
-                <div style="font-size: 0.75rem; color: #bae6fd; font-weight: 700; text-transform: uppercase;">${title}</div>
+                <div style="font-size: 0.85rem; color: #bae6fd; font-weight: 700; text-transform: uppercase;">${title}</div>
                 <div>${text}</div>
             </div>
         `;
@@ -2403,16 +2405,16 @@
 
                 kaarten.push(`
                     <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px;">
-                        <div style="font-size: 0.68rem; color: var(--text-muted);">Week ${weekNr} · ${esc(datumTekst)} · ${esc(tijdTekst)}</div>
-                        <div style="font-size: 0.8rem; color: var(--text-main);">${formatNaam(spelers[0])} &amp; ${formatNaam(spelers[1])} <span class="vs-text">vs</span> ${formatNaam(spelers[2])} &amp; ${formatNaam(spelers[3])}</div>
-                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-blue);">${esc(sets.join(' · '))}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Week ${weekNr} · ${esc(datumTekst)} · ${esc(tijdTekst)}</div>
+                        <div style="font-size: 0.95rem; color: var(--text-main);">${formatNaam(spelers[0])} &amp; ${formatNaam(spelers[1])} <span class="vs-text">vs</span> ${formatNaam(spelers[2])} &amp; ${formatNaam(spelers[3])}</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--accent-blue);">${esc(sets.join(' · '))}</div>
                     </div>
                 `);
             });
         }
 
         if (kaarten.length === 0) {
-            return `<div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Geen wedstrijden met uitslag gevonden.</div>`;
+            return `<div style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">Geen wedstrijden met uitslag gevonden.</div>`;
         }
         return kaarten.join('');
     }
@@ -2462,7 +2464,7 @@
                         <span style="font-weight: ${isMe ? 'bold' : '500'}; color: ${isMe ? 'var(--accent-blue)' : 'var(--text-main)'};">${medal} ${p}</span>
                         <div style="text-align: right;">
                             <span style="color: var(--accent-blue); font-weight: bold;">${games} games</span>
-                            <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 6px;">(${matches} wedstr.)</span>
+                            <span style="color: var(--text-muted); font-size: 0.85rem; margin-left: 6px;">(${matches} wedstr.)</span>
                         </div>
                     </div>
                 `;
@@ -2473,7 +2475,7 @@
         if (histContainer) {
             const afgerondeCycli = Object.keys(cyclusWinnaars || {}).filter(idx => /^[0-9]+$/.test(idx) && cyclusWinnaars[idx] && cyclusWinnaars[idx].winner);
             if (afgerondeCycli.length === 0) {
-                histContainer.innerHTML = `<div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Nog geen afgeronde cycli beschikbaar.</div>`;
+                histContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">Nog geen afgeronde cycli beschikbaar.</div>`;
                 return;
             }
 
@@ -2512,7 +2514,7 @@
                             </div>
                             <span class="collapse-arrow" id="cyclusPijl_${idx}">${isOpen ? '▲ Sluiten' : '▼ Open'}</span>
                         </div>
-                        <div style="display: grid; grid-template-columns: max-content max-content; column-gap: 8px; row-gap: 3px; font-size: 0.8rem; color: var(--text-main);">
+                        <div style="display: grid; grid-template-columns: max-content max-content; column-gap: 8px; row-gap: 3px; font-size: 0.95rem; color: var(--text-main);">
                             ${podiumRijen.map(r => `<span>${esc(r.links)}</span><span>${esc(r.rechts)}</span>`).join('')}
                         </div>
                         <div id="cyclusWedstrijden_${idx}" style="display: ${isOpen ? 'flex' : 'none'}; flex-direction: column; gap: 6px; margin-top: 6px; border-top: 1px solid var(--card-border); padding-top: 6px;">
@@ -2638,18 +2640,18 @@
         const lijstContainer = document.getElementById('baanBoekingLijst');
         if (lijstContainer) {
             if (currentCyclusBoekingen.length === 0) {
-                lijstContainer.innerHTML = `<span style="color: var(--text-muted); font-size: 0.7rem;">Nog geen banen geboekt in deze cyclus.</span>`;
+                lijstContainer.innerHTML = `<span style="color: var(--text-muted); font-size: 0.8rem;">Nog geen banen geboekt in deze cyclus.</span>`;
                 return;
             }
 
-            lijstContainer.innerHTML = `<div style="font-size: 0.72rem; color: var(--accent-blue); font-weight: 600; margin-bottom: 2px;">Geboekte momenten (deze cyclus):</div>` +
+            lijstContainer.innerHTML = `<div style="font-size: 0.85rem; color: var(--accent-blue); font-weight: 600; margin-bottom: 2px;">Geboekte momenten (deze cyclus):</div>` +
                 currentCyclusBoekingen.map(b => {
                     let formattedDt = formatExactDateTime(new Date(b.dateTime).getTime());
                     let baanInfo = b.baan ? ` op <strong>${esc(b.baan)}</strong>` : '';
                     let canDelete = (currentUserName === "Robert" || b.player === currentUserName);
-                    let deleteBtn = canDelete ? `<button onclick="deleteBaanBoeking(${jsArg(b.id)})" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.7rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
+                    let deleteBtn = canDelete ? `<button onclick="deleteBaanBoeking(${jsArg(b.id)})" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.85rem; margin-left: 6px;" title="Verwijder boeking">✕</button>` : '';
                     return `<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--card-border);">
-                        <span><span class="emoji-icon dynamic-ball-icon" style="font-size: 1rem;">${getPadelIcon()}</span> <strong>${esc(b.player)}</strong>${baanInfo}: ${formattedDt}</span>
+                        <span><span class="emoji-icon dynamic-ball-icon" style="font-size: 1.1rem;">${getPadelIcon()}</span> <strong>${esc(b.player)}</strong>${baanInfo}: ${formattedDt}</span>
                         ${deleteBtn}
                     </div>`;
                 }).join('');
@@ -3346,7 +3348,7 @@
                         <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" aria-label="Uur" id="tijdu_${tijdKey}" class="tijd-vak" value="${uurWaarde}" oninput="onTijdTyp(this, '${uniqueWeekKey}', '${slotKey}', 'h')">
                         <span class="tijd-sep">:</span>
                         <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" aria-label="Minuten" id="tijdm_${tijdKey}" class="tijd-vak" value="${minWaarde}" oninput="onTijdTyp(this, '${uniqueWeekKey}', '${slotKey}', 'm')">
-                        <button class="btn-edit" onclick="saveSpeelTijd('${uniqueWeekKey}', '${slotKey}')" title="Speeltijd opslaan" style="padding: 5px 6px; font-size: calc(0.95rem * var(--s, 1));">💾</button>
+                        <button class="btn-edit" onclick="saveSpeelTijd('${uniqueWeekKey}', '${slotKey}')" title="Speeltijd opslaan" style="padding: 5px 6px; font-size: calc(1.05rem * var(--s, 1));">💾</button>
                     </div>
                 `;
             };
@@ -3362,13 +3364,14 @@
                             </div>
                         </div>
 
-                        <div class="match-actions-line">
-                            <button class="btn-edit btn-wijzig" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig speler/Aflassen</button>
-                        </div>
-
                         <div class="match-sub-info">
                             ${dinsdagWeather}
                             ${diCancelled ? '<span class="afgelast-tag">(AFGELAST)</span>' : ''}
+                        </div>
+
+                        <!-- Verplaatst: Knop tussen weerbericht en spelersnamen -->
+                        <div class="match-actions-line">
+                            <button class="btn-edit btn-wijzig" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig speler/Aflassen</button>
                         </div>
 
                         ${dinsdagRainAlert}
@@ -3381,30 +3384,30 @@
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 1</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s1_${diMatchId}" value="${diRes.t1s1 !== undefined ? diRes.t1s1 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.85rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                                        <input type="number" id="t1s1_${diMatchId}" value="${diRes.t1s1 !== undefined ? diRes.t1s1 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.95rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s1_${diMatchId}" value="${diRes.t2s1 !== undefined ? diRes.t2s1 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.85rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                                        <input type="number" id="t2s1_${diMatchId}" value="${diRes.t2s1 !== undefined ? diRes.t2s1 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.95rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 2</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s2_${diMatchId}" value="${diRes.t1s2 !== undefined ? diRes.t1s2 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.85rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                                        <input type="number" id="t1s2_${diMatchId}" value="${diRes.t1s2 !== undefined ? diRes.t1s2 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.95rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s2_${diMatchId}" value="${diRes.t2s2 !== undefined ? diRes.t2s2 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.85rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                                        <input type="number" id="t2s2_${diMatchId}" value="${diRes.t2s2 !== undefined ? diRes.t2s2 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.95rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 3</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s3_${diMatchId}" value="${diRes.t1s3 !== undefined ? diRes.t1s3 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.85rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                                        <input type="number" id="t1s3_${diMatchId}" value="${diRes.t1s3 !== undefined ? diRes.t1s3 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.95rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s3_${diMatchId}" value="${diRes.t2s3 !== undefined ? diRes.t2s3 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.85rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                                        <input type="number" id="t2s3_${diMatchId}" value="${diRes.t2s3 !== undefined ? diRes.t2s3 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.95rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper" style="flex: 0 0 auto;">
                                     <div class="set-column-title">&nbsp;</div>
-                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${diMatchId}', ${jsArg(dinsdagPlayers[0])}, ${jsArg(dinsdagPlayers[1])}, ${jsArg(dinsdagPlayers[2])}, ${jsArg(dinsdagPlayers[3])})" style="padding: 6px 10px; font-size: 0.8rem;">💾</button>
+                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${diMatchId}', ${jsArg(dinsdagPlayers[0])}, ${jsArg(dinsdagPlayers[1])}, ${jsArg(dinsdagPlayers[2])}, ${jsArg(dinsdagPlayers[3])})" style="padding: 6px 10px; font-size: 0.95rem;">💾</button>
                                 </div>
                             </div>
                         </div>` : ''}
@@ -3421,13 +3424,14 @@
                             </div>
                         </div>
 
-                        <div class="match-actions-line">
-                            <button class="btn-edit btn-wijzig" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig speler/Aflassen</button>
-                        </div>
-
                         <div class="match-sub-info">
                             ${donderdagWeather}
                             ${doCancelled ? '<span class="afgelast-tag">(AFGELAST)</span>' : ''}
+                        </div>
+
+                        <!-- Verplaatst: Knop tussen weerbericht en spelersnamen -->
+                        <div class="match-actions-line">
+                            <button class="btn-edit btn-wijzig" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig speler/Aflassen</button>
                         </div>
 
                         ${donderdagRainAlert}
@@ -3440,30 +3444,30 @@
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 1</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s1_${doMatchId}" value="${doRes.t1s1 !== undefined ? doRes.t1s1 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.85rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                                        <input type="number" id="t1s1_${doMatchId}" value="${doRes.t1s1 !== undefined ? doRes.t1s1 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.95rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s1_${doMatchId}" value="${doRes.t2s1 !== undefined ? doRes.t2s1 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.85rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                                        <input type="number" id="t2s1_${doMatchId}" value="${doRes.t2s1 !== undefined ? doRes.t2s1 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.95rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 2</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s2_${doMatchId}" value="${doRes.t1s2 !== undefined ? doRes.t1s2 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.85rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                                        <input type="number" id="t1s2_${doMatchId}" value="${doRes.t1s2 !== undefined ? doRes.t1s2 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.95rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s2_${doMatchId}" value="${doRes.t2s2 !== undefined ? doRes.t2s2 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.85rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                                        <input type="number" id="t2s2_${doMatchId}" value="${doRes.t2s2 !== undefined ? doRes.t2s2 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.95rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper">
                                     <div class="set-column-title">Set 3</div>
                                     <div class="set-input-box">
-                                        <input type="number" id="t1s3_${doMatchId}" value="${doRes.t1s3 !== undefined ? doRes.t1s3 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.85rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                                        <input type="number" id="t1s3_${doMatchId}" value="${doRes.t1s3 !== undefined ? doRes.t1s3 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.95rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
                                         <span>-</span>
-                                        <input type="number" id="t2s3_${doMatchId}" value="${doRes.t2s3 !== undefined ? doRes.t2s3 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.85rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
+                                        <input type="number" id="t2s3_${doMatchId}" value="${doRes.t2s3 !== undefined ? doRes.t2s3 : ''}" placeholder="0" min="0" style="width: 36px; font-size: 0.95rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px; padding: 4px; text-align: center;">
                                     </div>
                                 </div>
                                 <div class="set-column-wrapper" style="flex: 0 0 auto;">
                                     <div class="set-column-title">&nbsp;</div>
-                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${doMatchId}', ${jsArg(donderdagPlayers[0])}, ${jsArg(donderdagPlayers[1])}, ${jsArg(donderdagPlayers[2])}, ${jsArg(donderdagPlayers[3])})" style="padding: 6px 10px; font-size: 0.8rem;">💾</button>
+                                    <button class="btn-edit" onclick="saveMatchScore3Sets('${doMatchId}', ${jsArg(donderdagPlayers[0])}, ${jsArg(donderdagPlayers[1])}, ${jsArg(donderdagPlayers[2])}, ${jsArg(donderdagPlayers[3])})" style="padding: 6px 10px; font-size: 0.95rem;">💾</button>
                                 </div>
                             </div>
                         </div>` : ''}
@@ -3712,7 +3716,7 @@
             const data = counts[p];
             let displayName = esc(p);
             if (isMe) displayName += ' (jij)';
-            if (data.isSub) displayName += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
+            if (data.isSub) displayName += ' <span style="color: var(--accent-orange); font-size: 0.75rem;">(invaller)</span>';
 
             return `
                 <tr class="${isMe ? 'highlight-row' : ''}">
@@ -3770,7 +3774,7 @@
             const isSub = !basePlayers.includes(p);
             let nameDisplay = esc(p);
             if (isMe) nameDisplay += ' (jij)';
-            if (isSub) nameDisplay += ' <span style="color: var(--accent-orange); font-size: 0.65rem;">(invaller)</span>';
+            if (isSub) nameDisplay += ' <span style="color: var(--accent-orange); font-size: 0.75rem;">(invaller)</span>';
 
             let rowHtml = `<td style="text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 2; color: ${isMe ? 'var(--accent-blue)' : (isSub ? 'var(--accent-orange)' : 'inherit')}">${nameDisplay}</td>`;
 
@@ -3784,7 +3788,7 @@
                 ['dinsdag', 'donderdag'].forEach(day => {
                     const isCancelled = isMatchCancelled(uniqueWeekKey, day);
                     if (isCancelled) {
-                        rowHtml += `<td style="color: var(--text-muted); font-size: 0.65rem;">--</td>`;
+                        rowHtml += `<td style="color: var(--text-muted); font-size: 0.75rem;">--</td>`;
                     } else {
                         const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, day);
                         const isDisabled = (!isSub && !isMe);
@@ -4104,7 +4108,7 @@
             const isSelf = (m.author === currentUserName);
             const isSystem = (m.type === "system" || m.author === "Systeem" || m.author === "Padel Weerbericht");
             const formattedTime = formatMessageTime(m.timestamp, m.tijd);
-            const tijdWeergave = formattedTime ? `<span style="font-size: 0.65rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${formattedTime}</span>` : '';
+            const tijdWeergave = formattedTime ? `<span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${formattedTime}</span>` : '';
 
             let canDelete = (currentUserName === "Robert" || isSelf || (isSystem && currentUserName === "Robert"));
             let deleteBtnHtml = canDelete ? `<button class="delete-msg-btn" onclick="deleteMessage('${m.key}')" title="Verwijder bericht">✕</button>` : '';
@@ -4113,7 +4117,7 @@
                 return `
                     <div class="message system-update">
                         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                            <span style="font-size: 0.75rem; color: var(--accent-blue); flex-grow: 1; white-space: pre-line; text-align: left; padding: 4px;">${esc(m.text)} ${tijdWeergave}</span>
+                            <span style="font-size: 0.85rem; color: var(--accent-blue); flex-grow: 1; white-space: pre-line; text-align: left; padding: 4px;">${esc(m.text)} ${tijdWeergave}</span>
                             ${deleteBtnHtml}
                         </div>
                     </div>
@@ -4130,8 +4134,8 @@
                         <a href="${safeUrl(m.fileUrl)}" download="${esc(m.fileName || 'document')}" target="_blank" style="display: flex; align-items: center; gap: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 10px; border-radius: 6px; color: var(--accent-blue); text-decoration: none; margin-top: 4px; font-weight: 500;">
                             <span style="font-size: 1.2rem;">${icon}</span>
                             <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1;">
-                                <div style="font-size: 0.8rem; font-weight: bold;">${esc(m.fileName || 'Bijlage openen')}</div>
-                                <div style="font-size: 0.65rem; color: var(--text-muted);">Klik om te downloaden/bekijken</div>
+                                <div style="font-size: 0.9rem; font-weight: bold;">${esc(m.fileName || 'Bijlage openen')}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Klik om te downloaden/bekijken</div>
                             </div>
                         </a>
                     `;
