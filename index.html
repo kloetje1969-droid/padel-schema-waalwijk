@@ -2831,7 +2831,7 @@
     }
 
     function fetchWaalwijkWeather() {
-        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation,precipitation_probability,weathercode,wind_speed_10m&models=knmi_seamless&timezone=Europe/Amsterdam&past_days=30&forecast_days=14";
+        const weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=51.6833&longitude=5.0708&hourly=temperature_2m,precipitation,precipitation_probability,weathercode,wind_speed_10m&models=knmi_seamless&timezone=Europe/Amsterdam&past_days=4&forecast_days=14";
         
         fetch(weatherUrl)
             .then(res => res.json())
