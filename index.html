@@ -2717,79 +2717,89 @@
             let scheduleUpdates = {};
             let heeftOverrideNodig = false;
 
-            if (targetSlot === 'dinsdag') {
-                if (gekozenDagNaam !== 'dinsdag') {
-                    scheduleUpdates[`customDinsdag`] = gekozenDagNaam;
-                    heeftOverrideNodig = true;
-                }
-                if (gekozenTijdStr !== '18:30') {
-                    scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
-                    heeftOverrideNodig = true;
-                }
-            } else if (targetSlot === 'donderdag') {
-                if (gekozenDagNaam !== 'donderdag') {
-                    scheduleUpdates[`customDonderdag`] = gekozenDagNaam;
-                    heeftOverrideNodig = true;
-                }
-                if (gekozenTijdStr !== '18:30') {
-                    scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
-                    heeftOverrideNodig = true;
-                }
-            } else {
-                if (gekozenDagNaam === 'dinsdag' && gekozenTijdStr !== '18:30') {
-                    scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
-                    heeftOverrideNodig = true;
-                } else if (gekozenDagNaam === 'donderdag' && gekozenTijdStr !== '18:30') {
-                    scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
-                    heeftOverrideNodig = true;
-                } else if (gekozenDagNaam !== 'dinsdag' && gekozenDagNaam !== 'donderdag') {
-                    const slotKey = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
-                    if (slotKey === 'dinsdag') {
+            // Bepaal of dit een standaard speelmoment is (dinsdag of donderdag om 18:30)
+            const isStandaardDinsdag = (targetSlot === 'dinsdag' || (targetSlot === 'auto' && gekozenDagNaam === 'dinsdag')) && gekozenTijdStr === '18:30';
+            const isStandaardDonderdag = (targetSlot === 'donderdag' || (targetSlot === 'auto' && gekozenDagNaam === 'donderdag')) && gekozenTijdStr === '18:30';
+            const isStandaardMoment = isStandaardDinsdag || isStandaardDonderdag;
+
+            if (!isStandaardMoment) {
+                if (targetSlot === 'dinsdag') {
+                    if (gekozenDagNaam !== 'dinsdag') {
                         scheduleUpdates[`customDinsdag`] = gekozenDagNaam;
-                    } else {
-                        scheduleUpdates[`customDonderdag`] = gekozenDagNaam;
+                        heeftOverrideNodig = true;
                     }
-                    scheduleUpdates[`${slotKey}Tijd`] = gekozenTijdStr;
+                    if (gekozenTijdStr !== '18:30') {
+                        scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
+                        heeftOverrideNodig = true;
+                    }
+                } else if (targetSlot === 'donderdag') {
+                    if (gekozenDagNaam !== 'donderdag') {
+                        scheduleUpdates[`customDonderdag`] = gekozenDagNaam;
+                        heeftOverrideNodig = true;
+                    }
+                    if (gekozenTijdStr !== '18:30') {
+                        scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
+                        heeftOverrideNodig = true;
+                    }
+                } else {
+                    if (gekozenDagNaam === 'dinsdag' && gekozenTijdStr !== '18:30') {
+                        scheduleUpdates[`dinsdagTijd`] = gekozenTijdStr;
+                        heeftOverrideNodig = true;
+                    } else if (gekozenDagNaam === 'donderdag' && gekozenTijdStr !== '18:30') {
+                        scheduleUpdates[`donderdagTijd`] = gekozenTijdStr;
+                        heeftOverrideNodig = true;
+                    } else if (gekozenDagNaam !== 'dinsdag' && gekozenDagNaam !== 'donderdag') {
+                        const slotKey = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
+                        if (slotKey === 'dinsdag') {
+                            scheduleUpdates[`customDinsdag`] = gekozenDagNaam;
+                        } else {
+                            scheduleUpdates[`customDonderdag`] = gekozenDagNaam;
+                        }
+                        scheduleUpdates[`${slotKey}Tijd`] = gekozenTijdStr;
+                        heeftOverrideNodig = true;
+                    }
+                }
+
+                let doelSlot;
+                if (targetSlot === 'dinsdag' || targetSlot === 'donderdag') {
+                    doelSlot = targetSlot;
+                } else if (gekozenDagNaam === 'dinsdag' || gekozenDagNaam === 'donderdag') {
+                    doelSlot = gekozenDagNaam;
+                } else {
+                    doelSlot = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
+                }
+                const bestaandeWeek = liveOverrides[uniqueWeekKey] || {};
+                const doelDagSleutel = 'custom' + doelSlot.charAt(0).toUpperCase() + doelSlot.slice(1);
+                const doelTijdSleutel = `${doelSlot}Tijd`;
+                if (scheduleUpdates[doelDagSleutel] === undefined && bestaandeWeek[doelDagSleutel]) {
+                    scheduleUpdates[doelDagSleutel] = null;
                     heeftOverrideNodig = true;
+                }
+                if (scheduleUpdates[doelTijdSleutel] === undefined && bestaandeWeek[doelTijdSleutel]) {
+                    scheduleUpdates[doelTijdSleutel] = null;
+                    heeftOverrideNodig = true;
+                }
+
+                if (heeftOverrideNodig) {
+                    await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}`).update(scheduleUpdates);
                 }
             }
 
-            let doelSlot;
-            if (targetSlot === 'dinsdag' || targetSlot === 'donderdag') {
-                doelSlot = targetSlot;
-            } else if (gekozenDagNaam === 'dinsdag' || gekozenDagNaam === 'donderdag') {
-                doelSlot = gekozenDagNaam;
-            } else {
-                doelSlot = (jsDayIndex >= 1 && jsDayIndex <= 3) ? 'dinsdag' : 'donderdag';
-            }
-            const bestaandeWeek = liveOverrides[uniqueWeekKey] || {};
-            const doelDagSleutel = 'custom' + doelSlot.charAt(0).toUpperCase() + doelSlot.slice(1);
-            const doelTijdSleutel = `${doelSlot}Tijd`;
-            if (scheduleUpdates[doelDagSleutel] === undefined && bestaandeWeek[doelDagSleutel]) {
-                scheduleUpdates[doelDagSleutel] = null;
-                heeftOverrideNodig = true;
-            }
-            if (scheduleUpdates[doelTijdSleutel] === undefined && bestaandeWeek[doelTijdSleutel]) {
-                scheduleUpdates[doelTijdSleutel] = null;
-                heeftOverrideNodig = true;
-            }
-
-            if (heeftOverrideNodig) {
-                await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}`).update(scheduleUpdates);
-            }
-
-            const formattedDt = formatExactDateTime(bookingDate.getTime());
-            const schemaMelding = heeftOverrideNodig ? " (Speelschema aangepast)" : "";
-            const berichtTekst = `${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${formattedDt}!${schemaMelding}`;
+            const datumStr = bookingDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+            const tijdStr = bookingDate.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+            
+            // Alleen '(speelschema aangepast)' toevoegen als het geen standaard dag of tijd is
+            const schemaMelding = (!isStandaardMoment && heeftOverrideNodig) ? " (speelschema aangepast)" : "";
+            const berichtTekst = `${gekozenSpeler} heeft ${gekozenBaan} geboekt voor ${datumStr} om ${tijdStr} uur.${schemaMelding}`;
+            
             await addSystemMessageIfUnique(berichtTekst);
-
             select.value = "";
             baanSelect.value = "";
             if (slotTargetSelect) slotTargetSelect.value = "auto";
             dateInput.value = "";
             resetBoekingDateLabel();
 
-            showToast("Baan geboekt!", heeftOverrideNodig ? "Tijd/dag afwijkt van standaard, schema bijgewerkt." : "Boeking opgeslagen.");
+            showToast("Baan geboekt!", (!isStandaardMoment && heeftOverrideNodig) ? "Tijd/dag afwijkt van standaard, schema bijgewerkt." : "Boeking opgeslagen.");
         } catch (error) {
             console.error("Fout bij registreren boeking:", error);
             alert("Er ging iets mis bij het opslaan.");
