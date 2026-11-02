@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/mat",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron-weerwaarschuwing",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/resu",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/king",
+      "schedule": "*/10 * * * *"
+    }
+  ]
+}
