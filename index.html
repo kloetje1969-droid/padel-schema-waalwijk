@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (V8.60)</title>
+    <title>Padelschema - Rooster & Chat (V8.61)</title>
     
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/icon-192.png">
@@ -631,8 +631,8 @@
             border-radius: 12px;
             margin-bottom: 12px;
             overflow: hidden;
-            padding: 14px; /* Aangepast: hoger gemaakte weekblokken via padding */
-            gap: 12px;
+            padding: 12px;
+            gap: 10px;
         }
 
         .match-row-wrapper:last-child {
@@ -640,12 +640,12 @@
         }
 
         .match-row {
-            padding: 4px 0;
+            padding: 2px 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            gap: 12px;
+            gap: 10px;
             width: 100%;
             background: transparent;
             border: none;
@@ -670,8 +670,8 @@
             width: auto;
             display: inline-flex;
             justify-content: center;
-            font-size: 1.05rem;
-            padding: 8px 16px;
+            font-size: 0.95rem;
+            padding: 6px 14px;
             white-space: nowrap;
             border: none;
         }
@@ -681,7 +681,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            font-size: calc(1.2rem * var(--s, 1));
+            font-size: calc(1.1rem * var(--s, 1));
             font-weight: 700;
             color: var(--accent-blue);
             flex-wrap: nowrap;
@@ -693,9 +693,9 @@
         .day-select-inline {
             background: var(--bg-color);
             border: 1px solid var(--card-border);
-            padding: 6px 8px;
+            padding: 5px 8px;
             border-radius: 6px;
-            font-size: calc(1.1rem * var(--s, 1));
+            font-size: calc(1rem * var(--s, 1));
             font-weight: 700;
             outline: none;
             cursor: pointer;
@@ -726,9 +726,9 @@
             background: var(--bg-color);
             color: var(--accent-blue);
             border: 1px solid var(--card-border);
-            padding: 6px 0;
+            padding: 5px 0;
             border-radius: 6px;
-            font-size: calc(1.1rem * var(--s, 1));
+            font-size: calc(1rem * var(--s, 1));
             font-weight: 700;
             font-family: inherit;
             outline: none;
@@ -744,7 +744,7 @@
         .tijd-sep {
             color: var(--accent-blue);
             font-weight: 700;
-            font-size: calc(1.2rem * var(--s, 1));
+            font-size: calc(1.1rem * var(--s, 1));
         }
 
         .match-sub-info {
@@ -763,7 +763,7 @@
             flex-direction: column;
             gap: 8px;
             background: rgba(0, 0, 0, 0.25);
-            padding: 12px 14px;
+            padding: 10px 12px;
             border-radius: 8px;
             border: 1px solid var(--card-border);
             width: 100%;
@@ -807,7 +807,7 @@
 
         .match-date {
             flex-shrink: 0;
-            font-size: calc(1.1rem * var(--s, 1));
+            font-size: calc(1rem * var(--s, 1));
             font-weight: 700;
             text-transform: uppercase;
             white-space: nowrap;
@@ -825,9 +825,9 @@
             background: rgba(56, 189, 248, 0.08);
             border: 1px solid rgba(56, 189, 248, 0.2);
             color: #38bdf8;
-            padding: 6px 10px;
+            padding: 5px 8px;
             border-radius: 6px;
-            font-size: calc(1.05rem * var(--s, 1));
+            font-size: calc(0.95rem * var(--s, 1));
             font-weight: 500;
             display: inline-flex;
             align-items: center;
@@ -844,7 +844,7 @@
             margin-left: 4px;
             white-space: nowrap;
             flex-shrink: 0;
-            font-size: calc(1.05rem * var(--s, 1));
+            font-size: calc(0.95rem * var(--s, 1));
         }
 
         .weather-sun {
@@ -852,34 +852,32 @@
             text-shadow: 0 0 6px rgba(250, 204, 21, 0.4);
         }
 
+        /* GEOPTIMALISEERD VOOR SPELERSNAMEN NETJES OP HET SCHERM */
         .players-container {
             display: flex;
-            gap: 8px;
+            gap: 4px;
             flex-wrap: nowrap;
             align-items: center;
-            justify-content: center;
-            overflow-x: auto;
-            overflow-y: hidden;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            padding: 4px 0;
+            justify-content: space-between;
             width: 100%;
-        }
-
-        .players-container::-webkit-scrollbar {
-            display: none;
+            padding: 4px 0;
+            box-sizing: border-box;
         }
 
         .player-chip {
             background: #374151;
             border: 1px solid #4b5563;
             color: #d1d5db;
-            padding: 6px 12px;
+            padding: 5px 8px;
             border-radius: 6px;
-            font-size: 1.05rem;
+            font-size: 0.9rem;
             font-weight: 600;
             white-space: nowrap;
+            flex: 1 1 auto;
+            min-width: 0;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .player-chip.me {
@@ -916,9 +914,10 @@
 
         .vs-text {
             color: var(--text-muted);
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin: 0 4px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin: 0 2px;
+            flex-shrink: 0;
         }
 
         .btn-edit {
@@ -1258,31 +1257,21 @@
 
         .week-card,
         .match-row-wrapper,
-        .match-row,
-        .players-container {
+        .match-row {
             min-width: 0;
             max-width: 100%;
             box-sizing: border-box;
         }
 
-        .match-row {
-            width: 100%;
-        }
-
-        .players-container .player-chip,
-        .players-container .vs-text {
-            flex: 0 0 auto;
-        }
-
-        /* Heel smalle schermen (320 px, bijv. iPhone SE 1e generatie): namen en setvakjes iets compacter */
-        @media (max-width: 345px) {
-            .players-container { gap: 3px; }
-            .player-chip { padding: 4px 5px; font-size: 0.95rem; }
-            .vs-text { margin: 0 1px; font-size: 0.85rem; }
-            .match-score-section { padding: 8px 6px; }
-            .sets-inputs-grid { gap: 4px; }
-            .set-input-box { gap: 2px; }
-            .set-input-box input { width: 30px !important; }
+        @media (max-width: 380px) {
+            .player-chip {
+                padding: 4px 4px;
+                font-size: 0.8rem;
+            }
+            .vs-text {
+                font-size: 0.75rem;
+                margin: 0 1px;
+            }
         }
     </style>
 </head>
@@ -1502,7 +1491,7 @@
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema V8.60</span>
+        <span>Padelschema V8.61</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1554,7 +1543,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.60";
+    const APP_VERSION = "8.61";
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function esc(v) {
@@ -3369,7 +3358,6 @@
                             ${diCancelled ? '<span class="afgelast-tag">(AFGELAST)</span>' : ''}
                         </div>
 
-                        <!-- Verplaatst: Knop tussen weerbericht en spelersnamen -->
                         <div class="match-actions-line">
                             <button class="btn-edit btn-wijzig" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'dinsdag', ${currentWeekNum})">✏️ Wijzig speler/Aflassen</button>
                         </div>
@@ -3429,7 +3417,6 @@
                             ${doCancelled ? '<span class="afgelast-tag">(AFGELAST)</span>' : ''}
                         </div>
 
-                        <!-- Verplaatst: Knop tussen weerbericht en spelersnamen -->
                         <div class="match-actions-line">
                             <button class="btn-edit btn-wijzig" onclick="openModal('${uniqueWeekKey}', ${templateIndex}, 'donderdag', ${currentWeekNum})">✏️ Wijzig speler/Aflassen</button>
                         </div>
