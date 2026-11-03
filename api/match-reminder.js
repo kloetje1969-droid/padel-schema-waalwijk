@@ -88,7 +88,7 @@ export default async function handler(req, res) {
 
         const result = await sendToTokens(tokens, {
           title: '🏓 Padel Reminder',
-          body: `Over ongeveer een uur (${match.timeString} uur) staat de padelwedstrijd gepland!`,
+          body: `Over een uur (${match.timeString} uur) staat je padelwedstrijd gepland!`,
           tag: `padel-reminder-${nl.dateKey}-${match.slot}`
         });
 
