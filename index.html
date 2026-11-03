@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
-    <title>Padelschema - Rooster & Chat (V8.61)</title>
+    <title>Padelschema - Rooster & Chat</title>
     
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/icon-192.png">
@@ -21,6 +21,14 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+    <script src="padel-regels.js"></script>
+    <script>
+        if (!window.PadelRegels) {
+            document.addEventListener('DOMContentLoaded', function () {
+                document.body.innerHTML = '<div style="padding:24px;font-family:sans-serif;color:#fff;background:#0b1220;min-height:100vh">Het bestand padel-regels.js kon niet worden geladen. Ververs de pagina. Blijft dit gebeuren, controleer dan of padel-regels.js naast index.html staat.</div>';
+            });
+        }
+    </script>
     
     <style>
         :root {
@@ -1273,6 +1281,14 @@
                 margin: 0 1px;
             }
         }
+
+        /* Smalle schermen (tot en met 400 px, bijv. iPhone SE/mini): setvakjes iets compacter zodat de opslaan-knop er altijd naast past */
+        @media (max-width: 400px) {
+            .match-score-section { padding: 10px 6px; }
+            .sets-inputs-grid { gap: 4px; }
+            .set-input-box { gap: 2px; }
+            .set-input-box input { width: 31px !important; }
+        }
     </style>
 </head>
 <body>
@@ -1485,13 +1501,13 @@
         <div class="chat-input-row">
             <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx" style="display: none;" onchange="handleFileSelect(event)">
             <button class="push-btn" onclick="document.getElementById('fileInput').click()" title="Foto of PDF bijvoegen" style="padding: 9px 10px; font-size: 1.1rem; height: 42px;">📎</button>
-            <textarea id="chatInput" rows="1" placeholder="Typ een bericht..." onkeydown="handleKeyDown(event)"></textarea>
+            <textarea id="chatInput" rows="1" maxlength="2000" placeholder="Typ een bericht..." onkeydown="handleKeyDown(event)"></textarea>
             <button class="btn-primary" onclick="sendMessage()">Verzend</button>
         </div>
     </div>
 
     <div class="app-footer-row">
-        <span>Padelschema V8.61</span>
+        <span id="appVersieLabel">Padelschema</span>
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
@@ -1543,7 +1559,9 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.61";
+    const APP_VERSION = "8.62"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
+    (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
 
     function esc(v) {
@@ -1696,7 +1714,9 @@
         }
     } catch (e) {}
 
-    const basePlayers = ["Marcel", "Mark", "Ronald", "Sander", "Dennis", "Robert"];
+    const basePlayers = PadelRegels.BASE_PLAYERS.slice();
+    // Startdatum van cyclus 1 (maandag, lokale middernacht) komt uit padel-regels.js
+    function refMaandag() { const r = PadelRegels.REF_START; return new Date(r.jaar, r.maand - 1, r.dag); }
     let currentUserName = localStorage.getItem('padel_current_user') || "";
     let myOriginalUserName = currentUserName;
 
@@ -1708,19 +1728,9 @@
     let cyclusWinnaars = {};
     let globalPushEnabled = true;
 
-    const defaultTemplate = [
-      { dinsdag: ["Sander", "Dennis", "Mark", "Robert"], donderdag: ["Marcel", "Ronald", "Sander", "Robert"] },
-      { dinsdag: ["Marcel", "Mark", "Ronald", "Robert"], donderdag: ["Mark", "Sander", "Ronald", "Dennis"] },
-      { dinsdag: ["Marcel", "Robert", "Mark", "Dennis"], donderdag: ["Marcel", "Ronald", "Sander", "Robert"] },
-      { dinsdag: ["Marcel", "Sander", "Mark", "Dennis"], donderdag: ["Mark", "Ronald", "Dennis", "Robert"] },
-      { dinsdag: ["Marcel", "Dennis", "Ronald", "Sander"], donderdag: ["Marcel", "Sander", "Mark", "Robert"] },
-      { dinsdag: ["Dennis", "Robert", "Sander", "Ronald"], donderdag: ["Marcel", "Dennis", "Mark", "Ronald"] }
-    ];
-
-    const SCHEMA_WEEK1_CYCLUS1 = {
-        dinsdag: ["Mark", "Robert", "Ronald", "Sander"],
-        donderdag: ["Sander", "Robert", "Marcel", "Dennis"]
-    };
+    // Schema, telregels en podium staan in padel-regels.js (zelfde bestand als op de server)
+    const defaultTemplate = PadelRegels.DEFAULT_TEMPLATE;
+    const SCHEMA_WEEK1_CYCLUS1 = PadelRegels.SCHEMA_WEEK1_CYCLUS1;
 
     let liveOverrides = {};
     let overridesLoaded = false;
@@ -2162,7 +2172,7 @@
 
     function getActiveCyclusIndex() {
         let currentMonday = getAdjustedBaseDate();
-        let referenceMonday = new Date(2026, 8, 21);
+        let referenceMonday = refMaandag();
         let diffTime = currentMonday.getTime() - referenceMonday.getTime();
         let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
         return Math.floor(diffWeeks / 6);
@@ -2177,61 +2187,7 @@
             return { gameCounts: zeroCounts, matchCounts: {} };
         }
 
-        const referenceMonday = new Date(2026, 8, 21);
-        const gameCounts = {};
-        const matchCounts = {};
-        basePlayers.forEach(p => {
-            gameCounts[p] = 0;
-            matchCounts[p] = 0;
-        });
-
-        for (const matchId in matchResults) {
-            const parts = matchId.split('_');
-            if (parts.length < 3) continue;
-
-            const year = parseInt(parts[0], 10);
-            const week = parseInt(parts[1].replace('w', ''), 10);
-            const slotKey = parts[2];
-
-            if (!Number.isFinite(year) || !Number.isFinite(week)) continue;
-
-            const matchWeekStart = isoWeekToMonday(year, week);
-            const diffWeeks = Math.round((matchWeekStart.getTime() - referenceMonday.getTime()) / (1000 * 60 * 60 * 24 * 7));
-            const matchCyclus = Math.floor(diffWeeks / 6);
-            if (matchCyclus !== cyclusIndex) continue;
-
-            const res = matchResults[matchId];
-            if (!res || !Array.isArray(res.players) || res.players.length !== 4) continue;
-
-            const templateIndex = ((diffWeeks % 6) + 6) % 6;
-            let tpl = defaultTemplate[templateIndex];
-            if (cyclusIndex === 0 && templateIndex === 0) tpl = SCHEMA_WEEK1_CYCLUS1;
-            const defaultSlotPlayers = tpl[slotKey] || []; 
-
-            const t1Games = (Number(res.t1s1) || 0) + (Number(res.t1s2) || 0) + (Number(res.t1s3) || 0);
-            const t2Games = (Number(res.t2s1) || 0) + (Number(res.t2s2) || 0) + (Number(res.t2s3) || 0);
-
-            const matchPlayerScores = [
-                { player: res.players[0], games: t1Games },
-                { player: res.players[1], games: t1Games },
-                { player: res.players[2], games: t2Games },
-                { player: res.players[3], games: t2Games }
-            ];
-
-            matchPlayerScores.forEach(item => {
-                const p = item.player;
-                if (!p || !basePlayers.includes(p)) return;
-
-                matchCounts[p] = (matchCounts[p] || 0) + 1;
-
-                const isOriginalPlayerForThisSlot = defaultSlotPlayers.includes(p);
-                if (isOriginalPlayerForThisSlot) {
-                    gameCounts[p] = (gameCounts[p] || 0) + item.games;
-                }
-            });
-        }
-
-        return { gameCounts, matchCounts };
+        return PadelRegels.berekenTellingen(matchResults, cyclusIndex);
     }
 
     async function checkAndStoreCyclusWinner() {
@@ -2256,40 +2212,26 @@
                 }
 
                 if (!isTimePassed && !(existingData && existingData.claimAt) && isCyclusVolledigIngevuld(cyclusIdx)) {
-                    await ref.update({ claimAt: Date.now() + (30 * 60 * 1000), lastMatchSavedAt: Date.now() });
+                    await ref.update({ claimAt: Date.now() + PadelRegels.WACHTTIJD_MS, lastMatchSavedAt: Date.now() });
                     continue;
                 }
 
                 if (!isTimePassed) {
-                    const cyclusEinde = new Date(2026, 8, 21);
-                    cyclusEinde.setDate(cyclusEinde.getDate() + (cyclusIdx + 1) * 6 * 7);
-                    if (Date.now() > cyclusEinde.getTime() + 3 * 24 * 60 * 60 * 1000) isTimePassed = true;
+                    if (Date.now() > PadelRegels.cyclusEindeMs(cyclusIdx) + PadelRegels.VANGNET_MS) isTimePassed = true;
                 }
 
                 if (!isTimePassed) continue;
 
                 const { gameCounts, matchCounts } = getGameCountsForCyclus(cyclusIdx, true);
 
-                const uniqueScoresDesc = [...new Set(basePlayers.map(p => gameCounts[p] || 0))].sort((a, b) => b - a);
-                const maxGames = uniqueScoresDesc[0] || 0;
-                if (maxGames === 0) continue;
-
-                const goudScore = uniqueScoresDesc[0] !== undefined ? uniqueScoresDesc[0] : null;
-                const zilverScore = uniqueScoresDesc[1] !== undefined ? uniqueScoresDesc[1] : null;
-                const bronsScore = uniqueScoresDesc[2] !== undefined ? uniqueScoresDesc[2] : null;
-
-                const firstPlayers = goudScore !== null ? basePlayers.filter(p => (gameCounts[p] || 0) === goudScore) : [];
-                const secondPlayers = zilverScore !== null ? basePlayers.filter(p => (gameCounts[p] || 0) === zilverScore) : [];
-                const thirdPlayers = bronsScore !== null ? basePlayers.filter(p => (gameCounts[p] || 0) === bronsScore) : [];
-
-                const winnerText = firstPlayers.join(', ');
-                
-                const podiumRegels = bouwPodiumRegels(
-                    firstPlayers, secondPlayers, thirdPlayers,
-                    naam => gameCounts[naam] || 0,
-                    naam => matchCounts[naam] || 0
-                );
-                const summaryText = podiumRegels.join('\n');
+                const podium = PadelRegels.bouwPodium(gameCounts, matchCounts);
+                if (!podium) continue; // nog geen games gespeeld
+                const maxGames = podium.maxGames;
+                const firstPlayers = podium.first;
+                const secondPlayers = podium.second;
+                const thirdPlayers = podium.third;
+                const winnerText = podium.winnerText;
+                const summaryText = podium.regels.join('\n');
 
                 let wasAlreadyStored = Boolean(cyclusWinnaars && cyclusWinnaars[cyclusIdx] && cyclusWinnaars[cyclusIdx].winner);
                 
@@ -2327,7 +2269,7 @@
     let geopendeCycli = {};
 
     function cyclusJaarTekst(cyclusIndex) {
-        const start = new Date(2026, 8, 21);
+        const start = refMaandag();
         start.setDate(start.getDate() + cyclusIndex * 6 * 7);
         const einde = new Date(start);
         einde.setDate(start.getDate() + 6 * 7 - 1);
@@ -2347,7 +2289,7 @@
     }
 
     function bouwCyclusWedstrijdenHtml(cyclusIndex) {
-        const referenceMonday = new Date(2026, 8, 21);
+        const referenceMonday = refMaandag();
         const kaarten = [];
 
         for (let w = 0; w < 6; w++) {
@@ -2415,20 +2357,11 @@
     }
 
     function bouwPodiumRijen(eerste, tweede, derde, gamesVan, wedstrijdenVan) {
-        const rij = (medaille, plaats, naam) => ({
-            links: `${medaille} ${plaats}e plaats: ${naam}`,
-            rechts: `(${gamesVan(naam)} games, ${wedstrijdenVan(naam)} Wedstr)`
-        });
-        return [
-            ...eerste.map(n => rij('🥇', 1, n)),
-            ...tweede.map(n => rij('🥈', 2, n)),
-            ...derde.map(n => rij('🥉', 3, n))
-        ];
+        return PadelRegels.bouwPodiumRijen(eerste, tweede, derde, gamesVan, wedstrijdenVan);
     }
 
     function bouwPodiumRegels(eerste, tweede, derde, gamesVan, wedstrijdenVan) {
-        return bouwPodiumRijen(eerste, tweede, derde, gamesVan, wedstrijdenVan)
-            .map(r => `${r.links} ${r.rechts}`);
+        return PadelRegels.bouwPodiumRegels(eerste, tweede, derde, gamesVan, wedstrijdenVan);
     }
 
     function renderSetsRanking() {
@@ -2516,23 +2449,7 @@
     }
 
     function isCyclusVolledigIngevuld(cyclusIndex, extraMatchId) {
-        const referenceMonday = new Date(2026, 8, 21);
-        let totaal = 0;
-        let ingevuld = 0;
-
-        for (let w = 0; w < 6; w++) {
-            const weekMaandag = new Date(referenceMonday);
-            weekMaandag.setDate(referenceMonday.getDate() + (cyclusIndex * 6 + w) * 7);
-            const weekKey = `${getISOYear(weekMaandag)}_w${getISOWeekNumber(weekMaandag)}`;
-
-            ['dinsdag', 'donderdag'].forEach(slot => {
-                if (isMatchCancelled(weekKey, slot)) return;
-                totaal++;
-                const mId = `${weekKey}_${slot}`;
-                if (matchResults[mId] || mId === extraMatchId) ingevuld++;
-            });
-        }
-        return totaal > 0 && ingevuld >= totaal;
+        return PadelRegels.isCyclusVolledigIngevuld(cyclusIndex, matchResults, liveOverrides, extraMatchId);
     }
 
     async function saveMatchScore3Sets(matchId, p1, p2, p3, p4) {
@@ -2576,7 +2493,7 @@
             if (parts.length >= 3) {
                 const year = parseInt(parts[0], 10);
                 const week = parseInt(parts[1].replace('w', ''), 10);
-                const referenceMonday = new Date(2026, 8, 21);
+                const referenceMonday = refMaandag();
                 const matchWeekStart = isoWeekToMonday(year, week);
                 const diffWeeks = Math.round((matchWeekStart.getTime() - referenceMonday.getTime()) / (1000 * 60 * 60 * 24 * 7));
                 const cyclusIndex = Math.floor(diffWeeks / 6);
@@ -2609,7 +2526,7 @@
         }
 
         const activeCyclusIdx = getActiveCyclusIndex();
-        const referenceMonday = new Date(2026, 8, 21);
+        const referenceMonday = refMaandag();
 
         const currentCyclusBoekingen = baanBoekingenList.filter(b => {
             if (!b.dateTime) return false;
@@ -3243,7 +3160,7 @@
     function renderSchedule() {
         const container = document.getElementById('scheduleContainer');
         let currentMonday = getAdjustedBaseDate();
-        let referenceMonday = new Date(2026, 8, 21); 
+        let referenceMonday = refMaandag(); 
 
         let html = '';
 
@@ -3661,7 +3578,7 @@
             let yr = getISOYear(weekStart);
             let uniqueWeekKey = `${yr}_w${wn}`;
 
-            let referenceMonday = new Date(2026, 8, 21);
+            let referenceMonday = refMaandag();
             let diffTime = weekStart.getTime() - referenceMonday.getTime();
             let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
             let templateIndex = ((diffWeeks % 6) + 6) % 6;
@@ -3729,7 +3646,7 @@
             let yr = getISOYear(weekStart);
             let uniqueWeekKey = `${yr}_w${wn}`;
 
-            let referenceMonday = new Date(2026, 8, 21);
+            let referenceMonday = refMaandag();
             let diffTime = weekStart.getTime() - referenceMonday.getTime();
             let diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
             let templateIndex = ((diffWeeks % 6) + 6) % 6;
