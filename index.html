@@ -1588,13 +1588,13 @@
         const day = now.getDate();
 
         if ((month === 11 && day >= 15) || (month === 12 && day <= 6)) {
-            return '🎁📜🥕';
+            return '🎁';
         }
         if (month === 12 && day >= 7 && day <= 30) {
-            return '🎄🎅🎄';
+            return '🎅';
         }
         if ((month === 12 && day === 31) || (month === 1 && day === 1)) {
-            return '🍾🥂🍾';
+            return '🥂';
         }
         return '🥎';
     }
