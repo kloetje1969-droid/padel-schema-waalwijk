@@ -1,12 +1,11 @@
 import admin from 'firebase-admin';
 import {
   db,
-  defaultTemplate,
-  getWeekInfo,
   isCronAuthorized,
   getTokensByPlayer,
   sendToTokens
 } from '../lib/padel.js';
+import '../padel-regels.js'; // telregels en podium: één gedeeld bestand voor app én server
 
 // Maakt het KingKong-podium bekend, ook als niemand de app open heeft.
 // Dezelfde regels als in de app:
@@ -15,150 +14,9 @@ import {
 //  - vangnet: is een cyclus 3 dagen na afloop nog niet volledig, dan wordt hij toch bekendgemaakt
 // Wie het eerst is (de app of deze server) doet de bekendmaking; er komt nooit een dubbel bericht.
 
-const BASE_PLAYERS = ['Marcel', 'Mark', 'Ronald', 'Sander', 'Dennis', 'Robert'];
-const REF_MONDAY_UTC = Date.UTC(2026, 8, 21); // maandag 21 september 2026
-const WEEK_MS = 7 * 86400000;
-const WACHTTIJD_MS = 30 * 60 * 1000;
-const VANGNET_MS = 3 * 86400000;
+const R = globalThis.PadelRegels;
+const { WACHTTIJD_MS, VANGNET_MS, leesMatchId, berekenTellingen, isCyclusVolledigIngevuld, bouwPodium, cyclusEindeMs } = R;
 const MAX_PUSH_TEKENS = 400;
-
-// Het schema van week 1 zoals dat in cyclus 1 is gespeeld (daarna is het standaardschema gewijzigd)
-const SCHEMA_WEEK1_CYCLUS1 = {
-  dinsdag: ['Mark', 'Robert', 'Ronald', 'Sander'],
-  donderdag: ['Sander', 'Robert', 'Marcel', 'Dennis']
-};
-
-function isoWeekMondayUtc(year, week) {
-  const jan4 = Date.UTC(year, 0, 4);
-  const dag = (new Date(jan4).getUTCDay() + 6) % 7;
-  return jan4 - dag * 86400000 + (week - 1) * WEEK_MS;
-}
-
-// '2026_w39_dinsdag' -> in welke cyclus en welke week van de cyclus die wedstrijd valt
-function leesMatchId(matchId) {
-  const parts = String(matchId).split('_');
-  if (parts.length < 3) return null;
-  const year = parseInt(parts[0], 10);
-  const week = parseInt(parts[1].replace('w', ''), 10);
-  const slot = parts[2];
-  if (!Number.isFinite(year) || !Number.isFinite(week)) return null;
-
-  const maandag = isoWeekMondayUtc(year, week);
-  const diffWeeks = Math.round((maandag - REF_MONDAY_UTC) / WEEK_MS);
-  return {
-    slot,
-    diffWeeks,
-    cyclus: Math.floor(diffWeeks / 6),
-    templateIndex: ((diffWeeks % 6) + 6) % 6
-  };
-}
-
-// Games en wedstrijden per vaste speler in een cyclus (zelfde telling als het KingKong-klassement in de app):
-//  - Invallers (niet in BASE_PLAYERS) tellen nergens mee.
-//  - Vaste spelers die meespelen krijgen altijd +1 wedstrijd.
-//  - Games tellen alleen mee als de vaste speler op zijn eigen originele slot stond.
-function berekenTellingen(matchResults, cyclusIndex) {
-  const gameCounts = {};
-  const matchCounts = {};
-  BASE_PLAYERS.forEach(p => {
-    gameCounts[p] = 0;
-    matchCounts[p] = 0;
-  });
-
-  for (const matchId in matchResults) {
-    const m = leesMatchId(matchId);
-    if (!m || m.cyclus !== cyclusIndex) continue;
-
-    const res = matchResults[matchId];
-    if (!res || !Array.isArray(res.players) || res.players.length !== 4) continue;
-
-    let tpl = defaultTemplate[m.templateIndex];
-    if (cyclusIndex === 0 && m.templateIndex === 0) tpl = SCHEMA_WEEK1_CYCLUS1;
-    const defaultSlotPlayers = (tpl && tpl[m.slot]) || [];
-
-    const t1Games = (Number(res.t1s1) || 0) + (Number(res.t1s2) || 0) + (Number(res.t1s3) || 0);
-    const t2Games = (Number(res.t2s1) || 0) + (Number(res.t2s2) || 0) + (Number(res.t2s3) || 0);
-
-    const scores = [
-      { player: res.players[0], games: t1Games },
-      { player: res.players[1], games: t1Games },
-      { player: res.players[2], games: t2Games },
-      { player: res.players[3], games: t2Games }
-    ];
-
-    scores.forEach(item => {
-      const p = item.player;
-
-      // Invallers (niet in BASE_PLAYERS) krijgen geen games en geen wedstrijden
-      if (!p || !BASE_PLAYERS.includes(p)) return;
-
-      // Wedstrijdtelling: telt mee voor iedere vaste speler die meespeelt
-      matchCounts[p] = (matchCounts[p] || 0) + 1;
-
-      // Games tellen ALLEEN mee als deze vaste speler op zijn eigen originele slot stond
-      if (defaultSlotPlayers.includes(p)) {
-        gameCounts[p] = (gameCounts[p] || 0) + item.games;
-      }
-    });
-  }
-
-  return { gameCounts, matchCounts };
-}
-
-// Zijn alle wedstrijden van de cyclus ingevuld? Afgelaste wedstrijden tellen niet mee.
-function isCyclusVolledigIngevuld(cyclusIndex, matchResults, overrides) {
-  let totaal = 0;
-  let ingevuld = 0;
-
-  for (let w = 0; w < 6; w++) {
-    const maandag = new Date(REF_MONDAY_UTC + (cyclusIndex * 6 + w) * WEEK_MS);
-    const info = getWeekInfo(maandag.getUTCFullYear(), maandag.getUTCMonth() + 1, maandag.getUTCDate());
-    const weekOverride = overrides[info.key] || {};
-
-    ['dinsdag', 'donderdag'].forEach(slot => {
-      const raw = weekOverride[slot];
-      if (raw && typeof raw === 'object' && !Array.isArray(raw) && raw.cancelled === true) return;
-      totaal++;
-      if (matchResults[`${info.key}_${slot}`]) ingevuld++;
-    });
-  }
-
-  return totaal > 0 && ingevuld >= totaal;
-}
-
-function bouwPodiumRegels(eerste, tweede, derde, gamesVan, wedstrijdenVan) {
-  const regel = (medaille, plaats, naam) =>
-    `${medaille} ${plaats}e plaats: ${naam} (${gamesVan(naam)} games, ${wedstrijdenVan(naam)} Wedstr)`;
-  return [
-    ...eerste.map(n => regel('🥇', 1, n)),
-    ...tweede.map(n => regel('🥈', 2, n)),
-    ...derde.map(n => regel('🥉', 3, n))
-  ];
-}
-
-function bouwPodium(gameCounts, matchCounts) {
-  const uniqueScoresDesc = [...new Set(BASE_PLAYERS.map(p => gameCounts[p] || 0))].sort((a, b) => b - a);
-  const maxGames = uniqueScoresDesc[0] || 0;
-  if (maxGames === 0) return null;
-
-  const goudScore = uniqueScoresDesc[0] !== undefined ? uniqueScoresDesc[0] : null;
-  const zilverScore = uniqueScoresDesc[1] !== undefined ? uniqueScoresDesc[1] : null;
-  const bronsScore = uniqueScoresDesc[2] !== undefined ? uniqueScoresDesc[2] : null;
-
-  const first = goudScore !== null ? BASE_PLAYERS.filter(p => (gameCounts[p] || 0) === goudScore) : [];
-  const second = zilverScore !== null ? BASE_PLAYERS.filter(p => (gameCounts[p] || 0) === zilverScore) : [];
-  const third = bronsScore !== null ? BASE_PLAYERS.filter(p => (gameCounts[p] || 0) === bronsScore) : [];
-
-  const regels = bouwPodiumRegels(
-    first,
-    second,
-    third,
-    naam => gameCounts[naam] || 0,
-    naam => matchCounts[naam] || 0
-  );
-
-  return { maxGames, first, second, third, winnerText: first.join(', '), regels };
-}
 
 function amsterdamTijd(nowMs) {
   return new Date(nowMs).toLocaleTimeString('nl-NL', {
@@ -211,7 +69,7 @@ async function verwerkCycli(nowMs) {
 
     // Vangnet: cyclus is ruim 3 dagen afgelopen maar nooit volledig ingevuld
     if (!tijdVoorbij) {
-      const cyclusEinde = REF_MONDAY_UTC + (cyclusIdx + 1) * 6 * WEEK_MS;
+      const cyclusEinde = cyclusEindeMs(cyclusIdx);
       if (nowMs > cyclusEinde + VANGNET_MS) tijdVoorbij = true;
     }
 
