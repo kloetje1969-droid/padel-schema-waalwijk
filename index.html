@@ -1559,7 +1559,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.62"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.63"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -2452,7 +2452,19 @@
         return PadelRegels.isCyclusVolledigIngevuld(cyclusIndex, matchResults, liveOverrides, extraMatchId);
     }
 
+    // Voorkomt dat twee vlugge tikken op Opslaan twee keer een uitslag + melding geven
+    const scoreOpslaanBezig = {};
     async function saveMatchScore3Sets(matchId, p1, p2, p3, p4) {
+        if (scoreOpslaanBezig[matchId]) return;
+        scoreOpslaanBezig[matchId] = true;
+        try {
+            await saveMatchScore3SetsIntern(matchId, p1, p2, p3, p4);
+        } finally {
+            delete scoreOpslaanBezig[matchId];
+        }
+    }
+
+    async function saveMatchScore3SetsIntern(matchId, p1, p2, p3, p4) {
         if (!currentUserName) {
             alert("Kies eerst je naam bovenin de app!");
             return;
@@ -2470,12 +2482,26 @@
             players: [p1, p2, p3, p4]
         };
 
+        const bestaand = matchResults[matchId];
+        if (bestaand) {
+            const scoreKeys = ['t1s1', 't2s1', 't1s2', 't2s2', 't1s3', 't2s3'];
+            const zelfdeScores = scoreKeys.every(k => (Number(bestaand[k]) || 0) === matchData[k]);
+            const zelfdeSpelers = JSON.stringify(bestaand.players) === JSON.stringify(matchData.players);
+            if (zelfdeScores && zelfdeSpelers) {
+                showToast("Uitslag staat er al", "Deze uitslag is al zo opgeslagen. Er is niets gewijzigd en er is geen melding verstuurd.");
+                return;
+            }
+            const sets = (r) => `Set 1: ${Number(r.t1s1) || 0}-${Number(r.t2s1) || 0} | Set 2: ${Number(r.t1s2) || 0}-${Number(r.t2s2) || 0} | Set 3: ${Number(r.t1s3) || 0}-${Number(r.t2s3) || 0}`;
+            const doorgaan = confirm(`De uitslag van deze wedstrijd is al ingevuld.\n\nNu opgeslagen: ${sets(bestaand)}\nNieuw: ${sets(matchData)}\n\nWeet je zeker dat je de uitslag wilt overschrijven? Er wordt dan opnieuw een melding naar de groep gestuurd.`);
+            if (!doorgaan) return;
+        }
+
         await db.ref(`padelData/matchResults/${matchId}`).set(matchData);
         showToast("Uitslagen opgeslagen", `Set 1: ${t1s1}-${t2s1} | Set 2: ${t1s2}-${t2s2} | Set 3: ${t1s3}-${t2s3}`);
 
         const team1Naam = `${p1}-${p2}`;
         const team2Naam = `${p3}-${p4}`;
-        const uitslagTekst = `🎾 Uitslag ingevoerd: ${team1Naam} vs ${team2Naam}: set 1 ${t1s1}-${t2s1}, set 2 ${t1s2}-${t2s2}, set 3 ${t1s3}-${t2s3}`;
+        const uitslagTekst = `${bestaand ? '✏️ Uitslag aangepast' : '🎾 Uitslag ingevoerd'}: ${team1Naam} vs ${team2Naam}: set 1 ${t1s1}-${t2s1}, set 2 ${t1s2}-${t2s2}, set 3 ${t1s3}-${t2s3}`;
         
         const sysRef = db.ref('padelData/messages').push();
         await sysRef.set({
@@ -2489,14 +2515,9 @@
         notifyServer(sysRef.key);
 
         try {
-            const parts = matchId.split('_');
-            if (parts.length >= 3) {
-                const year = parseInt(parts[0], 10);
-                const week = parseInt(parts[1].replace('w', ''), 10);
-                const referenceMonday = refMaandag();
-                const matchWeekStart = isoWeekToMonday(year, week);
-                const diffWeeks = Math.round((matchWeekStart.getTime() - referenceMonday.getTime()) / (1000 * 60 * 60 * 24 * 7));
-                const cyclusIndex = Math.floor(diffWeeks / 6);
+            const matchInfo = PadelRegels.leesMatchId(matchId);
+            if (matchInfo) {
+                const cyclusIndex = matchInfo.cyclus;
 
                 if (isCyclusVolledigIngevuld(cyclusIndex, matchId)) {
                     const cyclusWinnerRef = db.ref(`padelData/cyclusWinnaars/${cyclusIndex}`);
@@ -2505,7 +2526,7 @@
 
                     if (!val || !val.winner) {
                         await cyclusWinnerRef.update({
-                            claimAt: Date.now() + (30 * 60 * 1000),
+                            claimAt: Date.now() + PadelRegels.WACHTTIJD_MS,
                             lastMatchSavedAt: Date.now()
                         });
                     }
