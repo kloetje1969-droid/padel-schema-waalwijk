@@ -1410,8 +1410,8 @@
             Laden status...
         </div>
 
-        <button class="btn-edit" id="pushPermissionBtn" onclick="requestPushPermission()" style="width: 100%; justify-content: center; margin-top: 4px; background: rgba(56, 189, 248, 0.15); border-color: var(--accent-blue); color: var(--accent-blue);">
-            🔔 Meldingen aan (ook als app dicht is)
+        <button class="btn-edit" id="pushPermissionBtn" onclick="requestPushPermission()" style="width: 100%; justify-content: center; margin-top: 4px;">
+            Laden...
         </button>
     </header>
 
@@ -1888,23 +1888,17 @@
         if (!btn) return;
 
         const browserGranted = (typeof Notification !== 'undefined' && Notification.permission === 'granted');
-        const browserDenied = (typeof Notification !== 'undefined' && Notification.permission === 'denied');
 
         if (browserGranted) {
             btn.innerText = "✓ Meldingen actief";
             btn.style.background = "rgba(52, 211, 153, 0.15)";
             btn.style.borderColor = "var(--accent-green)";
             btn.style.color = "var(--accent-green)";
-        } else if (browserDenied) {
-            btn.innerText = "✕ Meldingen geblokkeerd in browser";
-            btn.style.background = "var(--danger-bg)";
-            btn.style.borderColor = "var(--danger)";
-            btn.style.color = "var(--danger)";
         } else {
-            btn.innerText = "🔔 Meldingen aan (ook als app dicht is)";
-            btn.style.background = "rgba(56, 189, 248, 0.15)";
-            btn.style.borderColor = "var(--accent-blue)";
-            btn.style.color = "var(--accent-blue)";
+            btn.innerText = "⚠️ Klik hier om meldingen te ontvangen!";
+            btn.style.background = "rgba(245, 158, 11, 0.2)";
+            btn.style.borderColor = "#f59e0b";
+            btn.style.color = "#fbbf24";
         }
     }
 
@@ -3943,7 +3937,7 @@
                     cancelled: true,
                     players: currentPlayers
                 });
-                await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${afgelastWeek} (${afgelastDag}) is AFGELAST.`);
+                await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${afgelastWeek} (${activeModalDay}) is AFGELAST.`);
             } else {
                 return;
             }
