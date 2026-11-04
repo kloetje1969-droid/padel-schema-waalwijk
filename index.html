@@ -601,6 +601,20 @@
             margin: 4px 0;
         }
 
+        .inval-gedaan {
+            font-size: calc(0.85rem * var(--s, 1));
+            font-weight: 600;
+            color: #6ee7b7;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 2px 4px;
+            opacity: 0.9;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
         .inval-banner .btn-inval {
             background: var(--accent-green);
             color: #ecfdf5;
@@ -1624,12 +1638,12 @@
 
     <div class="app-footer-row">
         <span id="appVersieLabel">Padelschema</span>
-        <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
 
     <div id="beheerRij">
         <span style="width: 100%; text-align: center;">Beheer (alleen zichtbaar voor Robert)</span>
+        <button class="btn-edit" id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none;">🔔 Push Aan</button>
         <button class="btn-edit" onclick="stuurTestmelding()">🔔 Testmelding naar mij</button>
         <button class="btn-edit" onclick="downloadBackup()">💾 Back-up downloaden</button>
     </div>
@@ -1681,7 +1695,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.74"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.77"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -2282,8 +2296,8 @@
         const btn = document.getElementById('globalPushToggleBtn');
         if (!btn) return;
 
-        if (currentUserName === "Robert") {
-            btn.style.display = 'inline-block';
+        if (zichtbaarVoorRobert()) {
+            btn.style.display = 'inline-flex';
             if (globalPushEnabled) {
                 btn.innerText = "🔔 Push Aan";
                 btn.style.background = "rgba(52, 211, 153, 0.15)";
@@ -3560,8 +3574,10 @@
             let donderdagRainAlert = (!doCancelled && donderdagWeatherObj && (donderdagWeatherObj.rainProbability >= 60 && donderdagWeatherObj.rain >= 1.0)) 
                 ? `<div class="rain-alert">🌧️ Let op: ${donderdagWeatherObj.rainProbability || 0}% kans op regen (${donderdagWeatherObj.rain} mm)!</div>` : '';
 
-            let dinsdagAbsentees = diCancelled ? [] : dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
-            let donderdagAbsentees = doCancelled ? [] : donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
+            // De rode balk is alleen nodig voor afwezigen zonder openstaande invalvraag (die staan al in het groene blokje)
+            const heeftOpenInvalvraag = (slot, naam) => invalvraagActief(uniqueWeekKey, slot, naam);
+            let dinsdagAbsentees = diCancelled ? [] : dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag') && !heeftOpenInvalvraag('dinsdag', p));
+            let donderdagAbsentees = doCancelled ? [] : donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag') && !heeftOpenInvalvraag('donderdag', p));
 
             const dinsdagInvalBanner = diCancelled ? '' : invalBannerHtml(uniqueWeekKey, 'dinsdag', dinsdagPlayers);
             const donderdagInvalBanner = doCancelled ? '' : invalBannerHtml(uniqueWeekKey, 'donderdag', donderdagPlayers);
@@ -3795,7 +3811,7 @@
     }
 
     function fitOneLineRows() {
-        const els = document.querySelectorAll('#scheduleContainer .match-day-date, #scheduleContainer .match-sub-info');
+        const els = document.querySelectorAll('#scheduleContainer .match-day-date, #scheduleContainer .match-sub-info, #scheduleContainer .inval-gedaan');
         if (typeof ResizeObserver === 'undefined') { els.forEach(fitOneLineEl); return; }
         if (fitObserver) fitObserver.disconnect();
         fitObserver = new ResizeObserver(entries => {
@@ -4313,13 +4329,38 @@
         return ((tpl && tpl[slotKey]) || []).slice();
     }
 
+    // Starttijd van een wedstrijd (ms), met de dag en tijd waarop hij nu staat ingepland
+    function matchStartMs(uniqueWeekKey, slotKey) {
+        const moment = slotMoment(uniqueWeekKey, slotKey);
+        const delen = uniqueWeekKey.split('_w');
+        const maandag = isoWeekToMonday(parseInt(delen[0], 10), parseInt(delen[1], 10));
+        let dagIdx = DAGNAMEN_NL.indexOf(moment.dag);
+        if (dagIdx < 0) dagIdx = DAGNAMEN_NL.indexOf(slotKey);
+        const start = new Date(maandag);
+        start.setDate(maandag.getDate() + dagIdx);
+        const tijd = String(moment.tijd).split(':').map(Number);
+        start.setHours(tijd[0] || 0, tijd[1] || 0, 0, 0);
+        return start.getTime();
+    }
+
+    // Een invalvraag telt alleen zolang de wedstrijd nog niet is begonnen
+    function invalvraagActief(uniqueWeekKey, slotKey, naam) {
+        const v = (invallers[`${uniqueWeekKey}_${slotKey}`] || {})[naam];
+        return !!(v && v.status === 'open') && Date.now() <= matchStartMs(uniqueWeekKey, slotKey);
+    }
+
     // Groen blokje in de wedstrijdkaart: iemand zoekt een invaller
     function invalBannerHtml(uniqueWeekKey, slotKey, spelers) {
         const verzoeken = invallers[`${uniqueWeekKey}_${slotKey}`] || {};
         let html = '';
         Object.keys(verzoeken).forEach(naam => {
-            const v = verzoeken[naam];
-            if (!v || v.status !== 'open') return;
+            const verzoek = verzoeken[naam];
+            // Iemand is ingevallen: een rustig regeltje in de kaart, dat ook na de wedstrijd blijft staan
+            if (verzoek && verzoek.status === 'taken' && verzoek.takenBy && spelers.includes(verzoek.takenBy) && !spelers.includes(naam)) {
+                html += `<div class="inval-gedaan">🔄 ${esc(verzoek.takenBy)} is ingevallen voor ${esc(naam)}</div>`;
+                return;
+            }
+            if (!invalvraagActief(uniqueWeekKey, slotKey, naam)) return;
             if (!spelers.includes(naam) || !checkPlayerAbsent(naam, uniqueWeekKey, slotKey)) return;
             const kanInvallen = currentUserName && basePlayers.includes(currentUserName)
                 && !spelers.includes(currentUserName) && !checkPlayerAbsent(currentUserName, uniqueWeekKey, slotKey);
@@ -4336,6 +4377,10 @@
             return;
         }
         if (isMatchCancelled(uniqueWeekKey, slotKey)) return;
+        if (Date.now() > matchStartMs(uniqueWeekKey, slotKey)) {
+            showToast("Te laat", "Deze wedstrijd is al begonnen.", true);
+            return;
+        }
         const spelersNu = slotSpelers(uniqueWeekKey, slotKey);
         if (spelersNu.includes(currentUserName)) {
             showToast("Je speelt al mee", "Je staat al in deze wedstrijd.", true);
