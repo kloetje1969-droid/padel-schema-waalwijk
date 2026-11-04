@@ -1614,7 +1614,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.67";
+    const APP_VERSION = "8.69";
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -1815,7 +1815,6 @@
         updatePushPermissionButtonUI();
         applyDynamicIcons();
 
-        // 30-dagen verlooptermijn op de inlogsessie
         const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
         const loginTime = parseInt(localStorage.getItem('padel_login_time') || '0', 10);
         const isExpired = loginTime && (Date.now() - loginTime > SESSION_DURATION_MS);
@@ -2097,7 +2096,7 @@
         try {
             await loginMetPin(pin, false);
             localStorage.setItem('padel_unlocked', 'true');
-            localStorage.setItem('padel_login_time', Date.now().toString()); // Sla 30-dagen tijdstempel op
+            localStorage.setItem('padel_login_time', Date.now().toString());
             errDiv.style.display = 'none';
             input.value = '';
             document.getElementById('pinOverlay').style.display = 'none';
@@ -2976,8 +2975,6 @@
 
         select.innerHTML = html;
 
-        // VERGRENDELEN NAAM-SELECTIE:
-        // Als een speler is gekozen en het is NIET Robert, wordt de keuzelijst disabled.
         if (currentUserName && currentUserName !== "Robert") {
             select.disabled = true;
         } else {
@@ -3023,7 +3020,7 @@
         loginBezig = true;
         try {
             await loginMetPin(pinVal, true);
-            localStorage.setItem('padel_login_time', Date.now().toString()); // Sla 30-dagen tijdstempel op
+            localStorage.setItem('padel_login_time', Date.now().toString());
             errDiv.style.display = 'none';
             input.value = '';
             document.getElementById('pinModal').style.display = 'none';
