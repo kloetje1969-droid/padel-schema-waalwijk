@@ -1632,7 +1632,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.71"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.72"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -2928,6 +2928,7 @@
         });
         if (ok) {
             await db.ref(`padelData/baanBoekingenList/${id}`).remove();
+            showToast("Boeking verwijderd", "De baanboeking is weggehaald.");
         }
     }
 
@@ -3061,6 +3062,7 @@
         initUserSelect();
         renderAll();
         renderChat();
+        showToast("Naam gewist", "Kies nu je eigen naam bovenin.");
     }
 
     function changeUser() {
@@ -3709,6 +3711,7 @@
         let path = `padelData/scheduleOverrides/${uniqueWeekKey}/custom${slotKey.charAt(0).toUpperCase() + slotKey.slice(1)}`;
         await db.ref(path).set(newDay);
         await addSystemMessageIfUnique(melding);
+        showToast("Wedstrijd aangepast", esc(melding.replace(/^\S+\s/, '')));
     }
 
     const tijdConcepten = {};
@@ -4046,6 +4049,7 @@
             if (!wilHeropenen) return;
             await db.ref(path).set(currentPlayers);
             await addSystemMessageIfUnique(`✅ Wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) is weer geopend.`);
+            showToast("Wedstrijd weer geopend", `Week ${activeModalWeekNum} (${activeModalDay}) staat weer in het rooster.`);
         } else {
             const afgelastWeek = activeModalWeekNum;
             const afgelastDag = activeModalDay;
@@ -4064,6 +4068,7 @@
                     players: currentPlayers
                 });
                 await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${afgelastWeek} (${afgelastDag}) is AFGELAST.`);
+                showToast("Wedstrijd afgelast", `Week ${afgelastWeek} (${afgelastDag}) is afgelast.`);
             } else {
                 return;
             }
@@ -4143,6 +4148,7 @@
 
         let msgText = `🔄 Schema gewijzigd voor week ${activeModalWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
         await addSystemMessageIfUnique(msgText);
+        showToast("Spelers aangepast", `Nieuwe opstelling: ${esc(newPlayers.join(', '))}`);
         closeModal();
     }
 
@@ -4170,6 +4176,7 @@
 
             let msgText = `📅 ${playerName} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${day}) (door ${currentUserName})`;
             await addSystemMessageIfUnique(msgText);
+            showToast(newVal ? "Afgemeld" : "Aangemeld", `${esc(playerName)} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${day}).`);
         });
     }
 
@@ -4405,7 +4412,10 @@
             jaTekst: 'Ja, verwijderen',
             neeTekst: 'Annuleren'
         });
-        if (ok) db.ref(`padelData/messages/${key}`).remove();
+        if (ok) {
+            await db.ref(`padelData/messages/${key}`).remove();
+            showToast("Bericht verwijderd", "Het bericht is weggehaald.");
+        }
     }
 
     async function clearAllChat() {
@@ -4420,7 +4430,8 @@
             neeTekst: 'Annuleren'
         });
         if (ok) {
-            db.ref('padelData/messages').remove();
+            await db.ref('padelData/messages').remove();
+            showToast("Chat gewist", "Alle berichten zijn verwijderd.");
         }
     }
 
