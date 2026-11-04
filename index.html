@@ -1257,6 +1257,46 @@
             padding: 16px;
         }
 
+        #bevestigModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 10002;
+            padding: 16px;
+        }
+
+        #bevestigModal .pin-box h2 {
+            color: #fbbf24;
+            font-size: 1.8rem;
+            margin-bottom: 0;
+        }
+
+        #bevestigModal .pin-box {
+            border-color: rgba(251, 191, 36, 0.5);
+            box-shadow: 0 0 25px rgba(251, 191, 36, 0.25);
+        }
+
+        #bevestigTekst {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #bevestigTekst p {
+            color: var(--text-main);
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        .btn-waarschuwing {
+            background: #f59e0b;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+        }
+
         #scheduleContainer {
             min-width: 0;
             max-width: 100%;
@@ -1318,6 +1358,17 @@
         <div class="modal-buttons" style="justify-content: center; margin-top: 10px;">
             <button class="btn-cancel" onclick="cancelRobertSelect()">Annuleren</button>
             <button class="btn-primary" onclick="confirmRobertPin()">Bevestigen</button>
+        </div>
+    </div>
+</div>
+
+<div id="bevestigModal">
+    <div class="pin-box">
+        <h2 id="bevestigTitel">⚠️ Let op!</h2>
+        <div id="bevestigTekst"></div>
+        <div class="modal-buttons" style="justify-content: center; margin-top: 10px;">
+            <button class="btn-cancel" id="bevestigNee">Annuleren</button>
+            <button class="btn-primary btn-waarschuwing" id="bevestigJa">Ja</button>
         </div>
     </div>
 </div>
@@ -1559,7 +1610,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.63"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.64"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -2452,6 +2503,39 @@
         return PadelRegels.isCyclusVolledigIngevuld(cyclusIndex, matchResults, liveOverrides, extraMatchId);
     }
 
+    // Eigen bevestigingsvenster in de stijl van de app (vervangt de browserpopup met de websitenaam erboven)
+    function bevestigDialoog(opties) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('bevestigModal');
+            const ja = document.getElementById('bevestigJa');
+            const nee = document.getElementById('bevestigNee');
+            const tekst = document.getElementById('bevestigTekst');
+            document.getElementById('bevestigTitel').textContent = opties.titel || '⚠️ Let op!';
+            tekst.innerHTML = '';
+            (opties.regels || []).forEach((regel, i) => {
+                const p = document.createElement('p');
+                p.textContent = regel;
+                if (i === 0) p.style.fontWeight = '700';
+                tekst.appendChild(p);
+            });
+            ja.textContent = opties.jaTekst || 'Ja';
+            nee.textContent = opties.neeTekst || 'Annuleren';
+            const toets = (e) => { if (e.key === 'Escape') sluit(false); };
+            const sluit = (antwoord) => {
+                modal.style.display = 'none';
+                ja.onclick = null; nee.onclick = null; modal.onclick = null;
+                document.removeEventListener('keydown', toets);
+                resolve(antwoord);
+            };
+            ja.onclick = () => sluit(true);
+            nee.onclick = () => sluit(false);
+            modal.onclick = (e) => { if (e.target === modal) sluit(false); };
+            document.addEventListener('keydown', toets);
+            modal.style.display = 'flex';
+            nee.focus(); // veilig: per ongeluk Enter indrukken annuleert
+        });
+    }
+
     // Voorkomt dat twee vlugge tikken op Opslaan twee keer een uitslag + melding geven
     const scoreOpslaanBezig = {};
     async function saveMatchScore3Sets(matchId, p1, p2, p3, p4) {
@@ -2491,8 +2575,15 @@
                 showToast("Uitslag staat er al", "Deze uitslag is al zo opgeslagen. Er is niets gewijzigd en er is geen melding verstuurd.");
                 return;
             }
-            const sets = (r) => `Set 1: ${Number(r.t1s1) || 0}-${Number(r.t2s1) || 0} | Set 2: ${Number(r.t1s2) || 0}-${Number(r.t2s2) || 0} | Set 3: ${Number(r.t1s3) || 0}-${Number(r.t2s3) || 0}`;
-            const doorgaan = confirm(`De uitslag van deze wedstrijd is al ingevuld.\n\nNu opgeslagen: ${sets(bestaand)}\nNieuw: ${sets(matchData)}\n\nWeet je zeker dat je de uitslag wilt overschrijven? Er wordt dan opnieuw een melding naar de groep gestuurd.`);
+            const doorgaan = await bevestigDialoog({
+                titel: '⚠️ Let op!',
+                regels: [
+                    'De uitslag van deze wedstrijd is al ingevuld.',
+                    'Weet je zeker dat je de uitslag wilt overschrijven? Er wordt dan opnieuw een melding naar de groep gestuurd.'
+                ],
+                jaTekst: 'Ja, overschrijven',
+                neeTekst: 'Annuleren'
+            });
             if (!doorgaan) return;
         }
 
