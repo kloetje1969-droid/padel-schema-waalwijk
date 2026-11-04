@@ -1610,7 +1610,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.64"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.65"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -2857,7 +2857,16 @@
     }
         
     async function deleteBaanBoeking(id) {
-        if (confirm("Weet je zeker dat je deze boeking wilt verwijderen?\n\nLet op: het speelschema wordt niet teruggezet. Pas de dag en tijd daar zelf aan als dat nodig is.")) {
+        const ok = await bevestigDialoog({
+            titel: '⚠️ Let op!',
+            regels: [
+                'Weet je zeker dat je deze boeking wilt verwijderen?',
+                'Het speelschema wordt niet teruggezet. Pas de dag en tijd daar zelf aan als dat nodig is.'
+            ],
+            jaTekst: 'Ja, verwijderen',
+            neeTekst: 'Annuleren'
+        });
+        if (ok) {
             await db.ref(`padelData/baanBoekingenList/${id}`).remove();
         }
     }
@@ -3905,12 +3914,22 @@
             await db.ref(path).set(currentPlayers);
             await addSystemMessageIfUnique(`✅ Wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) is weer geopend.`);
         } else {
-            if (confirm(`Weet je zeker dat je de wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) wilt afgelasten?`)) {
+            const afgelastWeek = activeModalWeekNum;
+            const afgelastDag = activeModalDay;
+            const wilAfgelasten = await bevestigDialoog({
+                titel: '⚠️ Let op!',
+                regels: [
+                    `Weet je zeker dat je de wedstrijd voor week ${afgelastWeek} (${afgelastDag}) wilt afgelasten?`
+                ],
+                jaTekst: 'Ja, afgelasten',
+                neeTekst: 'Annuleren'
+            });
+            if (wilAfgelasten) {
                 await db.ref(path).set({
                     cancelled: true,
                     players: currentPlayers
                 });
-                await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) is AFGELAST.`);
+                await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${afgelastWeek} (${afgelastDag}) is AFGELAST.`);
             } else {
                 return;
             }
@@ -4233,8 +4252,18 @@
         }
     }
 
-    function clearAllChat() {
-        if (currentUserName === "Robert" && confirm("Weet je zeker dat je alle chatberichten wilt wissen?")) {
+    async function clearAllChat() {
+        if (currentUserName !== "Robert") return;
+        const ok = await bevestigDialoog({
+            titel: '⚠️ Let op!',
+            regels: [
+                'Weet je zeker dat je alle chatberichten wilt wissen?',
+                'Dit kan niet ongedaan worden gemaakt.'
+            ],
+            jaTekst: 'Ja, alles wissen',
+            neeTekst: 'Annuleren'
+        });
+        if (ok) {
             db.ref('padelData/messages').remove();
         }
     }
