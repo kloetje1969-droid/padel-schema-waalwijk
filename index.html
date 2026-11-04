@@ -1298,6 +1298,15 @@
             line-height: 1.4;
         }
 
+        #bevestigModal.bevestig-info .pin-box {
+            border-color: var(--accent-blue);
+            box-shadow: var(--main-glow);
+        }
+
+        #bevestigModal.bevestig-info .pin-box h2 {
+            color: var(--accent-blue);
+        }
+
         .btn-waarschuwing {
             background: #f59e0b;
             box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
@@ -1623,7 +1632,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.70"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.71"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -2239,6 +2248,19 @@
     async function toggleGlobalPush() {
         if (currentUserName !== "Robert") return;
         const newState = !globalPushEnabled;
+        const wilWisselen = await bevestigDialoog(newState ? {
+            stijl: 'info',
+            titel: 'Bevestigen',
+            regels: ['Pushmeldingen weer aanzetten?', 'Het team ontvangt dan weer meldingen.'],
+            jaTekst: 'Ja, aanzetten',
+            neeTekst: 'Annuleren'
+        } : {
+            titel: '⚠️ Let op!',
+            regels: ['Pushmeldingen uitzetten?', 'Niemand ontvangt dan meldingen, ook geen herinneringen of weermeldingen. Vergeet niet ze weer aan te zetten.'],
+            jaTekst: 'Ja, uitzetten',
+            neeTekst: 'Annuleren'
+        });
+        if (!wilWisselen) return;
         await db.ref('padelData/settings/pushGloballyEnabled').set(newState);
         showToast(newState ? "Pushnotificaties ingeschakeld" : "Pushnotificaties uitgeschakeld", newState ? "Het team ontvangt weer meldingen." : "Alle pushmeldingen voor het team zijn nu gepauzeerd.");
     }
@@ -2531,7 +2553,10 @@
             const ja = document.getElementById('bevestigJa');
             const nee = document.getElementById('bevestigNee');
             const tekst = document.getElementById('bevestigTekst');
-            document.getElementById('bevestigTitel').textContent = opties.titel || '⚠️ Let op!';
+            const info = opties.stijl === 'info';
+            modal.classList.toggle('bevestig-info', info);
+            ja.classList.toggle('btn-waarschuwing', !info);
+            document.getElementById('bevestigTitel').textContent = opties.titel || (info ? 'Bevestigen' : '⚠️ Let op!');
             tekst.innerHTML = '';
             (opties.regels || []).forEach((regel, i) => {
                 const p = document.createElement('p');
@@ -2605,6 +2630,15 @@
                 neeTekst: 'Annuleren'
             });
             if (!doorgaan) return;
+        } else {
+            const wilOpslaan = await bevestigDialoog({
+                stijl: 'info',
+                titel: 'Bevestigen',
+                regels: ['Uitslag opslaan?', 'Er wordt een melding naar de groep gestuurd.'],
+                jaTekst: 'Ja, opslaan',
+                neeTekst: 'Annuleren'
+            });
+            if (!wilOpslaan) return;
         }
 
         await db.ref(`padelData/matchResults/${matchId}`).set(matchData);
@@ -2759,14 +2793,6 @@
         }
 
         try {
-            const newRef = db.ref('padelData/baanBoekingenList').push();
-            await newRef.set({
-                player: gekozenSpeler,
-                baan: gekozenBaan,
-                dateTime: gekozenDatum,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-
             const bookingDate = new Date(gekozenDatum);
             const yearNum = getISOYear(bookingDate);
             const weekNum = getISOWeekNumber(bookingDate);
@@ -2786,6 +2812,21 @@
             const isStandaardDinsdag = (targetSlot === 'dinsdag' || targetSlot === 'auto') && gekozenDagNaam === 'dinsdag' && gekozenTijdStr === '18:30';
             const isStandaardDonderdag = (targetSlot === 'donderdag' || targetSlot === 'auto') && gekozenDagNaam === 'donderdag' && gekozenTijdStr === '18:30';
             const isStandaardMoment = isStandaardDinsdag || isStandaardDonderdag;
+
+            const boekDatumTekst = bookingDate.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+            const boekRegels = ['Baan boeken?', `${gekozenSpeler} boekt ${gekozenBaan} voor ${boekDatumTekst} om ${gekozenTijdStr} uur.`];
+            if (!isStandaardMoment) boekRegels.push('Dit is niet de standaarddag of -tijd: de wedstrijd wordt aangepast.');
+            boekRegels.push('Er wordt een melding naar de groep gestuurd.');
+            const wilBoeken = await bevestigDialoog({ stijl: 'info', titel: 'Bevestigen', regels: boekRegels, jaTekst: 'Ja, boeken', neeTekst: 'Annuleren' });
+            if (!wilBoeken) return;
+
+            const newRef = db.ref('padelData/baanBoekingenList').push();
+            await newRef.set({
+                player: gekozenSpeler,
+                baan: gekozenBaan,
+                dateTime: gekozenDatum,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
 
             if (!isStandaardMoment) {
                 if (targetSlot === 'dinsdag') {
@@ -3646,12 +3687,28 @@
         return `📅 De ${naam} is aangepast naar ${datumTekst} om ${tijd} uur.`;
     }
 
+    // Zinsbouw voor de vraag in het venster: "wordt aangepast" in plaats van de gedane melding "is aangepast"
+    function schemaVraagTekst(melding) {
+        return melding.replace(/^\S+\s/, '')
+            .replace('is aangepast naar', 'wordt aangepast naar')
+            .replace('staat weer op het standaard moment', 'gaat weer naar het standaard moment');
+    }
+
     async function updateWeekDay(uniqueWeekKey, slotKey, newDay) {
         const voor = slotMoment(uniqueWeekKey, slotKey);
         if (voor.dag === newDay) return;
+        const melding = bouwSchemaMelding(uniqueWeekKey, slotKey, newDay, voor.tijd);
+        const wilAanpassen = await bevestigDialoog({
+            stijl: 'info',
+            titel: 'Bevestigen',
+            regels: ['Wedstrijd aanpassen?', schemaVraagTekst(melding), 'Er wordt een melding naar de groep gestuurd.'],
+            jaTekst: 'Ja, aanpassen',
+            neeTekst: 'Annuleren'
+        });
+        if (!wilAanpassen) { renderSchedule(); return; }
         let path = `padelData/scheduleOverrides/${uniqueWeekKey}/custom${slotKey.charAt(0).toUpperCase() + slotKey.slice(1)}`;
         await db.ref(path).set(newDay);
-        await addSystemMessageIfUnique(bouwSchemaMelding(uniqueWeekKey, slotKey, newDay, voor.tijd));
+        await addSystemMessageIfUnique(melding);
     }
 
     const tijdConcepten = {};
@@ -3681,6 +3738,26 @@
         const nieuweTijd = `${pad(uur)}:${pad(min)}`;
         uurEl.value = pad(uur);
         minEl.value = pad(min);
+
+        const opgeslagenTijd = (liveOverrides[uniqueWeekKey] || {})[slotKey + 'Tijd'] || '18:30';
+        if (opgeslagenTijd !== nieuweTijd) {
+            const tijdMelding = bouwSchemaMelding(uniqueWeekKey, slotKey, slotMoment(uniqueWeekKey, slotKey).dag, nieuweTijd);
+            const wilTijdWijzigen = await bevestigDialoog({
+                stijl: 'info',
+                titel: 'Bevestigen',
+                regels: ['Speeltijd aanpassen?', schemaVraagTekst(tijdMelding), 'Er wordt een melding naar de groep gestuurd.'],
+                jaTekst: 'Ja, aanpassen',
+                neeTekst: 'Annuleren'
+            });
+            if (!wilTijdWijzigen) {
+                const uurNu = document.getElementById(`tijdu_${tijdKey}`);
+                const minNu = document.getElementById(`tijdm_${tijdKey}`);
+                if (uurNu) uurNu.value = opgeslagenTijd.slice(0, 2);
+                if (minNu) minNu.value = opgeslagenTijd.slice(3, 5);
+                delete tijdConcepten[tijdKey];
+                return;
+            }
+        }
 
         const resultaat = await updateSpeelTijd(uniqueWeekKey, slotKey, nieuweTijd);
         if (resultaat === 'zelfde') {
@@ -3959,6 +4036,14 @@
         let currentPlayers = (overrideData[activeModalDay] !== undefined && overrideData[activeModalDay] !== null && overrideData[activeModalDay].players) ? overrideData[activeModalDay].players : (Array.isArray(overrideData[activeModalDay]) ? overrideData[activeModalDay] : tpl[activeModalDay]);
 
         if (currentlyCancelled) {
+            const wilHeropenen = await bevestigDialoog({
+                stijl: 'info',
+                titel: 'Bevestigen',
+                regels: [`Wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) weer openen?`, 'Er wordt een melding naar de groep gestuurd.'],
+                jaTekst: 'Ja, weer openen',
+                neeTekst: 'Annuleren'
+            });
+            if (!wilHeropenen) return;
             await db.ref(path).set(currentPlayers);
             await addSystemMessageIfUnique(`✅ Wedstrijd voor week ${activeModalWeekNum} (${activeModalDay}) is weer geopend.`);
         } else {
@@ -3967,7 +4052,8 @@
             const wilAfgelasten = await bevestigDialoog({
                 titel: '⚠️ Let op!',
                 regels: [
-                    `Weet je zeker dat je de wedstrijd voor week ${afgelastWeek} (${afgelastDag}) wilt afgelasten?`
+                    `Weet je zeker dat je de wedstrijd voor week ${afgelastWeek} (${afgelastDag}) wilt afgelasten?`,
+                    'Er wordt een melding naar de groep gestuurd.'
                 ],
                 jaTekst: 'Ja, afgelasten',
                 neeTekst: 'Annuleren'
@@ -4037,6 +4123,15 @@
             newPlayers.push(chosenVal);
         }
 
+        const wilSpelersOpslaan = await bevestigDialoog({
+            stijl: 'info',
+            titel: 'Bevestigen',
+            regels: ['Spelers aanpassen?', `Nieuwe opstelling voor week ${activeModalWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}.`, 'Er wordt een melding naar de groep gestuurd.'],
+            jaTekst: 'Ja, opslaan',
+            neeTekst: 'Annuleren'
+        });
+        if (!wilSpelersOpslaan) return;
+
         let path = `padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`;
         let currentlyCancelled = isMatchCancelled(activeModalUniqueKey, activeModalDay);
 
@@ -4063,6 +4158,14 @@
         const path = `padelData/absence/${playerName}/${uniqueWeekKey}_${day}`;
         db.ref(path).once('value', async snapshot => {
             const newVal = !(snapshot.val() || false);
+            const wilAfmelden = await bevestigDialoog({
+                stijl: 'info',
+                titel: 'Bevestigen',
+                regels: [`${playerName} ${newVal ? 'afmelden' : 'aanmelden'} voor week ${weekNum} (${day})?`, 'Er wordt een melding naar de groep gestuurd.'],
+                jaTekst: newVal ? 'Ja, afmelden' : 'Ja, aanmelden',
+                neeTekst: 'Annuleren'
+            });
+            if (!wilAfmelden) return;
             await db.ref(path).set(newVal);
 
             let msgText = `📅 ${playerName} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${day}) (door ${currentUserName})`;
@@ -4294,10 +4397,15 @@
         }
     }
 
-    function deleteMessage(key) {
-        if (key) {
-            db.ref(`padelData/messages/${key}`).remove();
-        }
+    async function deleteMessage(key) {
+        if (!key) return;
+        const ok = await bevestigDialoog({
+            titel: '⚠️ Let op!',
+            regels: ['Dit bericht verwijderen?', 'Het bericht verdwijnt voor iedereen.'],
+            jaTekst: 'Ja, verwijderen',
+            neeTekst: 'Annuleren'
+        });
+        if (ok) db.ref(`padelData/messages/${key}`).remove();
     }
 
     async function clearAllChat() {
