@@ -70,11 +70,9 @@ export default async function handler(req, res) {
     let text;
     
     if (isSystem) {
-      // Zuivere systeemmelding of uitslag ZONDER weertekst
       title = '🔔 Padel update';
       text = String(m.text || 'Er is iets gewijzigd in de app.');
     } else {
-      // Normaal chatbericht
       title = `💬 ${m.author || 'Padel chat'}`;
       if (m.text) {
         text = String(m.text);
@@ -85,28 +83,85 @@ export default async function handler(req, res) {
       }
     }
     
-    // Gewone meldingen worden afgekapt; het KingKong-podium krijgt meer ruimte zodat alle plaatsen te lezen zijn
     const isPodium = isSystem && text.startsWith('🏆 Uitslag KingKong podium');
     const maxLengte = isPodium ? 400 : 120;
     if (text.length > maxLengte) text = text.slice(0, maxLengte - 3) + '...';
 
     const tokensData = await getTokensByPlayer();
     const recipients = Object.keys(tokensData);
-    const tokens = recipients.flatMap(player => Object.keys(tokensData[player] || {}));
+    
+    // We bouwen een lijst op en onthouden tegelijk bij welke speler welk token hoort
+    const tokenList = [];
+    const tokenToPlayerMap = {};
 
-    if (tokens.length === 0) {
-      console.log('NOTIFY: geen tokens gevonden', JSON.stringify({ key, spelersMetToken: Object.keys(tokensData) }));
+    recipients.forEach(player => {
+      const playerTokens = tokensData[player] || {};
+      Object.keys(playerTokens).forEach(token => {
+        tokenList.push(token);
+        tokenToPlayerMap[token] = player;
+      });
+    });
+
+    if (tokenList.length === 0) {
+      console.log('NOTIFY: geen tokens gevonden', JSON.stringify({ key, spelersMetToken: recipients }));
       await db.ref(`padelData/notified/${key}`).remove();
       return res.status(200).json({ status: 'Geen tokens gevonden om te notificeren.' });
     }
 
-    const result = await sendToTokens(tokens, { title, body: text, tag: key });
+    // Verstuur de melding via de helperfunctie (of direct via admin.messaging als je de details wilt uitlezen)
+    // Omdat sendToTokens waarschijnlijk een multicast afhandelt, sturen we hier de tokens in.
+    const result = await sendToTokens(tokenList, { title, body: text, tag: key });
+
+    // Controleer of er tokens mislukt zijn om deze te koppelen aan spelersnamen en op te schonen
+    const mislukteSpelers = new Set();
+    const tokensOmTeVerwijderen = {};
+
+    if (result && result.responses) {
+      result.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          const failedToken = tokenList[idx];
+          const spelerNaam = tokenToPlayerMap[failedToken];
+          if (spelerNaam) {
+            mislukteSpelers.add(spelerNaam);
+            tokensOmTeVerwijderen[`padelData/tokens/${spelerNaam}/${failedToken}`] = null;
+          }
+        }
+      });
+    }
+
+    // Ruim ongeldige tokens direct op in de database
+    if (Object.keys(tokensOmTeVerwijderen).length > 0) {
+      await db.ref().update(tokensOmTeVerwijderen);
+    }
+
+    // Als er 1 of meer bezorgingen zijn mislukt, stuur een gerichte push naar ALLEEN Robert
+    if (mislukteSpelers.size > 0) {
+      const namenLijst = Array.from(mislukteSpelers).join(', ');
+      console.log(`Pushnotificatie niet aangekomen bij: ${namenLijst}`);
+
+      const robertTokensObj = tokensData['Robert'] || {};
+      const robertTokenList = Object.keys(robertTokensObj);
+
+      if (robertTokenList.length > 0) {
+        const { getMessaging } = await import('firebase-admin/messaging');
+        await getMessaging().sendEachForMulticast({
+          tokens: robertTokenList,
+          notification: {
+            title: "⚠️ Padel App - Push mislukt",
+            body: `Niet bezorgd bij: ${namenLijst}`
+          },
+          data: {
+            url: "https://padel-app-b8362.web.app"
+          }
+        });
+      }
+    }
 
     console.log('NOTIFY resultaat', JSON.stringify({
       soort: isSystem ? 'systeem' : 'chat',
       titel: title,
       naarSpelers: recipients,
-      tokens: tokens.length,
+      tokens: tokenList.length,
       gelukt: result.successCount,
       mislukt: result.failureCount,
       foutcodes: result.errorCodes
