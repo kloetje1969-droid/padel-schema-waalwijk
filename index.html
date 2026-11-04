@@ -1695,7 +1695,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.77"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.78"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -4317,16 +4317,21 @@
         closeModal();
     }
 
-    // Spelers van een wedstrijd (slot) zoals ze nu in het rooster staan
-    function slotSpelers(uniqueWeekKey, slotKey) {
-        const ov = (liveOverrides[uniqueWeekKey] || {})[slotKey];
-        if (Array.isArray(ov)) return ov.slice();
-        if (ov && typeof ov === 'object' && ov.players) return Object.values(ov.players);
+    // De standaardopstelling van een wedstrijd (zonder aanpassingen)
+    function slotStandaardSpelers(uniqueWeekKey, slotKey) {
         const info = PadelRegels.leesMatchId(`${uniqueWeekKey}_${slotKey}`);
         if (!info) return [];
         let tpl = defaultTemplate[info.templateIndex];
         if (info.cyclus === 0 && info.templateIndex === 0) tpl = SCHEMA_WEEK1_CYCLUS1;
         return ((tpl && tpl[slotKey]) || []).slice();
+    }
+
+    // Spelers van een wedstrijd (slot) zoals ze nu in het rooster staan
+    function slotSpelers(uniqueWeekKey, slotKey) {
+        const ov = (liveOverrides[uniqueWeekKey] || {})[slotKey];
+        if (Array.isArray(ov)) return ov.slice();
+        if (ov && typeof ov === 'object' && ov.players) return Object.values(ov.players);
+        return slotStandaardSpelers(uniqueWeekKey, slotKey);
     }
 
     // Starttijd van een wedstrijd (ms), met de dag en tijd waarop hij nu staat ingepland
@@ -4353,11 +4358,13 @@
     function invalBannerHtml(uniqueWeekKey, slotKey, spelers) {
         const verzoeken = invallers[`${uniqueWeekKey}_${slotKey}`] || {};
         let html = '';
+        const alGetoond = new Set();
         Object.keys(verzoeken).forEach(naam => {
             const verzoek = verzoeken[naam];
             // Iemand is ingevallen: een rustig regeltje in de kaart, dat ook na de wedstrijd blijft staan
             if (verzoek && verzoek.status === 'taken' && verzoek.takenBy && spelers.includes(verzoek.takenBy) && !spelers.includes(naam)) {
                 html += `<div class="inval-gedaan">🔄 ${esc(verzoek.takenBy)} is ingevallen voor ${esc(naam)}</div>`;
+                alGetoond.add(naam);
                 return;
             }
             if (!invalvraagActief(uniqueWeekKey, slotKey, naam)) return;
@@ -4367,6 +4374,17 @@
             html += `<div class="inval-banner"><span>🙋 ${esc(naam)} zoekt een invaller</span>` +
                 (kanInvallen ? `<button class="btn-inval" onclick="invallen('${uniqueWeekKey}', '${slotKey}', ${jsArg(naam)})">Ik kan invallen</button>` : '') +
                 `</div>`;
+        });
+
+        // Ook oudere of handmatig geregelde invallers: staat op de plek van een afgemelde standaardspeler iemand anders,
+        // dan tonen we dezelfde regel (zonder dat daar een invalvraag voor is aangemaakt)
+        const standaard = slotStandaardSpelers(uniqueWeekKey, slotKey);
+        standaard.forEach((std, i) => {
+            const nu = spelers[i];
+            if (!nu || nu === std || alGetoond.has(std)) return;
+            if (spelers.includes(std)) return;
+            if (!checkPlayerAbsent(std, uniqueWeekKey, slotKey)) return;
+            html += `<div class="inval-gedaan">🔄 ${esc(nu)} is ingevallen voor ${esc(std)}</div>`;
         });
         return html;
     }
