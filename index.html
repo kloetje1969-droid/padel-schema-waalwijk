@@ -853,6 +853,10 @@
             flex-shrink: 0;
         }
 
+        .match-sub-info.compact-weer .wb-lang {
+            display: none;
+        }
+
         .afgelast-tag {
             color: var(--danger);
             font-weight: bold;
@@ -1632,7 +1636,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.72"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.73"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -3001,7 +3005,7 @@
         const emoji = getWeatherEmoji(w.code);
         const bft = kmhToBeaufort(w.wind);
         const probText = w.rainProbability !== undefined ? ` | ☔ ${w.rainProbability}%` : '';
-        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 windkracht ${bft} | 🌧️ ${w.rain} mm${probText}</span>`;
+        return `<span class="weather-badge">${emoji} ${w.temp}°C | 💨 <span class="wb-lang">windkracht </span>${bft} | 🌧️ ${w.rain} mm${probText}</span>`;
     }
 
     function updateAlertUI() {
@@ -3638,8 +3642,22 @@
 
     function fitOneLineEl(el) {
         el.style.removeProperty('--s');
+        el.classList.remove('compact-weer');
         let schaal = 1;
-        while (el.scrollWidth > el.clientWidth + 1 && schaal > 0.55) {
+        const teBreed = () => el.scrollWidth > el.clientWidth + 1;
+        // Eerst de letters verkleinen, maar niet te klein
+        while (teBreed() && schaal > 0.8) {
+            schaal = Math.round((schaal - 0.03) * 100) / 100;
+            el.style.setProperty('--s', schaal);
+        }
+        // Past het nog niet (heel smal scherm + lange weertekst): het woord "windkracht" weglaten, dan weer normale letters
+        if (teBreed() && el.querySelector('.wb-lang')) {
+            el.classList.add('compact-weer');
+            el.style.removeProperty('--s');
+            schaal = 1;
+        }
+        // Laatste redmiddel: verder verkleinen
+        while (teBreed() && schaal > 0.55) {
             schaal = Math.round((schaal - 0.03) * 100) / 100;
             el.style.setProperty('--s', schaal);
         }
