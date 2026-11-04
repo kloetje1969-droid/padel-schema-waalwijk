@@ -308,6 +308,12 @@
             width: 100%;
         }
 
+        .user-select-container select:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: var(--bg-color);
+        }
+
         .db-connection-status {
             font-size: 0.85rem; 
             color: #38bdf8; 
@@ -860,7 +866,6 @@
             text-shadow: 0 0 6px rgba(250, 204, 21, 0.4);
         }
 
-        /* GEOPTIMALISEERD VOOR SPELERSNAMEN NETJES OP HET SCHERM */
         .players-container {
             display: flex;
             gap: 4px;
@@ -1322,7 +1327,6 @@
             }
         }
 
-        /* Smalle schermen (tot en met 400 px, bijv. iPhone SE/mini): setvakjes iets compacter zodat de opslaan-knop er altijd naast past */
         @media (max-width: 400px) {
             .match-score-section { padding: 10px 6px; }
             .sets-inputs-grid { gap: 4px; }
@@ -1610,7 +1614,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.65"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.67";
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -1766,7 +1770,6 @@
     } catch (e) {}
 
     const basePlayers = PadelRegels.BASE_PLAYERS.slice();
-    // Startdatum van cyclus 1 (maandag, lokale middernacht) komt uit padel-regels.js
     function refMaandag() { const r = PadelRegels.REF_START; return new Date(r.jaar, r.maand - 1, r.dag); }
     let currentUserName = localStorage.getItem('padel_current_user') || "";
     let myOriginalUserName = currentUserName;
@@ -1779,7 +1782,6 @@
     let cyclusWinnaars = {};
     let globalPushEnabled = true;
 
-    // Schema, telregels en podium staan in padel-regels.js (zelfde bestand als op de server)
     const defaultTemplate = PadelRegels.DEFAULT_TEMPLATE;
     const SCHEMA_WEEK1_CYCLUS1 = PadelRegels.SCHEMA_WEEK1_CYCLUS1;
 
@@ -1813,7 +1815,12 @@
         updatePushPermissionButtonUI();
         applyDynamicIcons();
 
-        if (localStorage.getItem('padel_unlocked') === 'true') {
+        // 30-dagen verlooptermijn op de inlogsessie
+        const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
+        const loginTime = parseInt(localStorage.getItem('padel_login_time') || '0', 10);
+        const isExpired = loginTime && (Date.now() - loginTime > SESSION_DURATION_MS);
+
+        if (localStorage.getItem('padel_unlocked') === 'true' && !isExpired) {
             checkBestaandeLogin().then((st) => {
                 if (st.ok) {
                     isRobertAuthed = st.robert === true;
@@ -1823,10 +1830,13 @@
                     initApp();
                 } else {
                     localStorage.removeItem('padel_unlocked');
+                    localStorage.removeItem('padel_login_time');
                     document.getElementById('pinInput').focus();
                 }
             });
         } else {
+            localStorage.removeItem('padel_unlocked');
+            localStorage.removeItem('padel_login_time');
             document.getElementById('pinInput').focus();
         }
 
@@ -2087,6 +2097,7 @@
         try {
             await loginMetPin(pin, false);
             localStorage.setItem('padel_unlocked', 'true');
+            localStorage.setItem('padel_login_time', Date.now().toString()); // Sla 30-dagen tijdstempel op
             errDiv.style.display = 'none';
             input.value = '';
             document.getElementById('pinOverlay').style.display = 'none';
@@ -2276,7 +2287,7 @@
                 const { gameCounts, matchCounts } = getGameCountsForCyclus(cyclusIdx, true);
 
                 const podium = PadelRegels.bouwPodium(gameCounts, matchCounts);
-                if (!podium) continue; // nog geen games gespeeld
+                if (!podium) continue;
                 const maxGames = podium.maxGames;
                 const firstPlayers = podium.first;
                 const secondPlayers = podium.second;
@@ -2503,7 +2514,6 @@
         return PadelRegels.isCyclusVolledigIngevuld(cyclusIndex, matchResults, liveOverrides, extraMatchId);
     }
 
-    // Eigen bevestigingsvenster in de stijl van de app (vervangt de browserpopup met de websitenaam erboven)
     function bevestigDialoog(opties) {
         return new Promise((resolve) => {
             const modal = document.getElementById('bevestigModal');
@@ -2532,11 +2542,10 @@
             modal.onclick = (e) => { if (e.target === modal) sluit(false); };
             document.addEventListener('keydown', toets);
             modal.style.display = 'flex';
-            nee.focus(); // veilig: per ongeluk Enter indrukken annuleert
+            nee.focus();
         });
     }
 
-    // Voorkomt dat twee vlugge tikken op Opslaan twee keer een uitslag + melding geven
     const scoreOpslaanBezig = {};
     async function saveMatchScore3Sets(matchId, p1, p2, p3, p4) {
         if (scoreOpslaanBezig[matchId]) return;
@@ -2804,7 +2813,6 @@
                         heeftOverrideNodig = true;
                     }
                 }
-
             }
 
             let doelSlot;
@@ -2968,6 +2976,14 @@
 
         select.innerHTML = html;
 
+        // VERGRENDELEN NAAM-SELECTIE:
+        // Als een speler is gekozen en het is NIET Robert, wordt de keuzelijst disabled.
+        if (currentUserName && currentUserName !== "Robert") {
+            select.disabled = true;
+        } else {
+            select.disabled = false;
+        }
+
         const clearBtn = document.getElementById('clearAllChatBtn');
         if (clearBtn) {
             clearBtn.style.display = (currentUserName === "Robert") ? 'inline-flex' : 'none';
@@ -3007,6 +3023,7 @@
         loginBezig = true;
         try {
             await loginMetPin(pinVal, true);
+            localStorage.setItem('padel_login_time', Date.now().toString()); // Sla 30-dagen tijdstempel op
             errDiv.style.display = 'none';
             input.value = '';
             document.getElementById('pinModal').style.display = 'none';
