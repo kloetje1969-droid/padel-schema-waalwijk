@@ -279,6 +279,7 @@
         }
 
         .user-select-container {
+            position: relative;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -1327,6 +1328,13 @@
             }
         }
 
+        /* Heel smal scherm (320 px): statusvak onder de naam zodat de gekozen naam leesbaar blijft */
+        @media (max-width: 345px) {
+            .user-and-status-row { flex-wrap: wrap; }
+            .user-and-status-row .user-select-container { flex: 1 1 100%; }
+            .user-and-status-row .db-connection-status { flex: 1 1 100%; justify-content: center; }
+        }
+
         @media (max-width: 400px) {
             .match-score-section { padding: 10px 6px; }
             .sets-inputs-grid { gap: 4px; }
@@ -1391,6 +1399,7 @@
             <div class="user-select-container">
                 <label for="userSelect">Jij:</label>
                 <select id="userSelect" onchange="changeUser()"></select>
+                <span id="naamWijzigOverlay" onclick="naamWijzigen()" title="Verkeerde naam gekozen? Tik om van naam te wisselen." style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; cursor: pointer; border-radius: 10px;"></span>
             </div>
             
             <div id="connectionIndicator" class="db-connection-status is-online">
@@ -1614,7 +1623,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.69";
+    const APP_VERSION = "8.70"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -1818,6 +1827,9 @@
         const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
         const loginTime = parseInt(localStorage.getItem('padel_login_time') || '0', 10);
         const isExpired = loginTime && (Date.now() - loginTime > SESSION_DURATION_MS);
+        if (!loginTime && localStorage.getItem('padel_unlocked') === 'true') {
+            localStorage.setItem('padel_login_time', Date.now().toString()); // al ingelogd van vóór de 30-dagenregel: de 30 dagen beginnen nu
+        }
 
         if (localStorage.getItem('padel_unlocked') === 'true' && !isExpired) {
             checkBestaandeLogin().then((st) => {
@@ -1888,12 +1900,18 @@
         if (!btn) return;
 
         const browserGranted = (typeof Notification !== 'undefined' && Notification.permission === 'granted');
+        const browserDenied = (typeof Notification !== 'undefined' && Notification.permission === 'denied');
 
         if (browserGranted) {
             btn.innerText = "✓ Meldingen actief";
             btn.style.background = "rgba(52, 211, 153, 0.15)";
             btn.style.borderColor = "var(--accent-green)";
             btn.style.color = "var(--accent-green)";
+        } else if (browserDenied) {
+            btn.innerText = "✕ Meldingen geblokkeerd in browser";
+            btn.style.background = "var(--danger-bg)";
+            btn.style.borderColor = "var(--danger)";
+            btn.style.color = "var(--danger)";
         } else {
             btn.innerText = "⚠️ Klik hier om meldingen te ontvangen!";
             btn.style.background = "rgba(245, 158, 11, 0.2)";
@@ -2969,17 +2987,39 @@
 
         select.innerHTML = html;
 
-        if (currentUserName && currentUserName !== "Robert") {
-            select.disabled = true;
-        } else {
-            select.disabled = false;
-        }
+        // Een gekozen naam is vergrendeld, behalve voor Robert (die moet kunnen wisselen en terug kunnen)
+        const naamVergrendeld = !!(currentUserName && currentUserName !== "Robert" && !isRobertAuthed);
+        select.disabled = naamVergrendeld;
+        // Is de naam vergrendeld, dan is het hele naamvak tikbaar om van naam te wisselen
+        const wijzigOverlay = document.getElementById('naamWijzigOverlay');
+        if (wijzigOverlay) wijzigOverlay.style.display = naamVergrendeld ? 'block' : 'none';
 
         const clearBtn = document.getElementById('clearAllChatBtn');
         if (clearBtn) {
             clearBtn.style.display = (currentUserName === "Robert") ? 'inline-flex' : 'none';
         }
         updateGlobalPushToggleUI();
+    }
+
+    // Uitweg als iemand de verkeerde naam heeft gekozen
+    async function naamWijzigen() {
+        const ok = await bevestigDialoog({
+            titel: '⚠️ Let op!',
+            regels: [
+                'Wil je van naam wisselen?',
+                'Gebruik dit alleen als je de verkeerde naam hebt gekozen. Daarna kies je opnieuw je eigen naam.'
+            ],
+            jaTekst: 'Ja, naam wisselen',
+            neeTekst: 'Annuleren'
+        });
+        if (!ok) return;
+        saveCurrentSessionLastSeen();
+        currentUserName = "";
+        myOriginalUserName = "";
+        try { localStorage.removeItem('padel_current_user'); } catch (e) {}
+        initUserSelect();
+        renderAll();
+        renderChat();
     }
 
     function changeUser() {
@@ -3937,7 +3977,7 @@
                     cancelled: true,
                     players: currentPlayers
                 });
-                await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${afgelastWeek} (${activeModalDay}) is AFGELAST.`);
+                await addSystemMessageIfUnique(`🚫 Wedstrijd voor week ${afgelastWeek} (${afgelastDag}) is AFGELAST.`);
             } else {
                 return;
             }
