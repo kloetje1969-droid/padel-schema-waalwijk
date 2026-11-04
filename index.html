@@ -1356,7 +1356,7 @@
             backdrop-filter: blur(4px);
             justify-content: center;
             align-items: center;
-            z-index: 10002;
+            z-index: 10005;
             padding: 16px;
         }
 
@@ -1852,7 +1852,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.80"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.81"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -4615,6 +4615,18 @@
         periodeBezig = true;
         try {
             const af = modus === 'af';
+            // Nog een keer bevestigen, voordat er iets wordt opgeslagen (Annuleren laat het periodevenster openstaan)
+            const aantal = r.lijst.length;
+            const wedstrijdTekst = `${aantal} wedstrijd${aantal === 1 ? '' : 'en'}`;
+            const dagen = r.lijst.slice(0, 12).map(m => korteDatum(new Date(m.startMs))).join(', ') + (aantal > 12 ? ` … en ${aantal - 12} meer` : '');
+            const zeker = await bevestigDialoog({
+                stijl: 'info',
+                titel: 'Bevestigen',
+                regels: [af ? `Afmelden voor ${wedstrijdTekst}?` : `Aanmelden voor ${wedstrijdTekst}?`, dagen, 'Er wordt één melding naar de groep gestuurd.'],
+                jaTekst: af ? 'Ja, afmelden' : 'Ja, aanmelden',
+                neeTekst: 'Annuleren'
+            });
+            if (!zeker) return;
             const updates = {};
             r.lijst.forEach(m => { updates[`padelData/absence/${speler}/${m.key}_${m.slot}`] = af; });
             await db.ref().update(updates);
