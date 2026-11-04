@@ -12,6 +12,7 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 - `api/login.js`: controleert de pincode en geeft een Firebase-inlogbewijs.
 - `api/notify.js`: stuurt een pushmelding bij een chat- of systeembericht.
 - `api/match-reminder.js`, `api/cron-weather.js`, `api/result-reminder.js`, `api/kingkong-winnaar.js`: cron-jobs (cron-job.org roept ze aan met de header `x-cron-secret`).
+- `api/test-push.js`: testmelding naar alleen de eigen toestellen van Robert (verificatie met het `robert`-recht; werkt ook als de push voor de groep uit staat).
 - `firebase-rules.json`: kopie van de databaseregels. Vercel zet die NIET live; de eigenaar plakt ze zelf in de Firebase-console.
 - `firebase-messaging-sw.js`, `manifest.json` en de iconen horen bij de pushmeldingen en de PWA.
 
@@ -29,6 +30,9 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 - Pushmeldingen kunnen door Robert aan/uit worden gezet (`padelData/settings/pushGloballyEnabled`). Alle cron-jobs en `notify.js` moeten dat blijven respecteren.
 - Het KingKong-podium wordt 30 minuten na de laatste uitslag bekendgemaakt, of 3 dagen na afloop van de cyclus (vangnet). De app en de server doen hetzelfde, met een transaction zodat er nooit een dubbel bericht komt.
 - Games tellen alleen voor een vaste speler op zijn eigen oorspronkelijke slot. Invallers tellen nergens mee. Wijzig dit alleen als de eigenaar het vraagt.
+
+- Afmelden voor een wedstrijd zet een invalvraag in `padelData/invallers/<week>_<slot>/<speler>`. In de wedstrijdkaart verschijnt een groen blokje met de knop "Ik kan invallen"; de eerste die tikt wint (transaction) en vervangt de afgemelde speler in het rooster. Bij aanmelden verdwijnt een openstaande vraag.
+- Onderaan de pagina staat een rij "Beheer" met "Testmelding naar mij" en "Back-up downloaden". Die is alleen zichtbaar voor Robert met het `robert`-recht. De back-up bevat geen foto's/bijlagen.
 
 ## Telefoon eerst
 De meeste spelers gebruiken de app op een telefoon (320 tot 414 pixels breed). Op de wedstrijdkaarten mag geen regel naar de volgende regel springen (dag/tijd en weerbericht passen zichzelf aan met `fitOneLineRows`). Controleer nieuwe schermen op smalle breedtes en gebruik de bestaande stijl (kaarten met afgeronde hoeken, blauwe en gele popups).
