@@ -1371,6 +1371,115 @@
             box-shadow: 0 0 25px rgba(251, 191, 36, 0.25);
         }
 
+        #periodeModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 10002;
+            padding: 16px;
+        }
+
+        #periodeModal .pin-box {
+            border-color: var(--accent-blue);
+            box-shadow: var(--main-glow);
+            max-height: 92vh;
+            max-height: 92dvh;
+            overflow-y: auto;
+        }
+
+        #periodeModal .pin-box h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0;
+        }
+
+        #periodeModal .modal-buttons {
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+        }
+
+        #periodeModal .modal-buttons button {
+            width: 100%;
+            box-sizing: border-box;
+            flex-shrink: 1;
+            white-space: normal;
+            height: auto;
+            min-height: 42px;
+        }
+
+        .periode-keuze {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .periode-optie {
+            flex: 1;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .periode-optie.actief {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: #0b0f19;
+        }
+
+        .periode-velden {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+        }
+
+        .periode-velden label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .periode-velden input[type="date"] {
+            background: var(--bg-color);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 16px;
+            font-family: inherit;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #periodeLijst {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            line-height: 1.4;
+        }
+
+        #periodeLijst .periode-letop {
+            color: #fbbf24;
+        }
+
+        #periodeLijst .periode-fout {
+            color: #fca5a5;
+        }
+
         #bevestigTekst {
             display: flex;
             flex-direction: column;
@@ -1468,6 +1577,25 @@
     </div>
 </div>
 
+<div id="periodeModal">
+    <div class="pin-box">
+        <h2>🏖️ Meerdere wedstrijden</h2>
+        <div class="periode-keuze">
+            <button class="periode-optie actief" id="periodeAf" onclick="zetPeriodeModus('af')">Afmelden</button>
+            <button class="periode-optie" id="periodeAan" onclick="zetPeriodeModus('aan')">Aanmelden</button>
+        </div>
+        <div class="periode-velden">
+            <label>Van <input type="date" id="periodeVan" onchange="werkPeriodeBij()"></label>
+            <label>Tot en met <input type="date" id="periodeTot" onchange="werkPeriodeBij()"></label>
+        </div>
+        <div id="periodeLijst"></div>
+        <div class="modal-buttons" style="justify-content: center; margin-top: 6px;">
+            <button class="btn-cancel" onclick="sluitPeriodeModal()">Annuleren</button>
+            <button class="btn-primary" id="periodeJa" onclick="bevestigPeriode()">Ja</button>
+        </div>
+    </div>
+</div>
+
 <div id="bevestigModal">
     <div class="pin-box">
         <h2 id="bevestigTitel">⚠️ Let op!</h2>
@@ -1561,6 +1689,7 @@
             </summary>
             <div class="collapsible-body">
                 <p style="font-size: 0.85rem; color: var(--text-muted);">Vaste spelers kunnen alleen hun eigen afwezigheid aanpassen. Invallers kunnen door iedereen worden aangemeld/afgemeld.</p>
+                <button class="btn-edit" id="meerdereAfmeldBtn" onclick="openMeerdereAfmelden()" style="width: 100%; justify-content: center; margin: 4px 0 10px;">🏖️ Meerdere wedstrijden afmelden</button>
                 <div class="table-scroll-wrapper">
                     <table class="absence-table">
                         <thead>
@@ -1723,7 +1852,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.79"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.80"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -2663,6 +2792,7 @@
             });
             ja.textContent = opties.jaTekst || 'Ja';
             nee.textContent = opties.neeTekst || 'Annuleren';
+            nee.style.display = opties.alleenOk ? 'none' : '';
             const toets = (e) => { if (e.key === 'Escape') sluit(false); };
             const sluit = (antwoord) => {
                 modal.style.display = 'none';
@@ -2675,8 +2805,13 @@
             modal.onclick = (e) => { if (e.target === modal) sluit(false); };
             document.addEventListener('keydown', toets);
             modal.style.display = 'flex';
-            nee.focus();
+            (opties.alleenOk ? ja : nee).focus(); // veilig: per ongeluk Enter indrukken annuleert
         });
+    }
+
+    // Korte melding met één OK-knop (vervangt de browser-alert met de websitenaam erboven)
+    function toonMelding(tekst, titel) {
+        return bevestigDialoog({ titel: titel || '⚠️ Let op!', regels: [tekst], jaTekst: 'OK', alleenOk: true });
     }
 
     const scoreOpslaanBezig = {};
@@ -2692,7 +2827,7 @@
 
     async function saveMatchScore3SetsIntern(matchId, p1, p2, p3, p4) {
         if (!currentUserName) {
-            alert("Kies eerst je naam bovenin de app!");
+            toonMelding("Kies eerst je naam bovenin de app!");
             return;
         }
 
@@ -2875,17 +3010,17 @@
         const gekozenDatum = dateInput.value;
 
         if (!gekozenSpeler) {
-            alert("Selecteer eerst een speler uit het menu!");
+            toonMelding("Selecteer eerst een speler uit het menu!");
             return;
         }
 
         if (!gekozenBaan) {
-            alert("Selecteer welke baan er is geboekt (Baan 1 t/m 10)!");
+            toonMelding("Selecteer welke baan er is geboekt (Baan 1 t/m 10)!");
             return;
         }
 
         if (!gekozenDatum) {
-            alert("Kies alstublieft een datum en tijd in het invoerveld!");
+            toonMelding("Kies alstublieft een datum en tijd in het invoerveld!");
             return;
         }
 
@@ -3009,7 +3144,7 @@
             showToast("Baan geboekt!", (!isStandaardMoment && heeftOverrideNodig) ? "Tijd/dag afwijkt van standaard, schema bijgewerkt." : "Boeking opgeslagen.");
         } catch (error) {
             console.error("Fout bij registreren boeking:", error);
-            alert("Er ging iets mis bij het opslaan.");
+            toonMelding("Er ging iets mis bij het opslaan.");
         }
     }
         
@@ -4160,7 +4295,7 @@
 
     function openModal(uniqueWeekKey, templateIndex, day, weekNum) {
         if (!currentUserName) {
-            alert("Kies eerst je naam bovenin de app!");
+            toonMelding("Kies eerst je naam bovenin de app!");
             return;
         }
 
@@ -4314,7 +4449,7 @@
                 let originalVal = originalPlayers[i];
 
                 if (chosenVal !== currentUserName && chosenVal !== originalVal && !inp.value.trim()) {
-                    alert("Je mag alleen je eigen naam invullen op een vrije of afgewezen plek!");
+                    toonMelding("Je mag alleen je eigen naam invullen op een vrije of afgewezen plek!");
                     return;
                 }
             }
@@ -4352,6 +4487,168 @@
         let tpl = defaultTemplate[info.templateIndex];
         if (info.cyclus === 0 && info.templateIndex === 0) tpl = SCHEMA_WEEK1_CYCLUS1;
         return ((tpl && tpl[slotKey]) || []).slice();
+    }
+
+    // ---------- Meerdere wedstrijden tegelijk afmelden of aanmelden (eigen naam, een periode) ----------
+    let periodeModus = 'af';
+    let periodeBezig = false;
+
+    function korteDatum(d) {
+        return d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '');
+    }
+
+    function datumVeldTekst(str) {
+        const d = new Date(str + 'T12:00:00');
+        return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }).replace(/\./g, '');
+    }
+
+    function datumNaarVeld(d) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
+    // Welke wedstrijden vallen in de gekozen periode (alleen de weken die de app laat zien, nog niet begonnen, niet afgelast)
+    function periodeWedstrijden(speler, modus, vanStr, totStr) {
+        const uit = { lijst: [], takenAantal: 0, laatsteZichtbaar: null, fout: '' };
+        if (!vanStr || !totStr) { uit.fout = 'Kies een begin- en einddatum.'; return uit; }
+        const van = new Date(vanStr + 'T00:00:00');
+        const tot = new Date(totStr + 'T23:59:59');
+        if (tot.getTime() < van.getTime()) { uit.fout = 'De einddatum ligt vóór de begindatum.'; return uit; }
+        const maandag0 = getAdjustedBaseDate();
+        for (let i = 0; i < 6; i++) {
+            const weekStart = new Date(maandag0);
+            weekStart.setDate(maandag0.getDate() + i * 7);
+            const key = `${getISOYear(weekStart)}_w${getISOWeekNumber(weekStart)}`;
+            if (i === 5) {
+                const einde = new Date(weekStart);
+                einde.setDate(einde.getDate() + 6);
+                einde.setHours(23, 59, 59, 0);
+                uit.laatsteZichtbaar = einde;
+            }
+            ['dinsdag', 'donderdag'].forEach(slot => {
+                if (isMatchCancelled(key, slot)) return;
+                const startMs = matchStartMs(key, slot);
+                if (startMs < Date.now()) return;
+                if (startMs < van.getTime() || startMs > tot.getTime()) return;
+                const afwezig = checkPlayerAbsent(speler, key, slot);
+                if (modus === 'af') {
+                    if (afwezig || !slotSpelers(key, slot).includes(speler)) return;
+                } else if (!afwezig) {
+                    return;
+                }
+                const verzoek = (invallers[`${key}_${slot}`] || {})[speler];
+                if (verzoek && verzoek.status === 'taken') uit.takenAantal++;
+                uit.lijst.push({ key, slot, startMs });
+            });
+        }
+        uit.lijst.sort((a, b) => a.startMs - b.startMs);
+        return uit;
+    }
+
+    function openMeerdereAfmelden() {
+        if (!currentUserName || !basePlayers.includes(currentUserName)) {
+            toonMelding("Kies eerst je eigen naam bovenin de app!");
+            return;
+        }
+        const vandaag = new Date();
+        const eind = new Date(vandaag);
+        eind.setDate(eind.getDate() + 13);
+        const vanEl = document.getElementById('periodeVan');
+        const totEl = document.getElementById('periodeTot');
+        vanEl.min = datumNaarVeld(vandaag);
+        totEl.min = datumNaarVeld(vandaag);
+        vanEl.value = datumNaarVeld(vandaag);
+        totEl.value = datumNaarVeld(eind);
+        zetPeriodeModus('af');
+        document.getElementById('periodeModal').style.display = 'flex';
+    }
+
+    function sluitPeriodeModal() {
+        document.getElementById('periodeModal').style.display = 'none';
+    }
+
+    function zetPeriodeModus(modus) {
+        periodeModus = modus;
+        document.getElementById('periodeAf').classList.toggle('actief', modus === 'af');
+        document.getElementById('periodeAan').classList.toggle('actief', modus === 'aan');
+        werkPeriodeBij();
+    }
+
+    function werkPeriodeBij() {
+        const vanStr = document.getElementById('periodeVan').value;
+        const totStr = document.getElementById('periodeTot').value;
+        const r = periodeWedstrijden(currentUserName, periodeModus, vanStr, totStr);
+        const n = r.lijst.length;
+        const af = periodeModus === 'af';
+        let html = '';
+        if (r.fout) {
+            html += `<p class="periode-fout">${r.fout}</p>`;
+        } else if (n === 0) {
+            html += `<p>${af ? 'In deze periode speel je in geen enkele wedstrijd waarvoor je je nog kunt afmelden.' : 'In deze periode ben je voor geen enkele wedstrijd afgemeld.'}</p>`;
+        } else {
+            const labels = r.lijst.slice(0, 12).map(m => korteDatum(new Date(m.startMs))).join(', ');
+            html += `<p><b>${af ? 'Je speelt in' : 'Je bent afgemeld voor'} ${n} wedstrijd${n === 1 ? '' : 'en'}:</b></p><p>${labels}${n > 12 ? ` … en ${n - 12} meer` : ''}</p>`;
+            if (!af && r.takenAantal > 0) {
+                html += `<p>Bij ${r.takenAantal} wedstrijd${r.takenAantal === 1 ? '' : 'en'} is al een invaller gevonden. Het rooster verandert daar niet terug.</p>`;
+            }
+            html += `<p>Er wordt één melding naar de groep gestuurd.</p>`;
+        }
+        if (!r.fout && r.laatsteZichtbaar && new Date(totStr + 'T23:59:59').getTime() > r.laatsteZichtbaar.getTime()) {
+            html += `<p class="periode-letop">Let op: alleen wedstrijden tot en met ${datumVeldTekst(datumNaarVeld(r.laatsteZichtbaar))} zijn al zichtbaar. De rest kun je later afmelden.</p>`;
+        }
+        document.getElementById('periodeLijst').innerHTML = html;
+        const jaKnop = document.getElementById('periodeJa');
+        jaKnop.disabled = !!r.fout || n === 0;
+        jaKnop.style.opacity = jaKnop.disabled ? '0.5' : '1';
+        jaKnop.textContent = n > 0 ? `Ja, ${af ? 'afmelden' : 'aanmelden'} voor ${n} wedstrijd${n === 1 ? '' : 'en'}` : 'Ja';
+    }
+
+    async function bevestigPeriode() {
+        if (periodeBezig) return;
+        const speler = currentUserName;
+        if (!speler || !basePlayers.includes(speler)) return;
+        const vanStr = document.getElementById('periodeVan').value;
+        const totStr = document.getElementById('periodeTot').value;
+        const modus = periodeModus;
+        const r = periodeWedstrijden(speler, modus, vanStr, totStr);
+        if (r.fout || r.lijst.length === 0) return;
+        periodeBezig = true;
+        try {
+            const af = modus === 'af';
+            const updates = {};
+            r.lijst.forEach(m => { updates[`padelData/absence/${speler}/${m.key}_${m.slot}`] = af; });
+            await db.ref().update(updates);
+
+            // Invalvragen: bij afmelden een open vraag per wedstrijd, bij aanmelden openstaande vragen weghalen
+            try {
+                const vragen = {};
+                r.lijst.forEach(m => {
+                    const pad = `padelData/invallers/${m.key}_${m.slot}/${speler}`;
+                    if (af) {
+                        vragen[pad] = { status: 'open', createdAt: firebase.database.ServerValue.TIMESTAMP, createdBy: currentUserName };
+                    } else {
+                        const v = (invallers[`${m.key}_${m.slot}`] || {})[speler];
+                        if (v && v.status === 'open') vragen[pad] = null;
+                    }
+                });
+                if (Object.keys(vragen).length) await db.ref().update(vragen);
+            } catch (err) {
+                console.error("Invalvragen opslaan mislukt:", err);
+            }
+
+            const n = r.lijst.length;
+            const periodeTekst = `van ${datumVeldTekst(vanStr)} t/m ${datumVeldTekst(totStr)} (${n} wedstrijd${n === 1 ? '' : 'en'})`;
+            await addSystemMessageIfUnique(af
+                ? `📅 ${speler} is afgemeld ${periodeTekst}. Wie kan invallen?`
+                : `📅 ${speler} is weer aangemeld ${periodeTekst}.`);
+            sluitPeriodeModal();
+            showToast(af ? "Afgemeld" : "Aangemeld", `${esc(speler)} is ${af ? 'afgemeld' : 'weer aangemeld'} voor ${n} wedstrijd${n === 1 ? '' : 'en'}.`);
+        } catch (err) {
+            console.error("Periode opslaan mislukt:", err);
+            showToast("Opslaan mislukt", err.code || err.message || "Onbekende fout", true);
+        } finally {
+            periodeBezig = false;
+        }
     }
 
     // Spelers van een wedstrijd (slot) zoals ze nu in het rooster staan
@@ -4473,7 +4770,7 @@
 
     async function toggleAbsence(playerName, uniqueWeekKey, day, weekNum) {
         if (!currentUserName) {
-            alert("Kies eerst je naam bovenin de app!");
+            toonMelding("Kies eerst je naam bovenin de app!");
             return;
         }
 
@@ -4588,7 +4885,7 @@
 
     function readFileAsIs(file, inputEl) {
         if (file.size > 2 * 1024 * 1024) {
-            alert("Het bestand is te groot (maximaal 2MB).");
+            toonMelding("Het bestand is te groot (maximaal 2MB).");
             inputEl.value = '';
             document.getElementById('chatInput').placeholder = "Typ een bericht...";
             fileBusy = false;
@@ -4600,7 +4897,7 @@
             fileBusy = false;
         };
         reader.onerror = function() {
-            alert("Het bestand kon niet worden gelezen.");
+            toonMelding("Het bestand kon niet worden gelezen.");
             inputEl.value = '';
             fileBusy = false;
         };
@@ -4617,7 +4914,7 @@
         const kanVerkleinen = type.startsWith('image/') && type !== 'image/gif';
 
         if (kanVerkleinen && file.size > 20 * 1024 * 1024) {
-            alert("De foto is te groot (maximaal 20MB).");
+            toonMelding("De foto is te groot (maximaal 20MB).");
             inputEl.value = '';
             return;
         }
@@ -4699,12 +4996,12 @@
 
     async function sendMessage() {
         if (!currentUserName) {
-            alert("Kies eerst je naam bovenin de app voordat je een bericht stuurt!");
+            toonMelding("Kies eerst je naam bovenin de app voordat je een bericht stuurt!");
             return;
         }
 
         if (fileBusy) {
-            alert("Even wachten, de bijlage wordt nog verwerkt.");
+            toonMelding("Even wachten, de bijlage wordt nog verwerkt.");
             return;
         }
 
