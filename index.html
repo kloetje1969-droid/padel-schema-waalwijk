@@ -585,6 +585,45 @@
             opacity: 0.7;
         }
 
+        .inval-banner {
+            background: var(--accent-green-bg);
+            border: 1px solid rgba(52, 211, 153, 0.4);
+            color: #6ee7b7;
+            padding: 8px 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-radius: 8px;
+            margin: 4px 0;
+        }
+
+        .inval-banner .btn-inval {
+            background: var(--accent-green);
+            color: #ecfdf5;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-weight: 800;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        #beheerRij {
+            display: none;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 6px 4px 14px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
         .week-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
@@ -1588,6 +1627,12 @@
         <button id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">🔔 Push Aan</button>
         <span>© Robert</span>
     </div>
+
+    <div id="beheerRij">
+        <span style="width: 100%; text-align: center;">Beheer (alleen zichtbaar voor Robert)</span>
+        <button class="btn-edit" onclick="stuurTestmelding()">🔔 Testmelding naar mij</button>
+        <button class="btn-edit" onclick="downloadBackup()">💾 Back-up downloaden</button>
+    </div>
 </div>
 
 <div id="replaceModal" class="modal">
@@ -1636,7 +1681,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.73"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.74"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -1812,6 +1857,7 @@
     let allStatuses = {};
     let allLastSeen = {};
     let absences = {};
+    let invallers = {};
     let messages = [];
     let weatherCache = {};
     const MAX_CHAT_MESSAGES = 100;
@@ -2190,6 +2236,11 @@
         db.ref('padelData/absence').on('value', (snapshot) => {
             absences = snapshot.val() || {};
             renderAll();
+        });
+
+        db.ref('padelData/invallers').on('value', (snapshot) => {
+            invallers = snapshot.val() || {};
+            renderSchedule();
         });
 
         db.ref('padelData/baanBoekingenList').on('value', (snapshot) => {
@@ -3045,6 +3096,81 @@
             clearBtn.style.display = (currentUserName === "Robert") ? 'inline-flex' : 'none';
         }
         updateGlobalPushToggleUI();
+        const beheerRij = document.getElementById('beheerRij');
+        if (beheerRij) beheerRij.style.display = zichtbaarVoorRobert() ? 'flex' : 'none';
+    }
+
+    function zichtbaarVoorRobert() {
+        return currentUserName === "Robert" && isRobertAuthed === true;
+    }
+
+    // Testmelding alleen naar de eigen toestellen van Robert (ook als de push voor de groep uit staat)
+    async function stuurTestmelding() {
+        if (!zichtbaarVoorRobert()) return;
+        const ok = await bevestigDialoog({
+            stijl: 'info',
+            titel: 'Bevestigen',
+            regels: ['Testmelding sturen?', 'Alleen jouw eigen toestellen krijgen een melding. De groep merkt niets, ook niet als de push aan staat.'],
+            jaTekst: 'Ja, verstuur',
+            neeTekst: 'Annuleren'
+        });
+        if (!ok) return;
+        try {
+            const user = firebase.auth().currentUser;
+            const token = user ? await user.getIdToken() : '';
+            const resp = await fetch('/api/test-push', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': 'Bearer ' + token } : {}) },
+                body: '{}'
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (resp.status === 429) {
+                showToast("Even wachten", "Je kunt maar één testmelding per paar seconden sturen.", true);
+            } else if (!resp.ok) {
+                showToast("Testmelding mislukt", `De server gaf foutcode ${resp.status}.`, true);
+            } else if (data.successCount > 0) {
+                showToast("Testmelding verstuurd", `Naar ${data.successCount} toestel${data.successCount === 1 ? '' : 'len'}.`);
+            } else {
+                showToast("Geen toestel bereikt", data.status || "Zet de meldingen aan op je telefoon en probeer het opnieuw.", true);
+            }
+        } catch (err) {
+            showToast("Testmelding mislukt", err.message || "Onbekende fout", true);
+        }
+    }
+
+    // Back-up van alle gegevens als bestand (alleen Robert). Bijlagen uit de chat zitten er niet in.
+    async function downloadBackup() {
+        if (!zichtbaarVoorRobert()) return;
+        const ok = await bevestigDialoog({
+            stijl: 'info',
+            titel: 'Bevestigen',
+            regels: ['Back-up downloaden?', 'Je krijgt een bestand met rooster, uitslagen, chat, boekingen en pushgegevens. Foto\'s en bijlagen uit de chat zitten er niet in. Bewaar het bestand privé.'],
+            jaTekst: 'Ja, downloaden',
+            neeTekst: 'Annuleren'
+        });
+        if (!ok) return;
+        try {
+            const snap = await db.ref('padelData').once('value');
+            const data = snap.val() || {};
+            if (data.messages) {
+                Object.values(data.messages).forEach(m => { if (m && m.fileUrl) m.fileUrl = '[bijlage niet meegenomen]'; });
+            }
+            const nu = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const naam = `padel-backup-${nu.getFullYear()}-${pad(nu.getMonth() + 1)}-${pad(nu.getDate())}.json`;
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = naam;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+            showToast("Back-up gemaakt", `${naam} staat in je downloads.`);
+        } catch (err) {
+            showToast("Back-up mislukt", err.code || err.message || "Onbekende fout", true);
+        }
     }
 
     // Uitweg als iemand de verkeerde naam heeft gekozen
@@ -3437,6 +3563,9 @@
             let dinsdagAbsentees = diCancelled ? [] : dinsdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'dinsdag'));
             let donderdagAbsentees = doCancelled ? [] : donderdagPlayers.filter(p => checkPlayerAbsent(p, uniqueWeekKey, 'donderdag'));
 
+            const dinsdagInvalBanner = diCancelled ? '' : invalBannerHtml(uniqueWeekKey, 'dinsdag', dinsdagPlayers);
+            const donderdagInvalBanner = doCancelled ? '' : invalBannerHtml(uniqueWeekKey, 'donderdag', donderdagPlayers);
+
             let dinsdagAbsenceAlert = (!diCancelled && dinsdagAbsentees.length > 0) 
                 ? `<div class="absence-alert">⚠️ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : '';
 
@@ -3498,6 +3627,7 @@
                         ${dinsdagRainAlert}
                         ${dinsdagBodyHtml}
                         ${dinsdagAbsenceAlert}
+                        ${dinsdagInvalBanner}
 
                         ${!diCancelled ? `
                         <div class="match-score-section">
@@ -3557,6 +3687,7 @@
                         ${donderdagRainAlert}
                         ${donderdagBodyHtml}
                         ${donderdagAbsenceAlert}
+                        ${donderdagInvalBanner}
 
                         ${!doCancelled ? `
                         <div class="match-score-section">
@@ -4170,6 +4301,84 @@
         closeModal();
     }
 
+    // Spelers van een wedstrijd (slot) zoals ze nu in het rooster staan
+    function slotSpelers(uniqueWeekKey, slotKey) {
+        const ov = (liveOverrides[uniqueWeekKey] || {})[slotKey];
+        if (Array.isArray(ov)) return ov.slice();
+        if (ov && typeof ov === 'object' && ov.players) return Object.values(ov.players);
+        const info = PadelRegels.leesMatchId(`${uniqueWeekKey}_${slotKey}`);
+        if (!info) return [];
+        let tpl = defaultTemplate[info.templateIndex];
+        if (info.cyclus === 0 && info.templateIndex === 0) tpl = SCHEMA_WEEK1_CYCLUS1;
+        return ((tpl && tpl[slotKey]) || []).slice();
+    }
+
+    // Groen blokje in de wedstrijdkaart: iemand zoekt een invaller
+    function invalBannerHtml(uniqueWeekKey, slotKey, spelers) {
+        const verzoeken = invallers[`${uniqueWeekKey}_${slotKey}`] || {};
+        let html = '';
+        Object.keys(verzoeken).forEach(naam => {
+            const v = verzoeken[naam];
+            if (!v || v.status !== 'open') return;
+            if (!spelers.includes(naam) || !checkPlayerAbsent(naam, uniqueWeekKey, slotKey)) return;
+            const kanInvallen = currentUserName && basePlayers.includes(currentUserName)
+                && !spelers.includes(currentUserName) && !checkPlayerAbsent(currentUserName, uniqueWeekKey, slotKey);
+            html += `<div class="inval-banner"><span>🙋 ${esc(naam)} zoekt een invaller</span>` +
+                (kanInvallen ? `<button class="btn-inval" onclick="invallen('${uniqueWeekKey}', '${slotKey}', ${jsArg(naam)})">Ik kan invallen</button>` : '') +
+                `</div>`;
+        });
+        return html;
+    }
+
+    async function invallen(uniqueWeekKey, slotKey, afwezigeNaam) {
+        if (!currentUserName || !basePlayers.includes(currentUserName)) {
+            showToast("Kies eerst je naam", "Kies bovenin de app je eigen naam om in te vallen.", true);
+            return;
+        }
+        if (isMatchCancelled(uniqueWeekKey, slotKey)) return;
+        const spelersNu = slotSpelers(uniqueWeekKey, slotKey);
+        if (spelersNu.includes(currentUserName)) {
+            showToast("Je speelt al mee", "Je staat al in deze wedstrijd.", true);
+            return;
+        }
+        const weekNr = uniqueWeekKey.split('_w')[1];
+        const wilInvallen = await bevestigDialoog({
+            stijl: 'info',
+            titel: 'Bevestigen',
+            regels: [`Invallen voor ${afwezigeNaam}?`, `Je speelt dan mee in de ${slotKey}-wedstrijd van week ${weekNr}.`, 'Er wordt een melding naar de groep gestuurd.'],
+            jaTekst: 'Ja, ik val in',
+            neeTekst: 'Annuleren'
+        });
+        if (!wilInvallen) return;
+
+        const verzoekRef = db.ref(`padelData/invallers/${uniqueWeekKey}_${slotKey}/${afwezigeNaam}`);
+        try {
+            // De eerste die tikt wint; een tweede krijgt "al ingevuld"
+            const uitkomst = await verzoekRef.transaction(cur => {
+                if (cur && cur.status === 'open') {
+                    return { ...cur, status: 'taken', takenBy: currentUserName, takenAt: Date.now() };
+                }
+                return undefined;
+            });
+            if (!uitkomst.committed) {
+                showToast("Al ingevuld", "Iemand anders was je net voor.", true);
+                return;
+            }
+            try {
+                const lijst = slotSpelers(uniqueWeekKey, slotKey).map(p => (p === afwezigeNaam ? currentUserName : p));
+                await db.ref(`padelData/scheduleOverrides/${uniqueWeekKey}/${slotKey}`).set(lijst);
+                await addSystemMessageIfUnique(`🔄 ${currentUserName} valt in voor ${afwezigeNaam} bij week ${weekNr} (${slotKey}).`);
+                showToast("Je valt in", `Je speelt mee in de ${slotKey}-wedstrijd van week ${weekNr}.`);
+            } catch (err) {
+                await verzoekRef.update({ status: 'open', takenBy: null, takenAt: null }).catch(() => {});
+                throw err;
+            }
+        } catch (err) {
+            console.error("Invallen mislukt:", err);
+            showToast("Invallen mislukt", err.code || err.message || "Onbekende fout", true);
+        }
+    }
+
     async function toggleAbsence(playerName, uniqueWeekKey, day, weekNum) {
         if (!currentUserName) {
             alert("Kies eerst je naam bovenin de app!");
@@ -4182,17 +4391,44 @@
         const path = `padelData/absence/${playerName}/${uniqueWeekKey}_${day}`;
         db.ref(path).once('value', async snapshot => {
             const newVal = !(snapshot.val() || false);
+            const vraagKey = `${uniqueWeekKey}_${day}`;
+            const bestaandVerzoek = (invallers[vraagKey] || {})[playerName];
+            const afmeldRegels = [`${playerName} ${newVal ? 'afmelden' : 'aanmelden'} voor week ${weekNum} (${day})?`];
+            if (newVal && !isMatchCancelled(uniqueWeekKey, day) && slotSpelers(uniqueWeekKey, day).includes(playerName)) {
+                afmeldRegels.push('De groep krijgt de vraag wie kan invallen.');
+            }
+            if (!newVal && bestaandVerzoek && bestaandVerzoek.status === 'taken') {
+                afmeldRegels.push(`${bestaandVerzoek.takenBy} is al ingevallen. Het rooster verandert niet vanzelf terug.`);
+            }
+            afmeldRegels.push('Er wordt een melding naar de groep gestuurd.');
             const wilAfmelden = await bevestigDialoog({
                 stijl: 'info',
                 titel: 'Bevestigen',
-                regels: [`${playerName} ${newVal ? 'afmelden' : 'aanmelden'} voor week ${weekNum} (${day})?`, 'Er wordt een melding naar de groep gestuurd.'],
+                regels: afmeldRegels,
                 jaTekst: newVal ? 'Ja, afmelden' : 'Ja, aanmelden',
                 neeTekst: 'Annuleren'
             });
             if (!wilAfmelden) return;
             await db.ref(path).set(newVal);
 
-            let msgText = `📅 ${playerName} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${day}) (door ${currentUserName})`;
+            // Afgemeld: de groep vragen wie kan invallen. Aangemeld: een openstaande vraag weghalen.
+            let invalTekst = '';
+            try {
+                const vraagRef = db.ref(`padelData/invallers/${vraagKey}/${playerName}`);
+                if (newVal) {
+                    if (!isMatchCancelled(uniqueWeekKey, day) && slotSpelers(uniqueWeekKey, day).includes(playerName)) {
+                        await vraagRef.set({ status: 'open', createdAt: firebase.database.ServerValue.TIMESTAMP, createdBy: currentUserName });
+                        invalTekst = ' Wie kan invallen? Tik bij de wedstrijd op "Ik kan invallen".';
+                    }
+                } else if (bestaandVerzoek && bestaandVerzoek.status === 'open') {
+                    await vraagRef.remove();
+                }
+            } catch (err) {
+                console.error("Invalvraag opslaan mislukt:", err);
+            }
+
+            const doorTekst = (playerName === currentUserName) ? '' : ` (door ${currentUserName})`;
+            let msgText = `📅 ${playerName} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${day})${doorTekst}.${invalTekst}`;
             await addSystemMessageIfUnique(msgText);
             showToast(newVal ? "Afgemeld" : "Aangemeld", `${esc(playerName)} is ${newVal ? "afgemeld" : "aangemeld"} voor week ${weekNum} (${day}).`);
         });
