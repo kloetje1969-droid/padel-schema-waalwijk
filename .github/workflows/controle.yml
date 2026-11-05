@@ -1,0 +1,18 @@
+name: Controle
+
+# Draait bij elke wijziging op GitHub. Een rood kruisje naast de wijziging betekent dat er iets stuk is gegaan
+# (telregels, podium, syntaxis, beveiliging of de databaseregels). GitHub stuurt dan ook een e-mail.
+on:
+  push:
+  pull_request:
+
+jobs:
+  controle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Tests draaien
+        run: node --test regels.test.mjs structuur.test.mjs
