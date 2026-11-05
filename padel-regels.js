@@ -84,8 +84,8 @@
 
   // Games en wedstrijden per vaste speler in een cyclus (KingKong-klassement):
   //  - Invallers (niet in BASE_PLAYERS) tellen nergens mee.
-  //  - Vaste spelers die meespelen krijgen altijd +1 wedstrijd.
-  //  - Games tellen alleen mee als de vaste speler op zijn eigen originele slot stond.
+  //  - Wedstrijd en games tellen alleen mee als de vaste speler op zijn eigen originele plek stond.
+  //  - Een invaller (iemand die niet in de standaardopstelling van die wedstrijd staat) telt helemaal niet mee.
   function berekenTellingen(matchResults, cyclusIndex) {
     const gameCounts = {};
     const matchCounts = {};
@@ -115,8 +115,9 @@
       scores.forEach(item => {
         const p = item.player;
         if (!p || !BASE_PLAYERS.includes(p)) return;
+        if (!defaultSlotPlayers.includes(p)) return; // invaller: de wedstrijd telt helemaal niet mee
         matchCounts[p] = (matchCounts[p] || 0) + 1;
-        if (defaultSlotPlayers.includes(p)) gameCounts[p] = (gameCounts[p] || 0) + item.games;
+        gameCounts[p] = (gameCounts[p] || 0) + item.games;
       });
     }
     return { gameCounts, matchCounts };
