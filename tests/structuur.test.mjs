@@ -1,0 +1,113 @@
+// Controle van de bestanden zelf: syntaxis, versienummer, beveiliging van de serverfuncties en de databaseregels.
+// Draait met: node --test tests/*.test.mjs
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const lees = (p) => fs.readFileSync(path.join(ROOT, p), 'utf-8');
+const html = lees('index.html');
+const apiBestanden = fs.readdirSync(path.join(ROOT, 'api')).filter(f => f.endsWith('.js'));
+const regels = JSON.parse(lees('firebase-rules.json')).rules;
+
+function inlineScripts(tekst) {
+  return [...tekst.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+}
+
+test('index.html: de scripts hebben geen syntaxisfouten', () => {
+  const scripts = inlineScripts(html);
+  assert.ok(scripts.length >= 1);
+  scripts.forEach((code, i) => assert.doesNotThrow(() => new vm.Script(code, { filename: `index.html (script ${i + 1})` })));
+});
+
+test('padel-regels.js: geen syntaxisfouten', () => {
+  assert.doesNotThrow(() => new vm.Script(lees('padel-regels.js'), { filename: 'padel-regels.js' }));
+});
+
+test('api/ en lib/: geen syntaxisfouten', () => {
+  const bestanden = [...apiBestanden.map(f => `api/${f}`), 'lib/padel.js'];
+  assert.ok(bestanden.length >= 8, 'de serverbestanden ontbreken');
+  for (const b of bestanden) {
+    const r = spawnSync(process.execPath, ['--check', '--input-type=module'], { input: lees(b), encoding: 'utf-8' });
+    assert.equal(r.status, 0, `${b}: ${r.stderr}`);
+  }
+});
+
+test('versienummer: precies een plek, en nergens vastgetypt in titel of voettekst', () => {
+  const treffers = html.match(/const APP_VERSION = "\d+\.\d+"/g) || [];
+  assert.equal(treffers.length, 1, 'APP_VERSION moet precies een keer voorkomen');
+    const versieIngetypt = html.replace(/const APP_VERSION = "\d+\.\d+"/, '').match(/\bV\d+\.\d+\b/g);
+  assert.equal(versieIngetypt, null, `versienummer staat ook ergens anders: ${versieIngetypt}`);
+});
+
+test('index.html laadt de gedeelde regels en gebruikt geen browserpopups', () => {
+  assert.match(html, /<script[^>]*src="padel-regels\.js"/);
+  const zonderTekstregels = inlineScripts(html).join('\n');
+  assert.equal(/(?<![A-Za-z_.$])(alert|confirm|prompt)\(/.test(zonderTekstregels), false, 'gebruik toonMelding of bevestigDialoog in plaats van alert/confirm');
+});
+
+test('de cron-jobs en de back-up controleren de geheime sleutel', () => {
+  for (const f of ['match-reminder.js', 'cron-weather.js', 'result-reminder.js', 'kingkong-winnaar.js', 'backup.js']) {
+    assert.match(lees(`api/${f}`), /isCronAuthorized\(req\)/, `${f} controleert de x-cron-secret niet`);
+  }
+});
+
+test('notify en test-push controleren het inlogbewijs van de aanvrager', () => {
+  assert.match(lees('api/notify.js'), /verifyIdToken/);
+  assert.match(lees('api/notify.js'), /decoded\.lid !== true/);
+  assert.match(lees('api/test-push.js'), /verifyIdToken/);
+  assert.match(lees('api/test-push.js'), /decoded\.robert !== true/);
+});
+
+test('geheimen staan nergens in de bestanden', () => {
+  const alles = [html, lees('padel-regels.js'), lees('firebase-rules.json'), ...apiBestanden.map(f => lees(`api/${f}`)), lees('lib/padel.js')].join('\n');
+  assert.equal(/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(alles), false, 'er staat een privésleutel in de bestanden');
+  assert.equal(/\bghp_[A-Za-z0-9]{20,}|\bgithub_pat_[A-Za-z0-9_]{20,}/.test(alles), false, 'er staat een GitHub-token in de bestanden');
+});
+
+function alleRegels(knoop, pad = '', uit = []) {
+  for (const [k, v] of Object.entries(knoop)) {
+    if (typeof v === 'object' && v !== null) alleRegels(v, `${pad}/${k}`, uit);
+    else if (k === '.read' || k === '.write' || k === '.validate') uit.push({ pad: `${pad}/${k}`, waarde: v });
+  }
+  return uit;
+}
+
+test('databaseregels: niets staat open voor iedereen', () => {
+  assert.equal(regels['.read'], false);
+  assert.equal(regels['.write'], false);
+  for (const r of alleRegels(regels)) {
+    if (r.pad.endsWith('/.read') || r.pad.endsWith('/.write')) assert.notEqual(r.waarde, true, `${r.pad} staat open`);
+  }
+  assert.match(regels.padelData['.read'], /auth\.token\.lid === true/);
+});
+
+test('databaseregels: schrijven vraagt een lidmaatschap en instellingen alleen Robert', () => {
+  const schrijfRegels = alleRegels(regels).filter(r => r.pad.endsWith('/.write') && r.waarde !== false);
+  assert.ok(schrijfRegels.length >= 10);
+  for (const r of schrijfRegels) assert.match(String(r.waarde), /auth != null/, `${r.pad} controleert de inlog niet`);
+  assert.match(regels.padelData.settings['.write'], /auth\.token\.robert === true/);
+  assert.match(regels.padelData.foutlog['.write'], /auth\.token\.robert === true/);
+});
+
+test('databaseregels: de vormen van berichten, invalvragen en foutmeldingen zijn begrensd', () => {
+  const tekst = JSON.stringify(regels.padelData.messages);
+  assert.match(tekst, /2000/, 'chatberichten zijn niet tot 2000 tekens begrensd');
+  const foutvelden = ['tijd', 'bericht', 'bron', 'regel', 'stack', 'apparaat', 'gebruiker', 'versie'];
+  const toegestaan = Object.keys(regels.padelData.foutlog.$id).filter(k => !k.startsWith('.') && !k.startsWith('$'));
+  for (const v of foutvelden) assert.ok(toegestaan.includes(v), `foutlog: veld ${v} wordt door de app gestuurd maar door de regels geweigerd`);
+  assert.equal(regels.padelData.foutlog.$id.$other['.validate'], false);
+  const invalvelden = ['status', 'createdAt', 'createdBy', 'takenBy', 'takenAt'];
+  const invalToegestaan = Object.keys(regels.padelData.invallers.$matchKey.$speler).filter(k => !k.startsWith('.') && !k.startsWith('$'));
+  for (const v of invalvelden) assert.ok(invalToegestaan.includes(v), `invallers: veld ${v} ontbreekt in de regels`);
+});
+
+test('de app schrijft alleen naar plekken die de databaseregels kennen', () => {
+  const toegestaan = Object.keys(regels.padelData).filter(k => !k.startsWith('.'));
+  const gebruikt = new Set([...html.matchAll(/padelData\/([A-Za-z]+)/g)].map(m => m[1]));
+  for (const g of gebruikt) assert.ok(toegestaan.includes(g), `de app gebruikt padelData/${g}, maar de regels kennen die plek niet`);
+});
