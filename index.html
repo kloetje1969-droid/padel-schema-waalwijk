@@ -1371,7 +1371,7 @@
             box-shadow: 0 0 25px rgba(251, 191, 36, 0.25);
         }
 
-        #periodeModal {
+        #periodeModal, #foutlogModal {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -1383,7 +1383,7 @@
             padding: 16px;
         }
 
-        #periodeModal .pin-box {
+        #periodeModal .pin-box, #foutlogModal .pin-box {
             border-color: var(--accent-blue);
             box-shadow: var(--main-glow);
             max-height: 92vh;
@@ -1391,18 +1391,18 @@
             overflow-y: auto;
         }
 
-        #periodeModal .pin-box h2 {
+        #periodeModal .pin-box h2, #foutlogModal .pin-box h2 {
             font-size: 1.5rem;
             margin-bottom: 0;
         }
 
-        #periodeModal .modal-buttons {
+        #periodeModal .modal-buttons, #foutlogModal .modal-buttons {
             flex-direction: column;
             align-items: stretch;
             width: 100%;
         }
 
-        #periodeModal .modal-buttons button {
+        #periodeModal .modal-buttons button, #foutlogModal .modal-buttons button {
             width: 100%;
             box-sizing: border-box;
             flex-shrink: 1;
@@ -1410,6 +1410,27 @@
             height: auto;
             min-height: 42px;
         }
+
+        #foutlogLijst {
+            max-height: 52vh;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .fout-item {
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            background: rgba(248, 113, 113, 0.07);
+        }
+
+        .fout-meta { color: var(--text-muted); font-size: 0.78rem; }
+        .fout-bericht { color: #fca5a5; font-weight: 700; word-break: break-word; }
+
+        #foutlogBtn.fout-actief { border-color: #ef4444; color: #fca5a5; }
 
         .periode-keuze {
             display: flex;
@@ -1630,7 +1651,7 @@
             .app-footer-row, #beheerRij { grid-column: 1 / -1; }
 
             /* Vensters mogen wat breder */
-            #bevestigModal .pin-box, #periodeModal .pin-box { max-width: 460px; }
+            #bevestigModal .pin-box, #periodeModal .pin-box, #foutlogModal .pin-box { max-width: 460px; }
         }
 
         @media (min-width: 1280px) {
@@ -1687,6 +1708,18 @@
         <div class="modal-buttons" style="justify-content: center; margin-top: 10px;">
             <button class="btn-cancel" onclick="cancelRobertSelect()">Annuleren</button>
             <button class="btn-primary" onclick="confirmRobertPin()">Bevestigen</button>
+        </div>
+    </div>
+</div>
+
+<div id="foutlogModal">
+    <div class="pin-box">
+        <h2>🐞 Foutmeldingen</h2>
+        <div id="foutlogLijst"></div>
+        <div class="modal-buttons" style="justify-content: center; margin-top: 6px;">
+            <button class="btn-cancel" onclick="sluitFoutlog()">Sluiten</button>
+            <button class="btn-primary" onclick="kopieerFoutlog()">Kopieer</button>
+            <button class="btn-cancel" id="foutlogWis" onclick="wisFoutlog()">Wissen</button>
         </div>
     </div>
 </div>
@@ -1923,6 +1956,8 @@
         <button class="btn-edit" id="globalPushToggleBtn" onclick="toggleGlobalPush()" style="display: none;">🔔 Push Aan</button>
         <button class="btn-edit" onclick="stuurTestmelding()">🔔 Testmelding naar mij</button>
         <button class="btn-edit" onclick="downloadBackup()">💾 Back-up downloaden</button>
+        <button class="btn-edit" id="foutlogBtn" onclick="openFoutlog()">🐞 Foutmeldingen (0)</button>
+        <span id="backupStatus" style="width: 100%; text-align: center;"></span>
     </div>
 </div>
 
@@ -1972,7 +2007,60 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.82"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    // ---------- Foutenlog: fouten op telefoons worden vastgelegd, zodat Robert ze kan zien ----------
+    const foutWachtrij = [];
+    const foutGezien = new Set();
+    let foutAantalDezeSessie = 0;
+    let foutAanHetVersturen = false;
+
+    function foutKort(t, n) { return String(t == null ? '' : t).slice(0, n); }
+
+    function legFoutVast(bericht, bron, regel, stack) {
+        try {
+            const b = foutKort(bericht, 300);
+            if (!b) return;
+            const sleutel = b + '|' + foutKort(bron, 80) + '|' + regel;
+            if (foutGezien.has(sleutel) || foutAantalDezeSessie >= 10) return;
+            foutGezien.add(sleutel);
+            foutAantalDezeSessie++;
+            foutWachtrij.push({ tijd: Date.now(), bericht: b, bron: foutKort(bron, 200), regel: Number(regel) || 0, stack: foutKort(stack, 800), apparaat: foutKort(navigator.userAgent, 120) });
+            stuurFoutWachtrij();
+        } catch (e) { /* de foutenlog zelf mag nooit iets stukmaken */ }
+    }
+
+    function stuurFoutWachtrij() {
+        try {
+            if (foutAanHetVersturen || !foutWachtrij.length) return;
+            if (typeof db === 'undefined' || typeof firebase === 'undefined' || !firebase.auth().currentUser) return;
+            const item = foutWachtrij.shift();
+            try { item.gebruiker = foutKort(currentUserName || '', 30); } catch (e) { item.gebruiker = ''; }
+            try { item.versie = foutKort(APP_VERSION, 20); } catch (e) { item.versie = ''; }
+            foutAanHetVersturen = true;
+            db.ref('padelData/foutlog').push(item).catch(() => {}).then(() => {
+                foutAanHetVersturen = false;
+                if (foutWachtrij.length) stuurFoutWachtrij();
+            });
+        } catch (e) { foutAanHetVersturen = false; }
+    }
+
+    window.addEventListener('error', (e) => legFoutVast(e.message, e.filename, e.lineno, e.error && e.error.stack));
+    window.addEventListener('unhandledrejection', (e) => {
+        const r = e.reason;
+        legFoutVast(r && r.message ? r.message : r, '', 0, r && r.stack);
+    });
+    const _origineleConsoleError = console.error.bind(console);
+    console.error = function (...args) {
+        _origineleConsoleError(...args);
+        try {
+            const eerste = args[0];
+            const fout = args.find(x => x && x.message);
+            const tekst = foutKort(typeof eerste === 'string' ? eerste : (eerste && eerste.message) || '', 200) + (fout && fout !== eerste ? ' | ' + foutKort(fout.message, 100) : '');
+            legFoutVast(tekst, 'console.error', 0, fout && fout.stack);
+        } catch (e) { /* niets doen */ }
+    };
+    setInterval(stuurFoutWachtrij, 5000);
+
+    const APP_VERSION = "8.83"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -3403,6 +3491,118 @@
         updateGlobalPushToggleUI();
         const beheerRij = document.getElementById('beheerRij');
         if (beheerRij) beheerRij.style.display = zichtbaarVoorRobert() ? 'flex' : 'none';
+        if (zichtbaarVoorRobert()) startBeheerListeners();
+    }
+
+    // ---------- Beheer (alleen Robert): foutenlog en status van de automatische back-up ----------
+    let foutlogData = {};
+    let laatsteBackupInfo = null;
+    let beheerListenersActief = false;
+
+    function startBeheerListeners() {
+        if (beheerListenersActief || !zichtbaarVoorRobert()) return;
+        beheerListenersActief = true;
+        db.ref('padelData/foutlog').limitToLast(50).on('value', (snap) => { foutlogData = snap.val() || {}; werkFoutlogKnop(); });
+        db.ref('padelData/settings/laatsteBackup').on('value', (snap) => { laatsteBackupInfo = snap.val(); werkBackupStatus(); });
+    }
+
+    function werkFoutlogKnop() {
+        const knop = document.getElementById('foutlogBtn');
+        if (!knop) return;
+        const n = Object.keys(foutlogData).length;
+        knop.textContent = `🐞 Foutmeldingen (${n})`;
+        knop.classList.toggle('fout-actief', n > 0);
+        if (document.getElementById('foutlogModal').style.display === 'flex') toonFoutlogLijst();
+    }
+
+    function werkBackupStatus() {
+        const el = document.getElementById('backupStatus');
+        if (!el) return;
+        if (!laatsteBackupInfo || !laatsteBackupInfo.tijd) {
+            el.textContent = 'Nog geen automatische back-up gemaakt.';
+            el.style.color = '#fbbf24';
+            return;
+        }
+        const dagen = Math.floor((Date.now() - laatsteBackupInfo.tijd) / 86400000);
+        const wanneer = new Date(laatsteBackupInfo.tijd).toLocaleString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(/\./g, '');
+        if (dagen > 9) {
+            el.textContent = `Let op: de laatste automatische back-up is ${dagen} dagen oud (${wanneer}).`;
+            el.style.color = '#fca5a5';
+        } else {
+            el.textContent = `Laatste automatische back-up: ${wanneer} (${laatsteBackupInfo.kb} KB)${laatsteBackupInfo.github ? ', ook in GitHub' : ''}`;
+            el.style.color = '';
+        }
+    }
+
+    function foutlogItems() {
+        return Object.values(foutlogData).filter(x => x && x.bericht).sort((a, b) => (b.tijd || 0) - (a.tijd || 0));
+    }
+
+    function foutDatum(tijd) {
+        return new Date(tijd || 0).toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, '');
+    }
+
+    function toonFoutlogLijst() {
+        const items = foutlogItems();
+        const lijst = document.getElementById('foutlogLijst');
+        if (items.length === 0) {
+            lijst.innerHTML = '<p style="text-align:center;">Geen foutmeldingen. Alles werkt zoals het hoort.</p>';
+            return;
+        }
+        lijst.innerHTML = `<p style="text-align:center;"><b>${items.length}</b> melding${items.length === 1 ? '' : 'en'} (nieuwste bovenaan)</p>` + items.map(f => `
+            <div class="fout-item">
+                <div class="fout-meta">${esc(foutDatum(f.tijd))} · ${esc(f.gebruiker || 'onbekend')} · versie ${esc(f.versie || '?')}</div>
+                <div class="fout-bericht">${esc(f.bericht)}</div>
+                <div class="fout-meta">${esc(f.bron || '')}${f.regel ? ':' + esc(String(f.regel)) : ''}</div>
+            </div>`).join('');
+    }
+
+    function openFoutlog() {
+        if (!zichtbaarVoorRobert()) return;
+        startBeheerListeners();
+        toonFoutlogLijst();
+        document.getElementById('foutlogModal').style.display = 'flex';
+    }
+
+    function sluitFoutlog() {
+        document.getElementById('foutlogModal').style.display = 'none';
+    }
+
+    async function kopieerFoutlog() {
+        const items = foutlogItems();
+        if (items.length === 0) { showToast("Niets te kopiëren", "Er zijn geen foutmeldingen.", true); return; }
+        const tekst = `Padelschema foutmeldingen (app-versie ${APP_VERSION})\n\n` + items.map(f =>
+            `[${foutDatum(f.tijd)}] ${f.gebruiker || 'onbekend'}, versie ${f.versie || '?'}\n${f.bericht}\n${f.bron || ''}${f.regel ? ':' + f.regel : ''}${f.stack ? '\n' + f.stack : ''}\n${f.apparaat || ''}`).join('\n\n');
+        try {
+            await navigator.clipboard.writeText(tekst);
+            showToast("Gekopieerd", `${items.length} melding${items.length === 1 ? '' : 'en'} staan op je klembord.`);
+        } catch (err) {
+            const ta = document.createElement('textarea');
+            ta.value = tekst;
+            document.body.appendChild(ta);
+            ta.select();
+            let gelukt = false;
+            try { gelukt = document.execCommand('copy'); } catch (e) { /* niets */ }
+            ta.remove();
+            showToast(gelukt ? "Gekopieerd" : "Kopiëren mislukt", gelukt ? "De meldingen staan op je klembord." : "Je browser staat het kopiëren niet toe.", !gelukt);
+        }
+    }
+
+    async function wisFoutlog() {
+        if (!zichtbaarVoorRobert()) return;
+        const ok = await bevestigDialoog({
+            titel: '⚠️ Let op!',
+            regels: ['Alle foutmeldingen wissen?', 'Dit kan niet ongedaan worden gemaakt.'],
+            jaTekst: 'Ja, wissen',
+            neeTekst: 'Annuleren'
+        });
+        if (!ok) return;
+        try {
+            await db.ref('padelData/foutlog').remove();
+            showToast("Foutmeldingen gewist", "De lijst is leeg.");
+        } catch (err) {
+            showToast("Wissen mislukt", err.code || err.message || "Onbekende fout", true);
+        }
     }
 
     function zichtbaarVoorRobert() {
