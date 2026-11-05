@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-await import('../padel-regels.js');
+await import('./padel-regels.js');
 const R = globalThis.PadelRegels;
 
 const resultaat = (spelers, s1, s2, s3 = [0, 0]) => ({
