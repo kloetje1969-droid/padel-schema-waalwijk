@@ -1,0 +1,181 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "padelData": {
+      ".read": "auth != null && auth.token.lid === true",
+      "tokens": {
+        ".write": "auth != null && auth.token.lid === true",
+        "$user": {
+          "$token": {
+            ".validate": "newData.hasChild('createdAtFormatted') || newData.hasChild('createdAt')"
+          }
+        }
+      },
+      "cyclusWinnaars": {
+        ".write": "auth != null && auth.token.lid === true",
+        "$cyclusIdx": {
+          ".validate": true
+        }
+      },
+      "scheduleOverrides": {
+        ".write": "auth != null && auth.token.lid === true",
+        "$week": {
+          ".validate": "$week.matches(/^[0-9]{4}_w[0-9]{1,2}$/)",
+          "customDinsdag": {
+            ".validate": "newData.isString() && newData.val().matches(/^(maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag)$/)"
+          },
+          "customDonderdag": {
+            ".validate": "newData.isString() && newData.val().matches(/^(maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag)$/)"
+          },
+          "dinsdagTijd": {
+            ".validate": "newData.isString() && newData.val().matches(/^([01][0-9]|2[0-3]):[0-5][0-9]$/)"
+          },
+          "donderdagTijd": {
+            ".validate": "newData.isString() && newData.val().matches(/^([01][0-9]|2[0-3]):[0-5][0-9]$/)"
+          },
+          "dinsdag": {
+            "$k": {
+              ".validate": "($k.matches(/^[0-3]$/) && newData.isString() && newData.val().length <= 30) || ($k == 'cancelled' && newData.isBoolean()) || ($k == 'players' && newData.hasChildren())",
+              "$i": {
+                ".validate": "newData.isString() && newData.val().length <= 30 && $i.matches(/^[0-3]$/)"
+              }
+            }
+          },
+          "donderdag": {
+            "$k": {
+              ".validate": "($k.matches(/^[0-3]$/) && newData.isString() && newData.val().length <= 30) || ($k == 'cancelled' && newData.isBoolean()) || ($k == 'players' && newData.hasChildren())",
+              "$i": {
+                ".validate": "newData.isString() && newData.val().length <= 30 && $i.matches(/^[0-3]$/)"
+              }
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      },
+      "matchResults": {
+        ".write": "auth != null && auth.token.lid === true",
+        "$matchId": {
+          ".validate": "$matchId.matches(/^[0-9]{4}_w[0-9]{1,2}_(dinsdag|donderdag)$/) && newData.hasChild('players')",
+          "$s": {
+            ".validate": "($s.matches(/^t[12]s[123]$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 99) || ($s == 'players' && newData.hasChildren())",
+            "$i": {
+              ".validate": "newData.isString() && newData.val().length <= 30"
+            }
+          }
+        }
+      },
+      "messages": {
+        ".write": "auth != null && auth.token.robert === true",
+        "$key": {
+          ".write": "auth != null && auth.token.lid === true",
+          ".validate": "newData.hasChildren(['author', 'text', 'timestamp', 'tijd'])",
+          "author": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 30"
+          },
+          "text": {
+            ".validate": "newData.isString() && newData.val().length <= 2000"
+          },
+          "timestamp": {
+            ".validate": "newData.isNumber() && newData.val() <= now + 60000"
+          },
+          "tijd": {
+            ".validate": "newData.isString() && newData.val().length <= 20"
+          },
+          "type": {
+            ".validate": "newData.isString() && newData.val() === 'system'"
+          },
+          "fileUrl": {
+            ".validate": "newData.isString() && newData.val().length <= 3000000 && newData.val().beginsWith('data:')"
+          },
+          "fileName": {
+            ".validate": "newData.isString() && newData.val().length <= 255"
+          },
+          "fileType": {
+            ".validate": "newData.isString() && newData.val().length <= 100"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      },
+      "settings": {
+        ".write": "auth != null && auth.token.robert === true"
+      },
+      "lastSeen": {
+        ".write": "auth != null && auth.token.lid === true"
+      },
+      "presence": {
+        ".write": "auth != null && auth.token.lid === true"
+      },
+      "absence": {
+        ".write": "auth != null && auth.token.lid === true"
+      },
+      "baanBoekingenList": {
+        ".write": "auth != null && auth.token.lid === true"
+      },
+      "invallers": {
+        ".write": "auth != null && auth.token.lid === true",
+        "$matchKey": {
+          "$speler": {
+            ".validate": "newData.hasChildren(['status'])",
+            "status": {
+              ".validate": "newData.isString() && (newData.val() === 'open' || newData.val() === 'taken')"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "createdBy": {
+              ".validate": "newData.isString() && newData.val().length <= 30"
+            },
+            "takenBy": {
+              ".validate": "newData.isString() && newData.val().length <= 30"
+            },
+            "takenAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      },
+      "foutlog": {
+        ".write": "auth != null && auth.token.robert === true",
+        "$id": {
+          ".write": "auth != null && auth.token.lid === true && !data.exists()",
+          ".validate": "newData.hasChildren(['tijd', 'bericht'])",
+          "tijd": {
+            ".validate": "newData.isNumber()"
+          },
+          "bericht": {
+            ".validate": "newData.isString() && newData.val().length <= 300"
+          },
+          "bron": {
+            ".validate": "newData.isString() && newData.val().length <= 200"
+          },
+          "regel": {
+            ".validate": "newData.isNumber()"
+          },
+          "stack": {
+            ".validate": "newData.isString() && newData.val().length <= 800"
+          },
+          "gebruiker": {
+            ".validate": "newData.isString() && newData.val().length <= 30"
+          },
+          "versie": {
+            ".validate": "newData.isString() && newData.val().length <= 20"
+          },
+          "apparaat": {
+            ".validate": "newData.isString() && newData.val().length <= 120"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    }
+  }
+}
