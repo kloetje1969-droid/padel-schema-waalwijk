@@ -1544,6 +1544,120 @@
             .set-input-box { gap: 2px; }
             .set-input-box input { width: 31px !important; }
         }
+    
+        /* ---------- Telefoon: de wrappers doen niets ---------- */
+        .kolom-hoofd, .kolom-zij, .matches-pair {
+            display: contents;
+        }
+
+        /* ---------- Breed scherm (pc, laptop): meer een website dan een app ---------- */
+        @media (min-width: 1000px) {
+            body {
+                padding: 20px 28px 32px;
+            }
+
+            .container {
+                max-width: 1360px;
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) 380px;
+                column-gap: 22px;
+                row-gap: 16px;
+                align-items: start;
+            }
+
+            /* Bovenbalk over de volle breedte */
+            header {
+                grid-column: 1 / -1;
+                display: grid;
+                grid-template-columns: auto minmax(220px, 360px) 1fr auto;
+                grid-template-areas: "titel user . push" "chips chips chips chips";
+                align-items: center;
+                column-gap: 22px;
+                row-gap: 12px;
+                padding: 12px 22px;
+            }
+
+            header .app-header-wrapper { grid-area: titel; width: auto; padding: 0; }
+            header h1 { font-size: 1.7rem; }
+            header .user-and-status-row { grid-area: user; width: auto; border-top: none; padding-top: 0; }
+            header .header-actions-row { display: none; }
+            header #liveClockBadge { width: auto !important; }
+            header #pushPermissionBtn { grid-area: push; width: auto !important; padding: 8px 16px; }
+            header #statusList {
+                grid-area: chips;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                gap: 10px;
+                padding-top: 12px;
+            }
+            header #statusList .status-badge { flex: 1 1 0; min-width: 0; flex-direction: row; justify-content: center; gap: 8px; }
+
+            /* De chat staat altijd in beeld, dus de chatknop is niet nodig */
+            #globalChatAlertBtn { display: none; }
+
+            .kolom-hoofd, .kolom-zij {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+                min-width: 0;
+            }
+
+            .kolom-zij {
+                position: sticky;
+                top: 14px;
+                max-height: calc(100vh - 28px);
+                overflow-y: auto;
+                padding: 4px 6px 8px 4px;
+                margin: -4px -6px -8px -4px;
+                scrollbar-width: thin;
+                scrollbar-color: #334155 transparent;
+            }
+
+            #chatCardSection { order: -1; }
+            #chatWindow { height: min(46vh, 420px); }
+
+            /* Dinsdag en donderdag naast elkaar */
+            .matches-pair {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+                padding: 14px;
+            }
+            .matches-pair > .match-row-wrapper { margin-bottom: 0; }
+            .week-card { margin-bottom: 0; }
+            #scheduleContainer { display: flex; flex-direction: column; gap: 14px; }
+
+            .app-footer-row, #beheerRij { grid-column: 1 / -1; }
+
+            /* Vensters mogen wat breder */
+            #bevestigModal .pin-box, #periodeModal .pin-box { max-width: 460px; }
+        }
+
+        @media (min-width: 1280px) {
+            header {
+                grid-template-columns: auto minmax(260px, 360px) auto 1fr auto;
+                grid-template-areas: "titel user klok . push" "chips chips chips chips chips";
+            }
+            header .header-actions-row { display: flex; grid-area: klok; width: auto; }
+            .matches-pair {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                align-items: stretch;
+            }
+        }
+
+        @media (min-width: 1000px) and (hover: hover) {
+            .card, .week-card, .match-row-wrapper { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+            .match-row-wrapper:hover { border-color: rgba(56, 189, 248, 0.75); }
+            button, summary, select { cursor: pointer; transition: filter 0.12s ease, transform 0.12s ease; }
+            button:hover:not(:disabled), summary:hover { filter: brightness(1.18); }
+            button:active:not(:disabled) { transform: translateY(1px); }
+            .status-badge:hover { border-color: #6b7280; }
+        }
+
+        @media (min-width: 1000px) {
+            :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+        }
     </style>
 </head>
 <body>
@@ -1651,6 +1765,7 @@
         <span class="alert-badge-count" id="alertBadgeCount">0</span>
     </button>
 
+    <div class="kolom-hoofd">
     <div class="section-title-row">
         <div class="section-title">Speelschema & Uitslagen (6 weken)</div>
         <span class="bron-knmi-label">Bron: KNMI</span>
@@ -1705,6 +1820,9 @@
     </div>
 
     <!-- MODULE: BAAN BOEKEN -->
+    </div>
+
+<div class="kolom-zij">
     <div class="card">
         <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
             <div class="section-title" style="font-size: 1.05rem;">
@@ -1793,6 +1911,8 @@
         </div>
     </div>
 
+    </div>
+
     <div class="app-footer-row">
         <span id="appVersieLabel">Padelschema</span>
         <span>© Robert</span>
@@ -1852,7 +1972,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "8.81"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.82"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -3237,6 +3357,14 @@
     }
 
     function updateAlertUI() {
+        // Op een breed scherm staat de chat altijd in beeld: dan telt een bericht meteen als gelezen
+        if (window.matchMedia('(min-width: 1000px)').matches && document.visibilityState === 'visible' && messages.length) {
+            const laatste = messages[messages.length - 1].key;
+            if (laatste !== lastSeenMessageKey) {
+                lastSeenMessageKey = laatste;
+                localStorage.setItem('padel_last_seen_key', laatste);
+            }
+        }
         const btn = document.getElementById("globalChatAlertBtn");
         const badge = document.getElementById("alertBadgeCount");
         const unreadCount = messages.filter(m => m.key > (lastSeenMessageKey || '')).length;
@@ -3784,6 +3912,7 @@
             };
 
             let matchesContent = `
+                <div class="matches-pair">
                 <div class="match-row-wrapper">
                     <div class="match-row">
                         <div class="match-header-line">
@@ -3902,6 +4031,7 @@
                             </div>
                         </div>` : ''}
                     </div>
+                </div>
                 </div>
             `;
 
@@ -5089,6 +5219,8 @@
             showToast("Chat gewist", "Alle berichten zijn verwijderd.");
         }
     }
+
+    document.addEventListener('visibilitychange', () => { if (typeof updateAlertUI === 'function') updateAlertUI(); });
 
     function scrollToChat() {
         lastSeenMessageKey = messages.length ? messages[messages.length - 1].key : '';
