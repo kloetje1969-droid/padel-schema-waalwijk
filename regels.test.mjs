@@ -50,7 +50,7 @@ test('een wedstrijd-id wordt goed gelezen (met en zonder voorloopnul)', () => {
   assert.equal(R.leesMatchId('rommel'), null);
 });
 
-test('telling: games tellen alleen op de eigen plek, een wedstrijd telt voor elke vaste speler die meedoet', () => {
+test('telling: wedstrijd en games tellen alleen op de eigen plek (een invaller telt niet mee)', () => {
   const uitslagen = {
     '2026_w45_dinsdag': resultaat(['Sander', 'Dennis', 'Mark', 'Robert'], [6, 1], [6, 2], [2, 3]),
     // donderdag: Mark valt in voor Marcel en Dennis voor Ronald (standaard: Marcel, Ronald, Sander, Robert)
@@ -58,7 +58,7 @@ test('telling: games tellen alleen op de eigen plek, een wedstrijd telt voor elk
   };
   const t = R.berekenTellingen(uitslagen, 1);
   assert.deepEqual(t.gameCounts, { Marcel: 0, Mark: 6, Ronald: 0, Sander: 26, Dennis: 14, Robert: 18 });
-  assert.deepEqual(t.matchCounts, { Marcel: 0, Mark: 2, Ronald: 0, Sander: 2, Dennis: 2, Robert: 2 });
+  assert.deepEqual(t.matchCounts, { Marcel: 0, Mark: 1, Ronald: 0, Sander: 2, Dennis: 1, Robert: 2 });
 });
 
 test('telling: een invaller die geen vaste speler is, telt nergens mee', () => {
