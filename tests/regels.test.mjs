@@ -1,4 +1,4 @@
-// Controle van de telregels en het schema (padel-regels.js). Draait met: node --test tests/*.test.mjs
+// Controle van de telregels en het schema (padel-regels.js). Draait met: node --test regels.test.mjs structuur.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
 

@@ -1,5 +1,5 @@
 // Controle van de bestanden zelf: syntaxis, versienummer, beveiliging van de serverfuncties en de databaseregels.
-// Draait met: node --test tests/*.test.mjs
+// Draait met: node --test regels.test.mjs structuur.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -8,7 +8,7 @@ import vm from 'node:vm';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 const lees = (p) => fs.readFileSync(path.join(ROOT, p), 'utf-8');
 const html = lees('index.html');
 const apiBestanden = fs.readdirSync(path.join(ROOT, 'api')).filter(f => f.endsWith('.js'));
