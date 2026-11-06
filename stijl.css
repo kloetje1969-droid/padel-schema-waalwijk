@@ -1,5 +1,5 @@
         :root {
-            --bg-color: #0f1f17;
+            --bg-color: #0b0f19;
             --card-bg: #111827;
             --card-border: #1f2937;
             --btn-bg: #263345;
@@ -135,7 +135,7 @@
         #pinOverlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 31, 23, 0.96);
+            background: rgba(11, 15, 25, 0.96);
             backdrop-filter: blur(8px);
             z-index: 9999;
             display: flex;
