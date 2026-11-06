@@ -44,6 +44,19 @@ test('versienummer: precies een plek, en nergens vastgetypt in titel of voetteks
   assert.equal(versieIngetypt, null, `versienummer staat ook ergens anders: ${versieIngetypt}`);
 });
 
+test('stijl.css: bestaat, klopt (accolades) en index.html laadt hem met het huidige versienummer', () => {
+  const css = lees('stijl.css');
+  assert.ok(css.length > 20000, 'stijl.css ontbreekt of is veel te klein');
+  const zonder = css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, '');
+  const open = (zonder.match(/\{/g) || []).length;
+  const dicht = (zonder.match(/\}/g) || []).length;
+  assert.equal(open, dicht, `stijl.css: ${open} accolades openen en ${dicht} sluiten (bestand afgekapt?)`);
+  const versie = (html.match(/const APP_VERSION = "(\d+\.\d+)"/) || [])[1];
+  assert.ok(versie, 'APP_VERSION niet gevonden');
+  assert.ok(html.includes(`<link rel="stylesheet" href="stijl.css?v=${versie}">`), `index.html moet stijl.css?v=${versie} laden (hetzelfde nummer als APP_VERSION)`);
+  assert.equal(/<style[\s>]/.test(html), false, 'er staat nog een <style>-blok in index.html; de opmaak hoort in stijl.css');
+});
+
 test('index.html laadt de gedeelde regels en gebruikt geen browserpopups', () => {
   assert.match(html, /<script[^>]*src="padel-regels\.js"/);
   const zonderTekstregels = inlineScripts(html).join('\n');
@@ -64,7 +77,7 @@ test('notify en test-push controleren het inlogbewijs van de aanvrager', () => {
 });
 
 test('geheimen staan nergens in de bestanden', () => {
-  const alles = [html, lees('padel-regels.js'), lees('firebase-rules.json'), ...apiBestanden.map(f => lees(`api/${f}`)), lees('lib/padel.js')].join('\n');
+  const alles = [html, lees('stijl.css'), lees('padel-regels.js'), lees('firebase-rules.json'), ...apiBestanden.map(f => lees(`api/${f}`)), lees('lib/padel.js')].join('\n');
   assert.equal(/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(alles), false, 'er staat een privésleutel in de bestanden');
   assert.equal(/\bghp_[A-Za-z0-9]{20,}|\bgithub_pat_[A-Za-z0-9_]{20,}/.test(alles), false, 'er staat een GitHub-token in de bestanden');
 });
