@@ -175,6 +175,12 @@
             ".validate": false
           }
         }
+      },
+      "fotos": {
+        ".write": "auth != null && auth.token.robert === true",
+        "$naam": {
+          ".validate": "($naam === 'Marcel' || $naam === 'Mark' || $naam === 'Ronald' || $naam === 'Sander' || $naam === 'Dennis' || $naam === 'Robert') && newData.isString() && newData.val().length <= 20000 && newData.val().matches(/^data:image\\/jpeg;base64,[A-Za-z0-9+\\/=]+$/)"
+        }
       }
     }
   }
