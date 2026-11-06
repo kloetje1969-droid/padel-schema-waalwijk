@@ -29,8 +29,8 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 6. **Controleer na elke wijziging:** `node --check` op de JavaScript-bestanden en op het script uit `index.html`, en draai de 25 controles. Alles moet slagen. Bij een wijziging aan de opmaak of de indeling: vergelijk de pagina met de vorige versie pixel voor pixel op 320, 360, 390, 414, 768, 999, 1000, 1280, 1440 en 1920 pixels breed.
 
 ## Werkwijze: eerst een voorbeeld
-1. **Eerst laten zien:** maak na een wijziging aan het uiterlijk of de werking schermafbeeldingen (telefoon 390 pixels en breed scherm 1280 pixels; zonder pincode alleen het inlogscherm met de app erachter) en stuur die in de chat. Niets pushen voordat de eigenaar "ja" zegt. Bij alleen tekst in `CLAUDE.md` of een controle: laat de wijziging in de chat zien.
-2. **Na akkoord:** commit en push naar de branch van de sessie, nooit rechtstreeks naar `main`. Is de vorige pull request al samengevoegd, begin de branch dan opnieuw vanaf `main`.
+1. **Eerst laten zien:** maak na een wijziging aan het uiterlijk of de werking schermafbeeldingen (telefoon 390 pixels en breed scherm 1280 pixels; zonder pincode alleen het inlogscherm met de app erachter) en stuur die in de chat. Bij alleen tekst in `CLAUDE.md` of een controle: laat de wijziging in de chat zien.
+2. **Pushen naar de branch mag meteen:** commit en push naar de branch van de sessie, nooit rechtstreeks naar `main`. Dat zet niets live, Vercel maakt er alleen een voorbeeldversie van. Is de vorige pull request al samengevoegd, begin de branch dan opnieuw vanaf `main`. Geen pull request voordat de eigenaar "ja" zegt.
 3. **Pull request:** maak er een (na akkoord) en noem de Vercel-voorbeeldversie: bij elke push naar een andere branch dan `main` maakt Vercel een Preview (te zien onder Deployments). Waarschuw dat die dezelfde database gebruikt: alleen kijken, geen uitslagen, afmeldingen of chatberichten invoeren.
 4. **Live:** de eigenaar voegt de pull request samen; Vercel zet `main` dan vanzelf live. Terugdraaien gaat op dezelfde manier met een nieuwe wijziging.
 
