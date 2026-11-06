@@ -1567,7 +1567,7 @@
         }
     
         /* ---------- Telefoon: de wrappers doen niets ---------- */
-        .kolom-hoofd, .kolom-zij, .matches-pair {
+        .kolommen, .kolom-hoofd, .kolom-zij, .matches-pair {
             display: contents;
         }
 
@@ -1579,10 +1579,16 @@
 
             .container {
                 max-width: 1360px;
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .kolommen {
                 display: grid;
                 grid-template-columns: minmax(0, 1fr) 380px;
                 column-gap: 22px;
-                row-gap: 16px;
                 align-items: start;
             }
 
@@ -1831,7 +1837,8 @@
         <span class="alert-badge-count" id="alertBadgeCount">0</span>
     </button>
 
-    <div class="kolom-hoofd">
+    <div class="kolommen">
+<div class="kolom-hoofd">
     <div class="section-title-row">
         <div class="section-title">Speelschema & Uitslagen (6 weken)</div>
         <span class="bron-knmi-label">Bron: KNMI</span>
@@ -1997,6 +2004,8 @@
 
     </div>
 
+    </div>
+
     <div class="app-footer-row">
         <span id="appVersieLabel">Padelschema</span>
         <span>© Robert</span>
@@ -2111,7 +2120,7 @@
     };
     setInterval(stuurFoutWachtrij, 5000);
 
-    const APP_VERSION = "8.85"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.86"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
