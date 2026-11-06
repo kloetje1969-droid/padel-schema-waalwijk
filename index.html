@@ -2146,6 +2146,8 @@
         try {
             const b = foutKort(bericht, 300);
             if (!b) return;
+            // Onschuldig bericht van de browser over het opnieuw meten van blokken, geen echte fout
+            if (/^ResizeObserver loop (completed with undelivered notifications|limit exceeded)/i.test(b)) return;
             const sleutel = b + '|' + foutKort(bron, 80) + '|' + regel;
             if (foutGezien.has(sleutel) || foutAantalDezeSessie >= 10) return;
             foutGezien.add(sleutel);
@@ -2187,7 +2189,7 @@
     };
     setInterval(stuurFoutWachtrij, 5000);
 
-    const APP_VERSION = "8.89"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.90"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -4653,6 +4655,19 @@
         }
     }
 
+    let fitWacht = new Set();
+    let fitFrame = 0;
+    function fitVoorVolgendBeeld(el) {
+        fitWacht.add(el);
+        if (fitFrame) return;
+        fitFrame = requestAnimationFrame(() => {
+            fitFrame = 0;
+            const lijst = [...fitWacht];
+            fitWacht.clear();
+            lijst.forEach(e => { if (e.isConnected) fitOneLineEl(e); });
+        });
+    }
+
     function fitOneLineRows() {
         const els = document.querySelectorAll('#scheduleContainer .match-day-date, #scheduleContainer .match-sub-info, #scheduleContainer .inval-gedaan');
         if (typeof ResizeObserver === 'undefined') { els.forEach(fitOneLineEl); return; }
@@ -4663,7 +4678,7 @@
                 const w = String(Math.round(en.contentRect.width));
                 if (el.dataset.fitW === w) return;
                 el.dataset.fitW = w;
-                fitOneLineEl(el);
+                fitVoorVolgendBeeld(el);
             });
         });
         els.forEach(el => { fitOneLineEl(el); fitObserver.observe(el); });
