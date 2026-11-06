@@ -1,6 +1,6 @@
 # Padelschema: uitleg voor Claude Code
 
-Antwoord altijd in het Nederlands. De app is voor een groep van zes vrienden die padelen (Marcel, Mark, Ronald, Sander, Dennis, Robert). Het is geen bedrijfsproject: houd het eenvoudig en voorspelbaar.
+Antwoord altijd in het Nederlands. De app is voor een groep van zes vrienden die padelen (Marcel, Mark, Ronald, Sander, Dennis, Robert). Het is geen bedrijfsproject: houd het eenvoudig en voorspelbaar. Dit bestand hoort bij app-versie 8.86.
 
 ## Wat is dit
 Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekingen, weer en pushmeldingen. Eén bestand voor de app, kleine serverfuncties op Vercel, Firebase Realtime Database als opslag. Live op https://padel-schema-waalwijk.vercel.app. Elke push naar `main` wordt door Vercel vanzelf live gezet.
@@ -11,31 +11,38 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 - `lib/padel.js`: hulpfuncties voor de server (database, tijd, push versturen).
 - `api/login.js`: controleert de pincode en geeft een Firebase-inlogbewijs.
 - `api/notify.js`: stuurt een pushmelding bij een chat- of systeembericht.
-- `api/match-reminder.js`, `api/cron-weather.js`, `api/result-reminder.js`, `api/kingkong-winnaar.js`: cron-jobs (cron-job.org roept ze aan met de header `x-cron-secret`).
+- `api/match-reminder.js`, `api/cron-weather.js`, `api/result-reminder.js`, `api/kingkong-winnaar.js`, `api/backup.js`: cron-jobs (cron-job.org roept ze aan met de header `x-cron-secret`).
 - `api/test-push.js`: testmelding naar alleen de eigen toestellen van Robert (verificatie met het `robert`-recht; werkt ook als de push voor de groep uit staat).
-- `firebase-rules.json`: kopie van de databaseregels. Vercel zet die NIET live; de eigenaar plakt ze zelf in de Firebase-console.
+- `firebase-rules.json`: kopie van de databaseregels. Vercel zet die NIET live; de eigenaar plakt ze zelf in de Firebase-console. De controles lezen dit bestand, dus houd het gelijk aan wat in Firebase staat.
+- `regels.test.mjs` en `structuur.test.mjs` staan in de **hoofdmap** (niet in een map `tests`) en `.github/workflows/controle.yml` draait ze bij elke wijziging: `node --test regels.test.mjs structuur.test.mjs` (23 controles).
 - `firebase-messaging-sw.js`, `manifest.json` en de iconen horen bij de pushmeldingen en de PWA.
 
 ## Regels voor wijzigingen
 1. **Versienummer:** verhoog `APP_VERSION` in `index.html` bij elke wijziging aan `index.html` of `padel-regels.js`. Zonder nieuw nummer verversen telefoons niet. Titel en voettekst nemen het nummer vanzelf over.
-2. **Telregels of schema:** pas alleen `padel-regels.js` aan, nooit een kopie ergens anders.
-3. **Samenhorende bestanden in één commit** (bijvoorbeeld `padel-regels.js` met `index.html`).
-4. **Geen geheimen in de repository.** De pincodes (`APP_PIN`, `ROBERT_PIN`), `CRON_SECRET` en de `FIREBASE_*`-variabelen staan alleen in Vercel. Schrijf nooit een waarde in een bestand, commit of chat.
-5. **Databaseregels:** wijzig `firebase-rules.json` alleen als voorstel en zeg erbij dat de eigenaar ze handmatig in Firebase moet plakken. Chatberichten mogen maximaal 2000 tekens zijn (app en regels moeten daarin gelijk blijven).
-6. **Controleer syntax** na elke wijziging: draai `node --check` op de JavaScript-bestanden, en op het script uit `index.html`.
+2. **Telregels of schema:** pas alleen `padel-regels.js` aan, nooit een kopie ergens anders, en pas dan ook de verwachte cijfers in `regels.test.mjs` aan.
+3. **Samenhorende bestanden in één commit** (bijvoorbeeld `padel-regels.js` met `regels.test.mjs` en `index.html`).
+4. **Geen geheimen in de repository.** De pincodes (`APP_PIN`, `ROBERT_PIN`), `CRON_SECRET`, de `FIREBASE_*`-variabelen en de optionele `BACKUP_GITHUB_TOKEN` / `BACKUP_GITHUB_REPO` staan alleen in Vercel. Schrijf nooit een waarde in een bestand, commit of chat.
+5. **Databaseregels:** wijzig `firebase-rules.json` alleen als voorstel en zeg erbij dat de eigenaar de inhoud (a) in de Firebase-console moet plakken (Realtime Database, Rules, Publish) en (b) ook in de hoofdmap van de repository moet zetten. Chatberichten mogen maximaal 2000 tekens zijn (app en regels moeten daarin gelijk blijven). Schrijft de app naar een nieuwe plek, dan moeten de regels die plek kennen; de controle `structuur.test.mjs` bewaakt dat.
+6. **Controleer na elke wijziging:** `node --check` op de JavaScript-bestanden en op het script uit `index.html`, en draai de 23 controles. Alles moet slagen.
 
 ## Hoe de app zich gedraagt (niet stukmaken)
 - Inloggen gaat via `api/login.js` (pincode op de server, Firebase custom token met `lid` en voor Robert `robert`). Er is geen anonieme login meer. Na 30 dagen vraagt een apparaat weer om de code.
-- Elke wijziging van het rooster, een uitslag, boeking, afmelding of weer openen/afgelasten vraagt eerst om bevestiging met `bevestigDialoog(...)` en post daarna een systeembericht (met push). Gebruik voor nieuwe vragen `bevestigDialoog`, nooit `confirm()` of `alert()`.
+- Elke wijziging van het rooster, een uitslag, boeking, afmelding of weer openen/afgelasten vraagt eerst om bevestiging met `bevestigDialoog(...)` en post daarna een systeembericht (met push). Meldingen en vragen aan de gebruiker gaan met `bevestigDialoog` of `toonMelding` (eigen venster); gebruik nooit `alert()` of `confirm()`.
 - Pushmeldingen kunnen door Robert aan/uit worden gezet (`padelData/settings/pushGloballyEnabled`). Alle cron-jobs en `notify.js` moeten dat blijven respecteren.
+- **Telregels (KingKong):** wedstrijd en games tellen alleen voor een vaste speler die op zijn eigen oorspronkelijke plek in de standaardopstelling stond. Wie invalt (ook een vaste speler) telt die wedstrijd helemaal niet mee; externe invallers tellen nergens mee; afgelaste wedstrijden tellen niet. Wijzig dit alleen als de eigenaar het vraagt.
 - Het KingKong-podium wordt 30 minuten na de laatste uitslag bekendgemaakt, of 3 dagen na afloop van de cyclus (vangnet). De app en de server doen hetzelfde, met een transaction zodat er nooit een dubbel bericht komt.
-- Games tellen alleen voor een vaste speler op zijn eigen oorspronkelijke slot. Invallers tellen nergens mee. Wijzig dit alleen als de eigenaar het vraagt.
+- Afmelden voor een wedstrijd zet een invalvraag in `padelData/invallers/<week>_<slot>/<speler>`. In de wedstrijdkaart verschijnt een blokje (kleur van de dag: dinsdag groen, donderdag oranje) met de knop "Ik kan invallen"; de eerste die tikt wint (transaction) en vervangt de afgemelde speler in het rooster. Na het begin van de wedstrijd verdwijnt het blokje. Wie is ingevallen krijgt in de kaart het regeltje "X is ingevallen voor Y" (ook afgeleid voor oudere of handmatige invallers).
+- In het blok "Afwezigheid / Vakantie" staat de knop "Meerdere wedstrijden afmelden": een venster met begin- en einddatum dat alle wedstrijden van de eigen speler in die periode in één keer afmeldt of weer aanmeldt, met daarna nog een bevestigingsvenster (één chatbericht, per wedstrijd een invalvraag). Alleen de weken die de app toont, nog niet begonnen en niet afgelast.
+- **Blok "Alle wedstrijden"** (tussen Historische uitslagen en Team Chat): leest alleen `matchResults` en `scheduleOverrides`, toont per wedstrijd de datum, teams, sets en details, met keuzelijsten voor cyclus en speler ("Alle cycli" standaard). De lijst begint bij week 43 (20 oktober 2026), want oudere uitslagen staan niet meer in de database.
+- **Back-ups:** cron-job 5 (`/api/backup`, elke zondag 03:00 Europe/Amsterdam) bewaart de laatste 8 onder `backups/` in Firebase, optioneel een kopie in een privé GitHub-repository en schrijft `padelData/settings/laatsteBackup`. Niet in de back-up: `tokens`, `presence`, `lastSeen`, `foutlog` en chatbijlagen. De app toont de status onder de beheerknoppen (rood bij meer dan 9 dagen).
+- **Foutenlog:** de app legt JavaScript-fouten vast in `padelData/foutlog` (per bezoek maximaal 10, dezelfde fout één keer). Robert ziet het aantal in de knop "Foutmeldingen" en kan de lijst kopiëren en wissen. "Script error." zonder details komt uit code van Google/Firebase.
+- Onderaan de pagina staat een rij "Beheer" met "Push Aan/Uit", "Testmelding naar mij", "Back-up downloaden" en "Foutmeldingen", plus de back-upstatus. Die is alleen zichtbaar voor Robert met het `robert`-recht.
 
-- Afmelden voor een wedstrijd zet een invalvraag in `padelData/invallers/<week>_<slot>/<speler>`. In de wedstrijdkaart verschijnt een groen blokje met de knop "Ik kan invallen"; de eerste die tikt wint (transaction) en vervangt de afgemelde speler in het rooster. Bij aanmelden verdwijnt een openstaande vraag.
-- Onderaan de pagina staat een rij "Beheer" met "Testmelding naar mij" en "Back-up downloaden". Die is alleen zichtbaar voor Robert met het `robert`-recht. De back-up bevat geen foto's/bijlagen.
-
-## Telefoon eerst
-De meeste spelers gebruiken de app op een telefoon (320 tot 414 pixels breed). Op de wedstrijdkaarten mag geen regel naar de volgende regel springen (dag/tijd en weerbericht passen zichzelf aan met `fitOneLineRows`). Controleer nieuwe schermen op smalle breedtes en gebruik de bestaande stijl (kaarten met afgeronde hoeken, blauwe en gele popups).
+## Indeling en schermen
+- **Telefoon en tablet (onder 1000 pixels):** één kolom, alle blokken standaard dicht. Deze weergave moet ongewijzigd blijven: controleer bij elke aanpassing met schermafbeeldingen op 320, 360, 390, 414, 768 en 999 pixels dat er niets verschuift.
+- **Breed scherm (vanaf 1000 pixels):** bovenbalk, daaronder `.kolommen` met links `.kolom-hoofd` (schema, statistieken, afwezigheid) en rechts `.kolom-zij` (chat, Baan Boeken, KingKong, Historische uitslagen, Alle wedstrijden), die blijft staan bij scrollen (`position: sticky`). Vanaf 1280 pixels staan dinsdag en donderdag naast elkaar. Alle blokken (weken, kaarten, historielijsten) staan standaard open; wat een gebruiker zelf dichtklapt blijft dicht (`weekOpenState`, `geopendeCycli`, `openAllesOpBreedScherm`).
+- **Verplaats de voetregel en de beheerrij niet in de kolommen:** ze staan bewust buiten `.kolommen`, anders schuift de zijkolom bij scrollen over de knoppen heen.
+- Op de wedstrijdkaarten mag geen regel naar de volgende regel springen (dag/tijd en weerbericht passen zichzelf aan met `fitOneLineRows`). Gebruik de bestaande stijl (kaarten met afgeronde hoeken, blauwe en gele vensters).
 
 ## Wat de eigenaar zelf doet
-Pushmeldingen echt testen op toestellen, de Firebase-regels plakken, geheimen in Vercel zetten, en de back-up van de database maken. Stel dit voor, doe het niet zelf.
+Pushmeldingen echt testen op toestellen, de Firebase-regels plakken, geheimen in Vercel zetten, de cron-jobs bij cron-job.org instellen en een eigen back-up bewaren buiten de telefoon (vooral na het podium aan het einde van een cyclus). Stel dit voor, doe het niet zelf.
