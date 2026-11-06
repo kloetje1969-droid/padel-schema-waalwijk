@@ -392,10 +392,45 @@
             font-size: 0.85rem;
             font-weight: 500;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            gap: 3px;
+            justify-content: flex-start;
+            gap: 8px;
             min-width: 145px;
+        }
+
+        .status-avatar {
+            width: 32px;
+            height: 32px;
+            flex: 0 0 auto;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #f6f6f3;
+            border: 2px solid #6b7280;
+            box-sizing: border-box;
+        }
+
+        .status-avatar-letter {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #4b5563;
+            color: #f3f4f6;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .status-badge.online-player .status-avatar,
+        .status-badge.me .status-avatar {
+            border-color: #34d399;
+        }
+
+        .status-tekst {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            min-width: 0;
         }
 
         .status-badge.me {
@@ -423,7 +458,7 @@
             font-size: 0.75rem;
             color: var(--text-muted);
             font-weight: normal;
-            text-align: center;
+            text-align: left;
             line-height: 1.2;
         }
 
@@ -1848,7 +1883,7 @@
     <div class="card">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
-                <div class="section-title" style="font-size: 1.05rem;">📊 Statistieken (Huidige Reeks)</div>
+                <div class="section-title" id="statsTitel" style="font-size: 1.05rem;">📊 Statistieken Cyclus</div>
                 <span class="collapse-arrow">▼ Open</span>
             </summary>
             <div class="collapsible-body">
@@ -2120,7 +2155,7 @@
     };
     setInterval(stuurFoutWachtrij, 5000);
 
-    const APP_VERSION = "8.86"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.88"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -2297,6 +2332,8 @@
     let allLastSeen = {};
     let absences = {};
     let invallers = {};
+    // Pasfoto's van de spelers (padelData/fotos), met een kopie op het toestel zodat ze meteen zichtbaar zijn
+    let spelerFotos = (() => { try { return JSON.parse(localStorage.getItem('padel_fotos') || '{}') || {}; } catch (e) { return {}; } })();
     let messages = [];
     let weatherCache = {};
     const MAX_CHAT_MESSAGES = 100;
@@ -2682,6 +2719,12 @@
             invallers = snapshot.val() || {};
             renderSchedule();
         });
+
+        db.ref('padelData/fotos').on('value', (snapshot) => {
+            spelerFotos = snapshot.val() || {};
+            try { localStorage.setItem('padel_fotos', JSON.stringify(spelerFotos)); } catch (e) {}
+            renderStatuses();
+        }, (err) => { console.warn("Foto's laden mislukt:", err && err.code); });
 
         db.ref('padelData/baanBoekingenList').on('value', (snapshot) => {
             const val = snapshot.val() || {};
@@ -4164,13 +4207,21 @@
                     badgeClass = 'online-player';
                 }
 
+                const foto = spelerFotos[player];
+                const avatar = (typeof foto === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(foto))
+                    ? `<img class="status-avatar" src="${foto}" alt="" width="32" height="32">`
+                    : `<span class="status-avatar status-avatar-letter">${esc(player.charAt(0))}</span>`;
+
                 return `
                     <div class="status-badge ${badgeClass}">
-                        <div class="status-line">
-                            <span class="status-dot ${isOnline ? 'online' : 'offline'}"></span>
-                            <span>${player}</span>
+                        ${avatar}
+                        <div class="status-tekst">
+                            <div class="status-line">
+                                <span class="status-dot ${isOnline ? 'online' : 'offline'}"></span>
+                                <span>${player}</span>
+                            </div>
+                            ${subText}
                         </div>
-                        ${subText}
                     </div>
                 `;
             }).join('');
@@ -4744,7 +4795,12 @@
         let counts = {};
         basePlayers.forEach(p => counts[p] = { dinsdag: 0, donderdag: 0, totaal: 0, isSub: false });
 
-        let currentMonday = getAdjustedBaseDate();
+        // Statistieken over de cyclus waar we in zitten (6 weken vanaf het begin van die cyclus), niet over de komende 6 weken
+        const cyclusIndex = getActiveCyclusIndex();
+        const titelEl = document.getElementById('statsTitel');
+        if (titelEl) titelEl.textContent = `📊 Statistieken Cyclus ${cyclusIndex + 1}`;
+        let currentMonday = new Date(refMaandag());
+        currentMonday.setDate(currentMonday.getDate() + cyclusIndex * 42);
         for (let i = 0; i < 6; i++) {
             let weekStart = new Date(currentMonday);
             weekStart.setDate(currentMonday.getDate() + (i * 7));
@@ -4758,6 +4814,7 @@
             let templateIndex = ((diffWeeks % 6) + 6) % 6;
 
             let tpl = defaultTemplate[templateIndex];
+            if (cyclusIndex === 0 && templateIndex === 0) tpl = SCHEMA_WEEK1_CYCLUS1;
             let overrideData = liveOverrides[uniqueWeekKey] || {};
             
             let diCancelled = isMatchCancelled(uniqueWeekKey, 'dinsdag');
