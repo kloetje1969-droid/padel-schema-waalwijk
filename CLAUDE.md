@@ -1,12 +1,14 @@
 # Padelschema: uitleg voor Claude Code
 
-Antwoord altijd in het Nederlands. De app is voor een groep van zes vrienden die padelen (Marcel, Mark, Ronald, Sander, Dennis, Robert). Het is geen bedrijfsproject: houd het eenvoudig en voorspelbaar. Dit bestand hoort bij app-versie 8.89.
+Antwoord altijd in het Nederlands. De app is voor een groep van zes vrienden die padelen (Marcel, Mark, Ronald, Sander, Dennis, Robert). Het is geen bedrijfsproject: houd het eenvoudig en voorspelbaar. Dit bestand hoort bij app-versie 8.92.
 
 ## Wat is dit
-Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekingen, weer en pushmeldingen. Eén bestand voor de app, kleine serverfuncties op Vercel, Firebase Realtime Database als opslag. Live op https://padel-schema-waalwijk.vercel.app. Elke push naar `main` wordt door Vercel vanzelf live gezet.
+Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekingen, weer en pushmeldingen. De app bestaat uit `index.html` (de code), `stijl.css` (de opmaak) en `foutlog.js` (de foutenlog), met kleine serverfuncties op Vercel, Firebase Realtime Database als opslag. Live op https://padel-schema-waalwijk.vercel.app. Elke push naar `main` wordt door Vercel vanzelf live gezet.
 
 ## Bestanden
-- `index.html`: de hele app (HTML, CSS en JavaScript). Bovenaan het script staat `APP_VERSION`, het enige versienummer.
+- `index.html`: de pagina en de hoofdcode (ruim 3.500 regels JavaScript, blijft bewust één bestand: verder opdelen geeft veel risico voor weinig winst, doe dat niet zonder overleg). Bovenaan de hoofdcode staat `APP_VERSION`, het enige versienummer.
+- `stijl.css`: alle opmaak (kleuren, indeling, maten, `@media`-regels). `index.html` laadt het met `<link rel="stylesheet" href="stijl.css?v=<APP_VERSION>">`. Er mag geen `<style>`-blok in `index.html` staan.
+- `foutlog.js`: de code die fouten op telefoons opvangt en naar `padelData/foutlog` schrijft. Het wordt met `<script src="foutlog.js?v=<APP_VERSION>">` geladen, vlak vóór de hoofdcode, zodat de laadvolgorde gelijk is aan toen het nog in `index.html` stond. Het gebruikt `APP_VERSION`, `db` en `firebase` pas tijdens het draaien, niet bij het laden.
 - `padel-regels.js`: de ENIGE plek voor het speelschema, de telregels, het podium en de startdatum van cyclus 1. De app laadt het met een scripttag, de server importeert het. Alleen gewoon JavaScript, geen DOM, geen Firebase.
 - `lib/padel.js`: hulpfuncties voor de server (database, tijd, push versturen).
 - `api/login.js`: controleert de pincode en geeft een Firebase-inlogbewijs.
@@ -15,16 +17,16 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 - `api/test-push.js`: testmelding naar alleen de eigen toestellen van Robert (verificatie met het `robert`-recht; werkt ook als de push voor de groep uit staat).
 - `firebase-rules.json`: kopie van de databaseregels. Vercel zet die NIET live; de eigenaar plakt ze zelf in de Firebase-console. De controles lezen dit bestand, dus houd het gelijk aan wat in Firebase staat.
 - **Pasfoto's van de spelers** staan NIET in de repository maar in Firebase onder `padelData/fotos` (per speler een JPEG van 96 bij 96 pixels als `data:image/jpeg;base64,...`). De repository is publiek: zet foto's of `fotos-import.json` nooit op GitHub.
-- `regels.test.mjs` en `structuur.test.mjs` staan in de **hoofdmap** (niet in een map `tests`) en `.github/workflows/controle.yml` draait ze bij elke wijziging: `node --test regels.test.mjs structuur.test.mjs` (23 controles).
+- `regels.test.mjs` en `structuur.test.mjs` staan in de **hoofdmap** (niet in een map `tests`) en `.github/workflows/controle.yml` draait ze bij elke wijziging: `node --test regels.test.mjs structuur.test.mjs` (25 controles).
 - `firebase-messaging-sw.js`, `manifest.json` en de iconen horen bij de pushmeldingen en de PWA.
 
 ## Regels voor wijzigingen
-1. **Versienummer:** verhoog `APP_VERSION` in `index.html` bij elke wijziging aan `index.html` of `padel-regels.js`. Zonder nieuw nummer verversen telefoons niet. Titel en voettekst nemen het nummer vanzelf over.
+1. **Versienummer:** verhoog `APP_VERSION` in `index.html` bij elke wijziging aan `index.html`, `stijl.css`, `foutlog.js` of `padel-regels.js`. Zonder nieuw nummer verversen telefoons niet. Titel en voettekst nemen het nummer vanzelf over. De verwijzingen `stijl.css?v=` en `foutlog.js?v=` in `index.html` moeten hetzelfde nummer dragen; `structuur.test.mjs` controleert dat.
 2. **Telregels of schema:** pas alleen `padel-regels.js` aan, nooit een kopie ergens anders, en pas dan ook de verwachte cijfers in `regels.test.mjs` aan.
-3. **Samenhorende bestanden in één commit** (bijvoorbeeld `padel-regels.js` met `regels.test.mjs` en `index.html`).
+3. **Samenhorende bestanden in één commit:** uiterlijk = `stijl.css` + `index.html`, foutenlog = `foutlog.js` + `index.html`, telregels = `padel-regels.js` + `regels.test.mjs` + `index.html`. Zeg bij elke wijziging precies welke bestanden de eigenaar moet uploaden (hij uploadt op GitHub, vaak vanaf zijn telefoon, alles in de hoofdmap).
 4. **Geen geheimen in de repository.** De pincodes (`APP_PIN`, `ROBERT_PIN`), `CRON_SECRET`, de `FIREBASE_*`-variabelen en de optionele `BACKUP_GITHUB_TOKEN` / `BACKUP_GITHUB_REPO` staan alleen in Vercel. Schrijf nooit een waarde in een bestand, commit of chat.
 5. **Databaseregels:** wijzig `firebase-rules.json` alleen als voorstel en zeg erbij dat de eigenaar de inhoud (a) in de Firebase-console moet plakken (Realtime Database, Rules, Publish) en (b) ook in de hoofdmap van de repository moet zetten. Chatberichten mogen maximaal 2000 tekens zijn (app en regels moeten daarin gelijk blijven). Schrijft de app naar een nieuwe plek, dan moeten de regels die plek kennen; de controle `structuur.test.mjs` bewaakt dat.
-6. **Controleer na elke wijziging:** `node --check` op de JavaScript-bestanden en op het script uit `index.html`, en draai de 23 controles. Alles moet slagen.
+6. **Controleer na elke wijziging:** `node --check` op de JavaScript-bestanden en op het script uit `index.html`, en draai de 25 controles. Alles moet slagen. Bij een wijziging aan de opmaak of de indeling: vergelijk de pagina met de vorige versie pixel voor pixel op 320, 360, 390, 414, 768, 999, 1000, 1280, 1440 en 1920 pixels breed.
 
 ## Hoe de app zich gedraagt (niet stukmaken)
 - Inloggen gaat via `api/login.js` (pincode op de server, Firebase custom token met `lid` en voor Robert `robert`). Er is geen anonieme login meer. Na 30 dagen vraagt een apparaat weer om de code.
@@ -38,7 +40,7 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 - **Statistieken Cyclus N:** het blok telt per speler hoe vaak hij in de opstelling staat over de zes weken van de actieve cyclus (`getActiveCyclusIndex`, dus ook al gespeelde wedstrijden; afgelast en afgemeld tellen niet; een invaller telt hier wel mee). De titel (`statsTitel`) toont het cyclusnummer en springt op de vrijdag na de laatste wedstrijd naar de volgende cyclus. Dit is iets anders dan het KingKong-klassement, waar een invaller niet meetelt.
 - **Pasfoto's in de online-status:** `renderStatuses` toont per speler een ronde foto (groene rand online, grijze rand offline, beginletter in een rondje als er geen foto is) uit `padelData/fotos`. De app leest alleen (listener in de luisteraars, kopie in `localStorage` onder `padel_fotos`); alleen Robert mag schrijven (zie `firebase-rules.json`: zes namen, alleen JPEG-data-URI, maximaal 20000 tekens). Foto's worden in de chat voorbereid: bijsnijden zodat het hoofd 80% van de hoogte van het rondje is, achtergrond zacht wit, lichte verscherping, niets aan het uiterlijk veranderen, alle zes even groot. Importeren in de Firebase-console alleen bij `padelData/fotos`, nooit bij `padelData` of het hoofdniveau. De back-ups bevatten de foto's.
 - **Back-ups:** cron-job 5 (`/api/backup`, elke zondag 03:00 Europe/Amsterdam) bewaart de laatste 8 onder `backups/` in Firebase, optioneel een kopie in een privé GitHub-repository en schrijft `padelData/settings/laatsteBackup`. Niet in de back-up: `tokens`, `presence`, `lastSeen`, `foutlog` en chatbijlagen. De app toont de status onder de beheerknoppen (rood bij meer dan 9 dagen).
-- **Foutenlog:** de app legt JavaScript-fouten vast in `padelData/foutlog` (per bezoek maximaal 10, dezelfde fout één keer). Robert ziet het aantal in de knop "Foutmeldingen" en kan de lijst kopiëren en wissen. "Script error." zonder details komt uit code van Google/Firebase, en "ResizeObserver loop completed with undelivered notifications" is een onschuldig browserbericht (komt van `fitOneLineRows`); beide zijn geen echte fouten.
+- **Foutenlog:** de app legt JavaScript-fouten vast in `padelData/foutlog` (per bezoek maximaal 10, dezelfde fout één keer). Robert ziet het aantal in de knop "Foutmeldingen" en kan de lijst kopiëren en wissen. "Script error." zonder details komt uit code van Google/Firebase. Het onschuldige browserbericht "ResizeObserver loop completed with undelivered notifications" wordt sinds 8.90 niet meer opgeschreven (`legFoutVast` slaat het over, en `fitOneLineRows` laat de regels in het volgende beeld opnieuw passen in plaats van binnen de ResizeObserver).
 - Onderaan de pagina staat een rij "Beheer" met "Push Aan/Uit", "Testmelding naar mij", "Back-up downloaden" en "Foutmeldingen", plus de back-upstatus. Die is alleen zichtbaar voor Robert met het `robert`-recht.
 
 ## Indeling en schermen
@@ -48,4 +50,4 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 - Op de wedstrijdkaarten mag geen regel naar de volgende regel springen (dag/tijd en weerbericht passen zichzelf aan met `fitOneLineRows`). Gebruik de bestaande stijl (kaarten met afgeronde hoeken, blauwe en gele vensters).
 
 ## Wat de eigenaar zelf doet
-Pushmeldingen echt testen op toestellen, de Firebase-regels plakken, geheimen in Vercel zetten, de cron-jobs bij cron-job.org instellen, foto's importeren in Firebase en een eigen back-up bewaren buiten de telefoon (vooral na het podium aan het einde van een cyclus). Stel dit voor, doe het niet zelf.
+Pushmeldingen echt testen op toestellen, de Firebase-regels plakken, geheimen in Vercel zetten, de cron-jobs bij cron-job.org instellen, foto's importeren in Firebase en een eigen back-up bewaren (het terugzetten uit een back-up is op 6 november 2026 geoefend via een tijdelijk onderdeel `herstelTest`, dat daarna is verwijderd) buiten de telefoon (vooral na het podium aan het einde van een cyclus). Stel dit voor, doe het niet zelf.
