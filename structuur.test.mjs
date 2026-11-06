@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 const lees = (p) => fs.readFileSync(path.join(ROOT, p), 'utf-8');
 const html = lees('index.html');
+const foutlogJs = lees('foutlog.js');
 const apiBestanden = fs.readdirSync(path.join(ROOT, 'api')).filter(f => f.endsWith('.js'));
 const regels = JSON.parse(lees('firebase-rules.json')).rules;
 
@@ -22,6 +23,7 @@ test('index.html: de scripts hebben geen syntaxisfouten', () => {
   const scripts = inlineScripts(html);
   assert.ok(scripts.length >= 1);
   scripts.forEach((code, i) => assert.doesNotThrow(() => new vm.Script(code, { filename: `index.html (script ${i + 1})` })));
+  assert.doesNotThrow(() => new vm.Script(foutlogJs, { filename: 'foutlog.js' }));
 });
 
 test('padel-regels.js: geen syntaxisfouten', () => {
@@ -57,9 +59,21 @@ test('stijl.css: bestaat, klopt (accolades) en index.html laadt hem met het huid
   assert.equal(/<style[\s>]/.test(html), false, 'er staat nog een <style>-blok in index.html; de opmaak hoort in stijl.css');
 });
 
+test('foutlog.js: wordt vóór de hoofdcode geladen met het huidige versienummer en staat niet dubbel in index.html', () => {
+  assert.ok(foutlogJs.length > 1500, 'foutlog.js ontbreekt of is veel te klein');
+  const versie = (html.match(/const APP_VERSION = "(\d+\.\d+)"/) || [])[1];
+  const tag = `<script src="foutlog.js?v=${versie}"></script>`;
+  assert.ok(html.includes(tag), `index.html moet ${tag} laden (hetzelfde nummer als APP_VERSION)`);
+  assert.ok(html.indexOf(tag) < html.indexOf('const APP_VERSION'), 'foutlog.js moet vóór de hoofdcode worden geladen');
+  for (const naam of ['function legFoutVast', 'function stuurFoutWachtrij', 'const foutWachtrij']) {
+    assert.ok(foutlogJs.includes(naam), `foutlog.js mist ${naam}`);
+    assert.equal(html.includes(naam), false, `${naam} staat nog in index.html (dubbel)`);
+  }
+});
+
 test('index.html laadt de gedeelde regels en gebruikt geen browserpopups', () => {
   assert.match(html, /<script[^>]*src="padel-regels\.js"/);
-  const zonderTekstregels = inlineScripts(html).join('\n');
+  const zonderTekstregels = inlineScripts(html).join('\n') + '\n' + foutlogJs;
   assert.equal(/(?<![A-Za-z_.$])(alert|confirm|prompt)\(/.test(zonderTekstregels), false, 'gebruik toonMelding of bevestigDialoog in plaats van alert/confirm');
 });
 
@@ -77,7 +91,7 @@ test('notify en test-push controleren het inlogbewijs van de aanvrager', () => {
 });
 
 test('geheimen staan nergens in de bestanden', () => {
-  const alles = [html, lees('stijl.css'), lees('padel-regels.js'), lees('firebase-rules.json'), ...apiBestanden.map(f => lees(`api/${f}`)), lees('lib/padel.js')].join('\n');
+  const alles = [html, foutlogJs, lees('stijl.css'), lees('padel-regels.js'), lees('firebase-rules.json'), ...apiBestanden.map(f => lees(`api/${f}`)), lees('lib/padel.js')].join('\n');
   assert.equal(/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(alles), false, 'er staat een privésleutel in de bestanden');
   assert.equal(/\bghp_[A-Za-z0-9]{20,}|\bgithub_pat_[A-Za-z0-9_]{20,}/.test(alles), false, 'er staat een GitHub-token in de bestanden');
 });
@@ -121,6 +135,6 @@ test('databaseregels: de vormen van berichten, invalvragen en foutmeldingen zijn
 
 test('de app schrijft alleen naar plekken die de databaseregels kennen', () => {
   const toegestaan = Object.keys(regels.padelData).filter(k => !k.startsWith('.'));
-  const gebruikt = new Set([...html.matchAll(/padelData\/([A-Za-z]+)/g)].map(m => m[1]));
+  const gebruikt = new Set([...(html + '\n' + foutlogJs).matchAll(/padelData\/([A-Za-z]+)/g)].map(m => m[1]));
   for (const g of gebruikt) assert.ok(toegestaan.includes(g), `de app gebruikt padelData/${g}, maar de regels kennen die plek niet`);
 });
