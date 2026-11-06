@@ -1679,6 +1679,39 @@
         @media (min-width: 1000px) {
             :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
         }
+    
+        /* ---------- Blok: Alle wedstrijden ---------- */
+        .aw-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+        .aw-filters select {
+            flex: 1 1 140px;
+            background: var(--bg-color);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+        .aw-samenvatting { font-size: 0.85rem; color: var(--text-muted); text-align: center; }
+        .aw-kop { font-size: 0.85rem; font-weight: 800; color: var(--accent-blue); padding: 6px 2px 0; }
+        .aw-rij { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 8px; }
+        .aw-rij > summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .aw-rij > summary::-webkit-details-marker { display: none; }
+        .aw-meta { font-size: 0.8rem; color: var(--text-muted); }
+        .aw-teams { font-size: 0.95rem; color: var(--text-main); }
+        .aw-winnaar { font-weight: 800; }
+        .aw-uitslag { display: flex; justify-content: space-between; gap: 8px; font-size: 0.95rem; font-weight: 700; color: var(--accent-blue); }
+        .aw-details { padding: 2px 10px 10px; font-size: 0.88rem; color: var(--text-main); display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--card-border); margin-top: 2px; padding-top: 8px; }
+        .aw-afgelast { color: #fca5a5; font-weight: 700; font-size: 0.9rem; }
+        .aw-telt { color: #6ee7b7; }
+        .aw-telt-niet { color: var(--text-muted); }
     </style>
 </head>
 <body>
@@ -1930,6 +1963,24 @@
         </details>
     </div>
 
+    <!-- Aparte Blok: Alle wedstrijden -->
+    <div class="card" id="alleWedstrijdenCard">
+        <details ontoggle="updateCollapseArrow(this)">
+            <summary class="card-header collapsible-header" style="list-style: none;">
+                <div class="section-title" style="font-size: 1.05rem;">📚 Alle wedstrijden</div>
+                <span class="collapse-arrow">▼ Open</span>
+            </summary>
+            <div class="collapsible-body" style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="aw-filters">
+                    <select id="awCyclus" onchange="awKiesCyclus(this.value)"></select>
+                    <select id="awSpeler" onchange="awKiesSpeler(this.value)"></select>
+                </div>
+                <div id="awSamenvatting" class="aw-samenvatting"></div>
+                <div id="awLijst" style="display: flex; flex-direction: column; gap: 6px;"></div>
+            </div>
+        </details>
+    </div>
+
     <div class="card" id="chatCardSection">
         <div class="card-header">
             <div class="section-title" style="font-size: 1.05rem;">💬 Team Chat</div>
@@ -2060,7 +2111,7 @@
     };
     setInterval(stuurFoutWachtrij, 5000);
 
-    const APP_VERSION = "8.84"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.85"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -2595,6 +2646,7 @@
             checkAndStoreCyclusWinner();
             renderSetsRanking();
             renderSchedule();
+            renderAlleWedstrijden();
         });
 
         db.ref('padelData/cyclusWinnaars').on('value', (snapshot) => {
@@ -2807,6 +2859,200 @@
         return j1 === j2 ? `${j1}` : `${j1}/${j2}`;
     }
 
+    // ---------- Breed scherm (pc): alle blokken staan standaard open ----------
+    let weekOpenState = {};
+
+    function isBreedScherm() {
+        return window.matchMedia('(min-width: 1000px)').matches;
+    }
+
+    function weekIsOpen(weekKey) {
+        return weekOpenState[weekKey] !== undefined ? weekOpenState[weekKey] : isBreedScherm();
+    }
+
+    function onWeekToggle(weekKey, el) {
+        weekOpenState[weekKey] = el.open;
+        updateCollapseArrow(el);
+    }
+
+    function openAllesOpBreedScherm() {
+        if (!isBreedScherm()) return;
+        document.querySelectorAll('details:not(.aw-rij)').forEach(d => { if (!d.open) d.open = true; });
+        const body = document.getElementById('baanBoekingenBody');
+        if (body && body.style.display !== 'flex') toggleBaanBoekingMenu();
+    }
+
+    // ---------- Blok: Alle wedstrijden ----------
+    let awCyclusKeuze = 'alle';
+    let awSpelerKeuze = 'alle';
+    let awOpenRijen = {};
+
+    function awKiesCyclus(waarde) { awCyclusKeuze = waarde; renderAlleWedstrijden(); }
+    function awKiesSpeler(waarde) { awSpelerKeuze = waarde; renderAlleWedstrijden(); }
+    function awRijToggle(id, el) { awOpenRijen[id] = el.open; }
+
+    function awMaakWedstrijd(id, res, afgelast) {
+        const info = PadelRegels.leesMatchId(id);
+        const m = id.match(/^(\d{4})_w(\d+)_/);
+        if (!info || !m) return null;
+        const jaar = parseInt(m[1], 10);
+        const weekNr = parseInt(m[2], 10);
+        const slot = info.slot;
+        const weekKey = `${jaar}_w${weekNr}`;
+        const overrides = liveOverrides[weekKey] || {};
+        const hoofdSlot = slot.charAt(0).toUpperCase() + slot.slice(1);
+        const weekMaandag = isoWeekToMonday(jaar, weekNr);
+        const dagIdx = getDayIndexFromName(overrides[`custom${hoofdSlot}`] || slot);
+        const datum = new Date(weekMaandag);
+        datum.setDate(weekMaandag.getDate() + ((dagIdx === 0 ? 7 : dagIdx) - 1));
+        const geplandeTijd = overrides[`${slot}Tijd`] || overrides[`custom${hoofdSlot}Tijd`] || '18:30';
+        const tijd = /^[0-9]{2}:[0-9]{2}$/.test(String(geplandeTijd)) ? String(geplandeTijd) : '18:30';
+        const start = new Date(datum);
+        start.setHours(parseInt(tijd.slice(0, 2), 10), parseInt(tijd.slice(3, 5), 10), 0, 0);
+        let tpl = defaultTemplate[info.templateIndex];
+        if (info.cyclus === 0 && info.templateIndex === 0) tpl = SCHEMA_WEEK1_CYCLUS1;
+        const standaard = ((tpl && tpl[slot]) || []).slice();
+
+        let spelers;
+        if (res) {
+            spelers = Array.isArray(res.players) ? res.players.slice() : Object.values(res.players || {});
+        } else {
+            const ov = overrides[slot];
+            spelers = Array.isArray(ov) ? ov.slice() : (ov && ov.players ? Object.values(ov.players) : standaard.slice());
+        }
+        if (spelers.length < 4) return null;
+
+        const sets = [];
+        let games1 = 0, games2 = 0, sets1 = 0, sets2 = 0;
+        if (res) {
+            [[res.t1s1, res.t2s1], [res.t1s2, res.t2s2], [res.t1s3, res.t2s3]].forEach((set, i) => {
+                const a = Number(set[0]) || 0;
+                const b = Number(set[1]) || 0;
+                if (a > 0 || b > 0 || i === 0) {
+                    sets.push(`${a}-${b}`);
+                    games1 += a; games2 += b;
+                    if (a > b) sets1++; else if (b > a) sets2++;
+                }
+            });
+        }
+        let winnaar = 0;
+        if (sets1 !== sets2) winnaar = sets1 > sets2 ? 1 : 2;
+        else if (games1 !== games2) winnaar = games1 > games2 ? 1 : 2;
+
+        const ingevallen = [];
+        for (let i = 0; i < 4; i++) {
+            const std = standaard[i];
+            const act = spelers[i];
+            if (std && act && act !== std && !spelers.includes(std)) ingevallen.push({ invaller: act, voor: std });
+        }
+        return { id, cyclus: info.cyclus, weekNr, slot, datum, tijd, startMs: start.getTime(), standaard, spelers, sets, games1, games2, sets1, sets2, winnaar, ingevallen, afgelast: !!afgelast };
+    }
+
+    function awVerzamelWedstrijden() {
+        const uit = [];
+        Object.keys(matchResults || {}).forEach(id => {
+            const w = awMaakWedstrijd(id, matchResults[id], false);
+            if (w) uit.push(w);
+        });
+        // Afgelaste wedstrijden uit het verleden (zonder uitslag)
+        Object.keys(liveOverrides || {}).forEach(weekKey => {
+            ['dinsdag', 'donderdag'].forEach(slot => {
+                const id = `${weekKey}_${slot}`;
+                if (matchResults && matchResults[id]) return;
+                if (!isMatchCancelled(weekKey, slot)) return;
+                const w = awMaakWedstrijd(id, null, true);
+                if (w && w.startMs < Date.now()) uit.push(w);
+            });
+        });
+        uit.sort((a, b) => b.startMs - a.startMs);
+        return uit;
+    }
+
+    function renderAlleWedstrijden() {
+        const lijstEl = document.getElementById('awLijst');
+        if (!lijstEl) return;
+        const alle = awVerzamelWedstrijden();
+
+        // keuzelijsten bijwerken
+        const cycli = [...new Set(alle.map(w => w.cyclus))].sort((a, b) => b - a);
+        if (awCyclusKeuze !== 'alle' && !cycli.includes(parseInt(awCyclusKeuze, 10))) awCyclusKeuze = 'alle';
+        const selC = document.getElementById('awCyclus');
+        selC.innerHTML = '<option value="alle">Alle cycli</option>' + cycli.map(c => `<option value="${c}">Cyclus ${c + 1}</option>`).join('');
+        selC.value = String(awCyclusKeuze);
+        const selS = document.getElementById('awSpeler');
+        selS.innerHTML = '<option value="alle">Alle spelers</option>' + basePlayers.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+        selS.value = awSpelerKeuze;
+
+        const lijst = alle.filter(w =>
+            (awCyclusKeuze === 'alle' || w.cyclus === parseInt(awCyclusKeuze, 10)) &&
+            (awSpelerKeuze === 'alle' || w.spelers.includes(awSpelerKeuze)));
+
+        // samenvatting
+        const gespeeld = lijst.filter(w => !w.afgelast);
+        let tekst = `${gespeeld.length} wedstrijd${gespeeld.length === 1 ? '' : 'en'}`;
+        const afgelastAantal = lijst.length - gespeeld.length;
+        if (afgelastAantal > 0) tekst += `, ${afgelastAantal} afgelast`;
+        if (awSpelerKeuze !== 'alle') {
+            let gew = 0, ver = 0, gel = 0;
+            gespeeld.forEach(w => {
+                const team = w.spelers.indexOf(awSpelerKeuze) < 2 ? 1 : 2;
+                if (w.winnaar === 0) gel++; else if (w.winnaar === team) gew++; else ver++;
+            });
+            tekst += ` met ${awSpelerKeuze}: ${gew} gewonnen, ${ver} verloren` + (gel ? `, ${gel} gelijk` : '');
+        }
+        document.getElementById('awSamenvatting').textContent = tekst;
+
+        if (lijst.length === 0) {
+            lijstEl.innerHTML = '<div style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">Geen wedstrijden gevonden.</div>';
+            return;
+        }
+
+        const naamHtml = (w, n) => w.standaard.includes(n) ? esc(n) : `<span style="text-decoration: line-through; opacity: 0.7;">${esc(n)}</span>`;
+        let html = '';
+        let vorigeCyclus = null;
+        lijst.forEach(w => {
+            if (awCyclusKeuze === 'alle' && w.cyclus !== vorigeCyclus) {
+                html += `<div class="aw-kop">Cyclus ${w.cyclus + 1}</div>`;
+                vorigeCyclus = w.cyclus;
+            }
+            const s = w.spelers;
+            const datumTekst = w.datum.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+            const team1 = `${naamHtml(w, s[0])} + ${naamHtml(w, s[1])}`;
+            const team2 = `${naamHtml(w, s[2])} + ${naamHtml(w, s[3])}`;
+            const klasse = (t) => (w.winnaar === t ? ' class="aw-winnaar"' : '');
+            const onder = w.afgelast
+                ? '<div class="aw-afgelast">Afgelast</div>'
+                : `<div class="aw-uitslag"><span>${esc(w.sets.join(' · '))}</span><span>${w.games1}-${w.games2}</span></div>`;
+
+            let details = '';
+            if (w.afgelast) {
+                details += '<div>Deze wedstrijd is afgelast en telt niet mee.</div>';
+            } else {
+                const winnaarTekst = w.winnaar === 0 ? 'Gelijkspel' : `Winnaar: <b>${esc(w.winnaar === 1 ? `${s[0]} + ${s[1]}` : `${s[2]} + ${s[3]}`)}</b>`;
+                details += `<div>${winnaarTekst} (${w.sets1}-${w.sets2} in sets, ${w.games1}-${w.games2} in games)</div>`;
+                s.forEach((n, i) => {
+                    const eigenGames = i < 2 ? w.games1 : w.games2;
+                    if (!basePlayers.includes(n)) details += `<div class="aw-telt-niet">${esc(n)}: telt niet mee (geen vaste speler)</div>`;
+                    else if (w.standaard.includes(n)) details += `<div class="aw-telt">${esc(n)}: telt mee, ${eigenGames} games</div>`;
+                    else details += `<div class="aw-telt-niet">${esc(n)}: telt niet mee (invaller)</div>`;
+                });
+            }
+            if (w.ingevallen.length > 0) {
+                details += `<div>Ingevallen: ${w.ingevallen.map(x => `${esc(x.invaller)} voor ${esc(x.voor)}`).join(', ')}</div>`;
+            }
+            html += `
+                <details class="aw-rij" ${awOpenRijen[w.id] ? 'open' : ''} ontoggle="awRijToggle('${w.id}', this)">
+                    <summary>
+                        <div class="aw-meta">${esc(datumTekst)} · ${esc(w.tijd)} · week ${w.weekNr} · cyclus ${w.cyclus + 1}</div>
+                        <div class="aw-teams"><span${klasse(1)}>${team1}</span> <span class="vs-text">tegen</span> <span${klasse(2)}>${team2}</span></div>
+                        ${onder}
+                    </summary>
+                    <div class="aw-details">${details}</div>
+                </details>`;
+        });
+        lijstEl.innerHTML = html;
+    }
+
     function toggleCyclusWedstrijden(idx) {
         const lijst = document.getElementById(`cyclusWedstrijden_${idx}`);
         const pijl = document.getElementById(`cyclusPijl_${idx}`);
@@ -2952,7 +3198,7 @@
 
                 const podiumRijen = bouwPodiumRijen(eerste, tweede, derde, gamesVan, wedstrijdenVan);
 
-                const isOpen = !!geopendeCycli[idx];
+                const isOpen = geopendeCycli[idx] === undefined ? isBreedScherm() : !!geopendeCycli[idx];
                 return `
                     <div style="display: flex; flex-direction: column; gap: 3px; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
                         <div onclick="toggleCyclusWedstrijden(${jsArg(idx)})" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
@@ -3930,7 +4176,19 @@
         renderAbsenceTable();
         renderSetsRanking();
         renderBaanBoekingen();
+        renderAlleWedstrijden();
     }
+
+    // Op een pc staan alle blokken standaard open: bij het laden en zodra het venster breed wordt
+    (function () {
+        const start = () => openAllesOpBreedScherm();
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+        const breed = window.matchMedia('(min-width: 1000px)');
+        const bijWijziging = (e) => {
+            if (e.matches) { weekOpenState = {}; geopendeCycli = {}; openAllesOpBreedScherm(); renderAll(); }
+        };
+        if (breed.addEventListener) breed.addEventListener('change', bijWijziging); else if (breed.addListener) breed.addListener(bijWijziging);
+    })();
 
     function getMonday(d) {
         d = new Date(d);
@@ -4250,12 +4508,12 @@
             } else {
                 html += `
                     <div class="week-card">
-                        <details ontoggle="updateCollapseArrow(this)">
+                        <details ${weekIsOpen(uniqueWeekKey) ? 'open' : ''} ontoggle="onWeekToggle('${uniqueWeekKey}', this)">
                             <summary class="week-header collapsible-header" style="list-style: none;">
                                 <span class="week-title-text">Week ${currentWeekNum}</span>
                                 <div class="week-header-right">
                                     <span class="schema-week-tag">Week ${schemaWeekNum}</span>
-                                    <span class="collapse-arrow">▼ Open</span>
+                                    <span class="collapse-arrow">${weekIsOpen(uniqueWeekKey) ? '▲ Sluiten' : '▼ Open'}</span>
                                 </div>
                             </summary>
                             <div class="collapsible-body" style="margin-top: 0;">
