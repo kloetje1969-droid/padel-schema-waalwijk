@@ -1753,6 +1753,38 @@
         .aw-afgelast { color: #fca5a5; font-weight: 700; font-size: 0.9rem; }
         .aw-telt { color: #6ee7b7; }
         .aw-telt-niet { color: var(--text-muted); }
+    
+        /* ---------- Online-status op telefoon en tablet: 3 rijen van 2 gelijke blokken, schalen mee met het scherm ---------- */
+        @media (max-width: 999.98px) {
+            .status-container {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-auto-rows: 1fr;
+                gap: clamp(4px, 1.6vw, 8px);
+                justify-content: stretch;
+            }
+
+            .status-badge {
+                min-width: 0;
+                width: auto;
+                justify-content: flex-start;
+                padding: clamp(4px, 1.6vw, 8px) clamp(6px, 2.4vw, 12px);
+                gap: clamp(5px, 2vw, 10px);
+                font-size: clamp(0.74rem, 3.5vw, 0.95rem);
+            }
+
+            .status-avatar {
+                width: clamp(26px, 9vw, 40px);
+                height: clamp(26px, 9vw, 40px);
+            }
+
+            .status-avatar-letter { font-size: clamp(0.8rem, 3.6vw, 1.1rem); }
+
+            .status-time {
+                font-size: clamp(0.62rem, 2.8vw, 0.8rem);
+                overflow-wrap: anywhere;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2155,7 +2187,7 @@
     };
     setInterval(stuurFoutWachtrij, 5000);
 
-    const APP_VERSION = "8.88"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.89"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -4194,7 +4226,7 @@
                 if (!isOnline) {
                     if (item.lastSeenTs > 0) {
                         let exactTimeStr = formatExactDateTime(item.lastSeenTs);
-                        if (exactTimeStr) subText = `<span class="status-time">Laatst: ${exactTimeStr}</span>`;
+                        if (exactTimeStr) subText = `<span class="status-time">${exactTimeStr}</span>`;
                     } else {
                         subText = `<span class="status-time">Offline</span>`;
                     }
