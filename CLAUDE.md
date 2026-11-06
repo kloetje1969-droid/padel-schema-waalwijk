@@ -1,6 +1,6 @@
 # Padelschema: uitleg voor Claude Code
 
-Antwoord altijd in het Nederlands. De app is voor een groep van zes vrienden die padelen (Marcel, Mark, Ronald, Sander, Dennis, Robert). Het is geen bedrijfsproject: houd het eenvoudig en voorspelbaar. Dit bestand hoort bij app-versie 8.92.
+Antwoord altijd in het Nederlands. De app is voor een groep van zes vrienden die padelen (Marcel, Mark, Ronald, Sander, Dennis, Robert). Het is geen bedrijfsproject: houd het eenvoudig en voorspelbaar. Dit bestand hoort bij app-versie 8.93.
 
 ## Wat is dit
 Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekingen, weer en pushmeldingen. De app bestaat uit `index.html` (de code), `stijl.css` (de opmaak) en `foutlog.js` (de foutenlog), met kleine serverfuncties op Vercel, Firebase Realtime Database als opslag. Live op https://padel-schema-waalwijk.vercel.app. Elke push naar `main` wordt door Vercel vanzelf live gezet.

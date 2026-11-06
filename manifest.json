@@ -3,8 +3,8 @@
   "short_name": "Padel",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0b0f19",
-  "theme_color": "#0b0f19",
+  "background_color": "#0f1f17",
+  "theme_color": "#0f1f17",
   "icons": [
     {
       "src": "icon-192.png",
