@@ -1,6 +1,6 @@
 # Padelschema: uitleg voor Claude Code
 
-Antwoord altijd in het Nederlands. De app is voor een groep van zes vrienden die padelen (Marcel, Mark, Ronald, Sander, Dennis, Robert). Het is geen bedrijfsproject: houd het eenvoudig en voorspelbaar. Dit bestand hoort bij app-versie 8.94.
+Antwoord altijd in het Nederlands. De app is voor een groep van zes vrienden die padelen (Marcel, Mark, Ronald, Sander, Dennis, Robert). Het is geen bedrijfsproject: houd het eenvoudig en voorspelbaar. Dit bestand hoort bij app-versie 8.95.
 
 ## Wat is dit
 Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekingen, weer en pushmeldingen. De app bestaat uit `index.html` (de code), `stijl.css` (de opmaak) en `foutlog.js` (de foutenlog), met kleine serverfuncties op Vercel, Firebase Realtime Database als opslag. Live op https://padel-schema-waalwijk.vercel.app. Elke push naar `main` wordt door Vercel vanzelf live gezet.
@@ -35,6 +35,7 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 4. **Live:** de eigenaar voegt de pull request samen; Vercel zet `main` dan vanzelf live. Terugdraaien gaat op dezelfde manier met een nieuwe wijziging.
 
 ## Hoe de app zich gedraagt (niet stukmaken)
+- **Verversen naar een nieuwe versie:** `checkAppVersion` kijkt elke 5 minuten en bij het openen van de app of `APP_VERSION` op de server anders is en herlaadt dan. Sinds 8.95 wacht hij daarmee als `gebruikerIsBezig()` waar is (tekst in de chat, een gekozen bijlage, een open venster of de cursor in een invoerveld); de volgende controle probeert het opnieuw.
 - Inloggen gaat via `api/login.js` (pincode op de server, Firebase custom token met `lid` en voor Robert `robert`). Er is geen anonieme login meer. Na 30 dagen vraagt een apparaat weer om de code.
 - Elke wijziging van het rooster, een uitslag, boeking, afmelding of weer openen/afgelasten vraagt eerst om bevestiging met `bevestigDialoog(...)` en post daarna een systeembericht (met push). Meldingen en vragen aan de gebruiker gaan met `bevestigDialoog` of `toonMelding` (eigen venster); gebruik nooit `alert()` of `confirm()`.
 - Pushmeldingen kunnen door Robert aan/uit worden gezet (`padelData/settings/pushGloballyEnabled`). Alle cron-jobs en `notify.js` moeten dat blijven respecteren.

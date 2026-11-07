@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=8.94">
+    <link rel="stylesheet" href="stijl.css?v=8.95">
 </head>
 <body>
 
@@ -378,10 +378,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=8.94"></script>
+<script src="foutlog.js?v=8.95"></script>
 <script>
 
-    const APP_VERSION = "8.94"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.95"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -423,13 +423,28 @@
 
     const emojiIconHtml = `<span class="emoji-icon dynamic-ball-icon">${getPadelIcon()}</span>`;
 
+    // Niet verversen terwijl iemand bezig is: tekst in de chat, een gekozen bijlage,
+    // een open venster of de cursor in een invoerveld. De volgende controle probeert het opnieuw.
+    function gebruikerIsBezig() {
+        const chat = document.getElementById('chatInput');
+        if (chat && chat.value.trim() !== '') return true;
+        try { if (selectedFileBase64) return true; } catch (e) {} // nog niet aangemaakt: geen bijlage
+        const vensters = ['pinModal', 'foutlogModal', 'periodeModal', 'bevestigModal', 'replaceModal', 'imageModal'];
+        if (vensters.some((id) => {
+            const el = document.getElementById(id);
+            return el && getComputedStyle(el).display !== 'none';
+        })) return true;
+        const actief = document.activeElement;
+        return !!(actief && /^(INPUT|TEXTAREA|SELECT)$/.test(actief.tagName));
+    }
+
     async function checkAppVersion() {
         try {
             const res = await fetch('index.html?v=' + Date.now(), { cache: 'no-store' });
             const htmlText = await res.text();
             if (htmlText.includes('APP_VERSION')) {
                 const match = htmlText.match(/const APP_VERSION = "([^"]+)"/);
-                if (match && match[1] && match[1] !== APP_VERSION) {
+                if (match && match[1] && match[1] !== APP_VERSION && !gebruikerIsBezig()) {
                     window.location.reload(true);
                 }
             }
