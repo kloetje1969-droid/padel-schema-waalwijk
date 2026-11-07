@@ -1,9 +1,9 @@
 import { db, TZ, isCronAuthorized, getTokensByPlayer, tokensOf, sendToTokens } from '../lib/padel.js';
 
-// Cron-job 6 (elke 5 minuten): meldt alleen aan Robert wie er online is geweest, hoe laat
+// Cron-job 6 (elke 10 minuten): meldt alleen aan Robert wie er online is geweest, hoe laat
 // hij inlogde en hoe lang. De app schrijft per verbinding een record in onlineSessies
 // ({ naam, sinds, laatst }, servertijd). Bezoeken die binnen 10 minuten op elkaar volgen
-// tellen als één bezoek. Een bezoek wordt gemeld als er 10 minuten niets meer van kwam;
+// tellen als één bezoek; de duur is alleen de tijd dat de app in beeld was. Een bezoek wordt gemeld als er 10 minuten niets meer van kwam;
 // daarna worden de records gewist. Staat de push voor de groep uit, dan wordt er niets
 // verstuurd en ruimen we de afgeronde bezoeken stil op.
 
@@ -20,7 +20,9 @@ function dag(ms) {
 }
 
 function duur(ms) {
-  const min = Math.max(1, Math.round(ms / 60000));
+  const sec = Math.max(1, Math.round(ms / 1000));
+  if (sec < 60) return `${sec} ${sec === 1 ? 'seconde' : 'seconden'}`;
+  const min = Math.round(ms / 60000);
   if (min < 60) return `${min} ${min === 1 ? 'minuut' : 'minuten'}`;
   const uur = Math.floor(min / 60);
   const rest = min % 60;
@@ -37,10 +39,11 @@ export function groepeerBezoeken(records) {
     let huidig = null;
     for (const r of lijst) {
       if (huidig && r.sinds <= huidig.laatst + SAMEN_MS) {
+        huidig.actief += Math.max(0, r.laatst - Math.max(r.sinds, huidig.laatst));
         huidig.laatst = Math.max(huidig.laatst, r.laatst);
         huidig.sleutels.push(r.sleutel);
       } else {
-        huidig = { naam, sinds: r.sinds, laatst: r.laatst, sleutels: [r.sleutel] };
+        huidig = { naam, sinds: r.sinds, laatst: r.laatst, actief: r.laatst - r.sinds, sleutels: [r.sleutel] };
         bezoeken.push(huidig);
       }
     }
@@ -51,9 +54,12 @@ export function groepeerBezoeken(records) {
 export function meldingTekst(bezoek, nu) {
   const vandaag = dag(nu) === dag(bezoek.sinds);
   const begin = vandaag ? tijd(bezoek.sinds) : `${dag(bezoek.sinds)} ${tijd(bezoek.sinds)}`;
+  // 'actief' = de tijd dat de app echt in beeld was (de pauzes tussen samengevoegde bezoeken tellen niet)
+  const actief = typeof bezoek.actief === 'number' ? bezoek.actief : bezoek.laatst - bezoek.sinds;
+  const totZin = bezoek.laatst - bezoek.sinds < 60000 ? '' : ` (tot ${tijd(bezoek.laatst)})`;
   return {
     title: `👀 ${bezoek.naam} was online`,
-    body: `Ingelogd om ${begin}, ${duur(bezoek.laatst - bezoek.sinds)} online (tot ${tijd(bezoek.laatst)})`
+    body: `Ingelogd om ${begin}, ${duur(actief)} online${totZin}`
   };
 }
 

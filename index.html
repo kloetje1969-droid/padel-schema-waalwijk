@@ -596,6 +596,7 @@
     const SESSIE_HEARTBEAT_MS = 60000;
     let onlineSessieRef = null;
     let onlineSessieHeartbeat = null;
+    let onlineSessieNaam = null;
     let sessionStartTime = null;
     let firebaseConnected = false;
     let appInitialized = false;
@@ -2331,22 +2332,29 @@
         }
     }
 
+    // Een bezoek telt alleen zolang de app in beeld is: uit beeld = bezoek klaar, weer in beeld = nieuw bezoek
     function startOnlineSessie(naam) {
         stopOnlineSessie();
+        onlineSessieNaam = naam;
         if (naam === 'Robert') return; // over zichzelf krijgt Robert geen melding
+        if (document.visibilityState === 'hidden') return;
         const nu = firebase.database.ServerValue.TIMESTAMP;
         const ref = db.ref('onlineSessies').push();
         onlineSessieRef = ref;
-        ref.onDisconnect().update({ laatst: nu })
-            .then(() => ref.set({ naam: naam, sinds: nu, laatst: nu }))
-            .then(() => {
-                if (onlineSessieRef !== ref) return;
-                onlineSessieHeartbeat = setInterval(() => {
-                    ref.update({ laatst: firebase.database.ServerValue.TIMESTAMP }).catch(() => {});
-                }, SESSIE_HEARTBEAT_MS);
-            })
-            .catch(() => {});
+        // in deze volgorde versturen: eerst het record, dan de afspraak voor het verbreken
+        ref.set({ naam: naam, sinds: nu, laatst: nu }).catch(() => {});
+        ref.onDisconnect().update({ laatst: nu }).catch(() => {});
+        onlineSessieHeartbeat = setInterval(() => {
+            ref.update({ laatst: firebase.database.ServerValue.TIMESTAMP }).catch(() => {});
+        }, SESSIE_HEARTBEAT_MS);
     }
+
+    document.addEventListener('visibilitychange', () => {
+        if (!onlineSessieNaam) return;
+        if (document.visibilityState === 'hidden') stopOnlineSessie();
+        else if (firebaseConnected && !onlineSessieRef) startOnlineSessie(onlineSessieNaam);
+    });
+    window.addEventListener('pagehide', () => stopOnlineSessie());
 
     function setupOnlinePresence() {
         if (!currentUserName) return;
