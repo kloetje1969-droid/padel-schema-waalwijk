@@ -78,7 +78,7 @@ test('index.html laadt de gedeelde regels en gebruikt geen browserpopups', () =>
 });
 
 test('de cron-jobs en de back-up controleren de geheime sleutel', () => {
-  for (const f of ['match-reminder.js', 'cron-weather.js', 'result-reminder.js', 'kingkong-winnaar.js', 'backup.js']) {
+  for (const f of ['match-reminder.js', 'cron-weather.js', 'result-reminder.js', 'kingkong-winnaar.js', 'backup.js', 'online-melding.js']) {
     assert.match(lees(`api/${f}`), /isCronAuthorized\(req\)/, `${f} controleert de x-cron-secret niet`);
   }
 });
@@ -137,4 +137,7 @@ test('de app schrijft alleen naar plekken die de databaseregels kennen', () => {
   const toegestaan = Object.keys(regels.padelData).filter(k => !k.startsWith('.'));
   const gebruikt = new Set([...(html + '\n' + foutlogJs).matchAll(/padelData\/([A-Za-z]+)/g)].map(m => m[1]));
   for (const g of gebruikt) assert.ok(toegestaan.includes(g), `de app gebruikt padelData/${g}, maar de regels kennen die plek niet`);
+  // plekken buiten padelData (alleen schrijven, lezen doet de server)
+  const buiten = new Set([...html.matchAll(/db\.ref\('([A-Za-z]+)'\)/g)].map(m => m[1]).filter(k => k !== 'padelData'));
+  for (const g of buiten) assert.ok(regels[g], `de app schrijft naar ${g}, maar de regels kennen die plek niet`);
 });

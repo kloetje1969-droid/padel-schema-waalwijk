@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=8.95">
+    <link rel="stylesheet" href="stijl.css?v=8.96">
 </head>
 <body>
 
@@ -378,10 +378,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=8.95"></script>
+<script src="foutlog.js?v=8.96"></script>
 <script>
 
-    const APP_VERSION = "8.95"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.96"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -590,6 +590,12 @@
     let presenceConnectedRef = null;
     let presenceConnectedHandler = null;
     let presenceHeartbeat = null;
+
+    // Bezoeken voor de online-melding aan Robert (api/online-melding.js). Staat buiten padelData,
+    // zodat alleen de server het kan lezen. Per verbinding één record; de server ruimt ze op.
+    const SESSIE_HEARTBEAT_MS = 60000;
+    let onlineSessieRef = null;
+    let onlineSessieHeartbeat = null;
     let sessionStartTime = null;
     let firebaseConnected = false;
     let appInitialized = false;
@@ -2312,8 +2318,39 @@
         db.ref(`padelData/lastSeen/${myRealName}`).set(Date.now());
     }
 
+    function stopOnlineSessie() {
+        if (onlineSessieHeartbeat) {
+            clearInterval(onlineSessieHeartbeat);
+            onlineSessieHeartbeat = null;
+        }
+        const ref = onlineSessieRef;
+        onlineSessieRef = null;
+        if (ref && firebaseConnected) {
+            ref.onDisconnect().cancel().catch(() => {});
+            ref.update({ laatst: firebase.database.ServerValue.TIMESTAMP }).catch(() => {});
+        }
+    }
+
+    function startOnlineSessie(naam) {
+        stopOnlineSessie();
+        if (naam === 'Robert') return; // over zichzelf krijgt Robert geen melding
+        const nu = firebase.database.ServerValue.TIMESTAMP;
+        const ref = db.ref('onlineSessies').push();
+        onlineSessieRef = ref;
+        ref.onDisconnect().update({ laatst: nu })
+            .then(() => ref.set({ naam: naam, sinds: nu, laatst: nu }))
+            .then(() => {
+                if (onlineSessieRef !== ref) return;
+                onlineSessieHeartbeat = setInterval(() => {
+                    ref.update({ laatst: firebase.database.ServerValue.TIMESTAMP }).catch(() => {});
+                }, SESSIE_HEARTBEAT_MS);
+            })
+            .catch(() => {});
+    }
+
     function setupOnlinePresence() {
         if (!currentUserName) return;
+        stopOnlineSessie();
 
         if (presenceConnectedRef && presenceConnectedHandler) {
             presenceConnectedRef.off('value', presenceConnectedHandler);
@@ -2340,8 +2377,16 @@
                     clearInterval(presenceHeartbeat);
                     presenceHeartbeat = null;
                 }
+                // de server zet 'laatst' zelf via onDisconnect; hier alleen het tikken stoppen
+                if (onlineSessieHeartbeat) {
+                    clearInterval(onlineSessieHeartbeat);
+                    onlineSessieHeartbeat = null;
+                }
+                onlineSessieRef = null;
                 return;
             }
+
+            startOnlineSessie(myRealName);
 
             const updatePresenceData = () => {
                 if (!presenceRef) return;
