@@ -182,6 +182,24 @@
           ".validate": "($naam === 'Marcel' || $naam === 'Mark' || $naam === 'Ronald' || $naam === 'Sander' || $naam === 'Dennis' || $naam === 'Robert') && newData.isString() && newData.val().length <= 20000 && newData.val().matches(/^data:image\\/jpeg;base64,[A-Za-z0-9+\\/=]+$/)"
         }
       }
+    },
+    "onlineSessies": {
+      "$sessie": {
+        ".write": "auth != null && auth.token.lid === true",
+        ".validate": "newData.hasChildren(['naam', 'sinds', 'laatst'])",
+        "naam": {
+          ".validate": "newData.isString() && (newData.val() === 'Marcel' || newData.val() === 'Mark' || newData.val() === 'Ronald' || newData.val() === 'Sander' || newData.val() === 'Dennis')"
+        },
+        "sinds": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "laatst": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }
