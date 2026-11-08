@@ -43,7 +43,7 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 - `firebase-rules.json`: kopie van de databaseregels. Vercel zet die NIET live; de eigenaar plakt ze in de Firebase-console. De controles lezen dit bestand, dus houd het gelijk aan wat in Firebase staat.
 - `regels.test.mjs` en `structuur.test.mjs` staan in de **hoofdmap** (niet in een map `tests`); `.github/workflows/controle.yml` draait ze bij elke wijziging (25 controles).
 - `firebase-messaging-sw.js`, `manifest.json` (kleuren `#0b0f19`) en de iconen horen bij de pushmeldingen en de PWA. Er is geen `vercel.json`.
-- **Niet in de repository** (die is publiek): de pasfoto's en `fotos-import.json`, het Firebase-sleutelbestand (`…firebase-adminsdk….json`), de waarden van geheimen en de handleiding (PDF).
+- **Niet in de repository** (die is publiek): de pasfoto's en `fotos-import.json`, het Firebase-sleutelbestand (`…firebase-adminsdk….json`), de waarden van geheimen en de handleiding (die staat in de privé-repository `padel-handleiding`).
 
 ## Hoe de app zich gedraagt (niet stukmaken)
 - **Verversen naar een nieuwe versie:** `checkAppVersion` kijkt elke 5 minuten en bij het openen van de app of `APP_VERSION` op de server anders is en herlaadt dan. Sinds 8.95 wacht hij daarmee als `gebruikerIsBezig()` waar is (tekst in de chat, een gekozen bijlage, een open venster of de cursor in een invoerveld); de volgende controle probeert het opnieuw.
@@ -69,7 +69,8 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 - Op de wedstrijdkaarten mag geen regel naar de volgende regel springen (dag/tijd en weerbericht passen zichzelf aan met `fitOneLineRows`). Gebruik de bestaande stijl (kaarten met afgeronde hoeken, blauwe en gele vensters).
 
 ## De handleiding
-- Er is een PDF-handleiding "Padelschema, handleiding" (nu `Padelschema-Handleiding-V8.96.pdf`, 34 pagina's). Hij staat **niet** in de repository; de eigenaar bewaart hem zelf en stuurt hem in de chat als hij moet worden bijgewerkt.
+- Er is een PDF-handleiding "Padelschema, handleiding" (nu `Padelschema-Handleiding-V8.96.pdf`, 34 pagina's). Hij staat **niet** in deze openbare repository maar in de **privé-repository `kloetje1969-droid/padel-handleiding`** (sinds 8 november 2026), samen met `maak.py` (tekst en opbouw), `stijl.py` (opmaak, ReportLab) en de map `afbeeldingen/`. Die repository moet privé blijven: de schermafbeeldingen bevatten pasfoto's en chatberichten.
+- Bijwerken gebeurt alleen als de eigenaar erom vraagt en na zijn bevestiging: koppel `padel-handleiding` aan de sessie (`add_repo`), pas `maak.py` aan (bovenaan `VERSIE` en `DATUM`, de tekst en Bijlage C), maak de PDF met `python3 maak.py Padelschema-Handleiding-V<versie>.pdf`, stuur eerst een voorbeeld en maak na "ja" een pull request in die repository. Bewaar daar de huidige en de vorige versie van de PDF.
 - Opbouw: voorkant, inhoud, Deel 1 voor alle spelers (hoofdstukken 1 tot en met 11), Deel 2 voor de beheerder (12 tot en met 16), Bijlagen A (alle wijzigingen op een rij), B (begrippen) en C (nieuw sinds de vorige versie).
 - Stijl: ReportLab, A4, Liberation Sans. Koppen `#0369a1`, tekst 10 pt `#1e293b`, tabellen met een blauwe kopregel en lichtblauwe banen (`#f1f7fb`), kaders met een streep links (blauw `#eaf4fb`, oranje `#fff7e6`, groen `#e9f7f0`), schermafbeeldingen met een dunne grijze rand en een cursief onderschrift, voorkant donker (`#0b1220`) met een blauwe band. Voettekst "Padelschema, handleiding · app-versie X" en het paginanummer. Houd deze stijl aan en werk bij elke nieuwe functie of nieuw versienummer de tekst bij.
 
