@@ -10,6 +10,7 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 2. **Pushen naar de branch mag meteen:** commit en push naar de branch van de sessie, nooit rechtstreeks naar `main`. Dat zet niets live; Vercel maakt er alleen een Preview van. Is de vorige pull request al samengevoegd, begin de branch dan opnieuw vanaf `main`. **Geen pull request voordat de eigenaar "ja" zegt.**
 3. **Pull request:** maak er een (na akkoord) en noem de Vercel-Preview (onder Deployments). Waarschuw dat die dezelfde database gebruikt: alleen kijken, geen uitslagen, afmeldingen of chatberichten invoeren. Inloggen in een Preview lukt niet: de geheimen staan in Vercel alleen bij Production, en dat blijft zo.
 4. **Live:** de eigenaar wacht op het groene vinkje van Controle en voegt de pull request samen (Merge pull request, Confirm merge). Hij uploadt zelf geen bestanden meer. Terugdraaien gaat op dezelfde manier, met een nieuwe wijziging en een nieuw versienummer.
+   **Herinnering handleiding:** is er een wijziging samengevoegd die spelers of de beheerder merken (een nieuwe functie, een andere werking, een nieuw versienummer), vraag dan aan het eind: "Zal ik de handleiding ook bijwerken?" Doe het alleen na "ja" (zie "De handleiding").
 5. **Stappen buiten GitHub** (Firebase-regels plakken, cron-jobs, geheimen in Vercel, foto's importeren) doet de eigenaar zelf: leg die stap voor stap uit, met de exacte plek in het scherm.
 
 ## Regels voor wijzigingen
