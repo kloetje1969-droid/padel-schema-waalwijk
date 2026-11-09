@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=8.96">
+    <link rel="stylesheet" href="stijl.css?v=8.97">
 </head>
 <body>
 
@@ -341,22 +341,22 @@
             <div class="player-select-group">
                 <label>Speler 1</label>
                 <select id="p0Select" onchange="checkCustomInputs()"></select>
-                <input type="text" id="p0Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+                <input type="text" id="p0Custom" maxlength="30" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
             </div>
             <div class="player-select-group">
                 <label>Speler 2</label>
                 <select id="p1Select" onchange="checkCustomInputs()"></select>
-                <input type="text" id="p1Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+                <input type="text" id="p1Custom" maxlength="30" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
             </div>
             <div class="player-select-group">
                 <label>Speler 3</label>
                 <select id="p2Select" onchange="checkCustomInputs()"></select>
-                <input type="text" id="p2Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+                <input type="text" id="p2Custom" maxlength="30" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
             </div>
             <div class="player-select-group">
                 <label>Speler 4</label>
                 <select id="p3Select" onchange="checkCustomInputs()"></select>
-                <input type="text" id="p3Custom" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
+                <input type="text" id="p3Custom" maxlength="30" placeholder="Naam externe speler / invaller" style="display:none; margin-top:4px;">
             </div>
         </div>
 
@@ -378,10 +378,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=8.96"></script>
+<script src="foutlog.js?v=8.97"></script>
 <script>
 
-    const APP_VERSION = "8.96"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.97"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -1086,6 +1086,7 @@
                 const ref = db.ref(`padelData/cyclusWinnaars/${cyclusIdx}`);
                 const snap = await ref.once('value');
                 const existingData = snap.val();
+                if (existingData && existingData.winner) continue;
 
                 let isTimePassed = false;
                 if (existingData && existingData.claimAt && Date.now() >= existingData.claimAt) {
@@ -1114,12 +1115,9 @@
                 const winnerText = podium.winnerText;
                 const summaryText = podium.regels.join('\n');
 
-                let wasAlreadyStored = Boolean(cyclusWinnaars && cyclusWinnaars[cyclusIdx] && cyclusWinnaars[cyclusIdx].winner);
-                
                 const result = await ref.transaction(current => {
-                    if (current && current.winner === winnerText && Number(current.games) === maxGames) {
-                        return;
-                    }
+                    // Een bestaand podium wordt nooit overschreven (net als api/kingkong-winnaar.js)
+                    if (current && current.winner) return;
                     return {
                         winner: winnerText,
                         games: maxGames,
@@ -1135,7 +1133,7 @@
                     };
                 });
 
-                if (result.committed && !wasAlreadyStored && maxGames > 0) {
+                if (result.committed && maxGames > 0) {
                     const fullMsg = `🏆 Uitslag KingKong podium Cyclus ${cyclusIdx + 1}\n${summaryText}`;
                     await addSystemMessageIfUnique(fullMsg);
                 }
@@ -1592,6 +1590,11 @@
         let t1s3 = parseInt(document.getElementById(`t1s3_${matchId}`).value) || 0;
         let t2s3 = parseInt(document.getElementById(`t2s3_${matchId}`).value) || 0;
 
+        if (![t1s1, t2s1, t1s2, t2s2, t1s3, t2s3].every(v => v >= 0 && v <= 99)) {
+            toonMelding("Een set-score moet tussen 0 en 99 liggen.");
+            return;
+        }
+
         let matchData = {
             t1s1, t2s1, t1s2, t2s2, t1s3, t2s3,
             players: [p1, p2, p3, p4]
@@ -1627,7 +1630,13 @@
             if (!wilOpslaan) return;
         }
 
-        await db.ref(`padelData/matchResults/${matchId}`).set(matchData);
+        try {
+            await db.ref(`padelData/matchResults/${matchId}`).set(matchData);
+        } catch (err) {
+            console.error("Uitslag opslaan mislukt:", err);
+            toonMelding("De uitslag kon niet worden opgeslagen. Probeer het opnieuw.");
+            return;
+        }
         showToast("Uitslagen opgeslagen", `Set 1: ${t1s1}-${t2s1} | Set 2: ${t1s2}-${t2s2} | Set 3: ${t1s3}-${t2s3}`);
 
         const team1Naam = `${p1}-${p2}`;
@@ -2686,10 +2695,10 @@
             const donderdagInvalBanner = doCancelled ? '' : invalBannerHtml(uniqueWeekKey, 'donderdag', donderdagPlayers);
 
             let dinsdagAbsenceAlert = (!diCancelled && dinsdagAbsentees.length > 0) 
-                ? `<div class="absence-alert">⚠️ Afwezig: ${dinsdagAbsentees.join(', ')}</div>` : '';
+                ? `<div class="absence-alert">⚠️ Afwezig: ${esc(dinsdagAbsentees.join(', '))}</div>` : '';
 
             let donderdagAbsenceAlert = (!doCancelled && donderdagAbsentees.length > 0) 
-                ? `<div class="absence-alert">⚠️ Afwezig: ${donderdagAbsentees.join(', ')}</div>` : '';
+                ? `<div class="absence-alert">⚠️ Afwezig: ${esc(donderdagAbsentees.join(', '))}</div>` : '';
 
             let diMatchId = `${uniqueWeekKey}_dinsdag`;
             let doMatchId = `${uniqueWeekKey}_donderdag`;
@@ -3395,12 +3404,29 @@
         notifyServer(sysRef.key);
     }
 
+    // Naam van een externe speler/invaller: niet te lang en geen tekens die Firebase in een pad weigert
+    const MAX_NAAM_LENGTE = 30;
+    function naamProbleem(naam) {
+        if (naam.length > MAX_NAAM_LENGTE) {
+            return `De naam "${naam}" is te lang: maximaal ${MAX_NAAM_LENGTE} tekens.`;
+        }
+        if (/[.#$\[\]\/]/.test(naam)) {
+            return `De naam "${naam}" bevat een teken dat niet mag: . # $ [ ] of /. Schrijf bijvoorbeeld "Jan vd Berg" in plaats van "Jan v.d. Berg".`;
+        }
+        return '';
+    }
+
     async function confirmReplacement() {
         let newPlayers = [];
         for (let i = 0; i < 4; i++) {
             let sel = document.getElementById(`p${i}Select`);
             let inp = document.getElementById(`p${i}Custom`);
             let chosenVal = sel.value === "Extern / Invaller" ? (inp.value.trim() || "Invaller") : sel.value;
+            const naamFout = naamProbleem(chosenVal);
+            if (naamFout) {
+                toonMelding(naamFout);
+                return;
+            }
             
             if (currentUserName !== "Robert") {
                 let tpl = defaultTemplate[activeTemplateIndex];
@@ -3429,10 +3455,16 @@
         let path = `padelData/scheduleOverrides/${activeModalUniqueKey}/${activeModalDay}`;
         let currentlyCancelled = isMatchCancelled(activeModalUniqueKey, activeModalDay);
 
-        if (currentlyCancelled) {
-            await db.ref(path).set({ cancelled: true, players: newPlayers });
-        } else {
-            await db.ref(path).set(newPlayers);
+        try {
+            if (currentlyCancelled) {
+                await db.ref(path).set({ cancelled: true, players: newPlayers });
+            } else {
+                await db.ref(path).set(newPlayers);
+            }
+        } catch (err) {
+            console.error("Opstelling opslaan mislukt:", err);
+            toonMelding("De nieuwe opstelling kon niet worden opgeslagen. Probeer het opnieuw.");
+            return;
         }
 
         let msgText = `🔄 Schema gewijzigd voor week ${activeModalWeekNum} (${activeModalDay}): ${newPlayers.join(', ')}`;
@@ -3749,6 +3781,11 @@
 
         const isSub = !basePlayers.includes(playerName);
         if (!isSub && playerName !== currentUserName) return;
+        const naamFout = naamProbleem(playerName);
+        if (naamFout) {
+            toonMelding(naamFout + ' Pas de naam eerst aan via "Wijzig speler/Aflassen".');
+            return;
+        }
         
         const path = `padelData/absence/${playerName}/${uniqueWeekKey}_${day}`;
         db.ref(path).once('value', async snapshot => {
@@ -3917,7 +3954,7 @@
             const isSelf = (m.author === currentUserName);
             const isSystem = (m.type === "system" || m.author === "Systeem" || m.author === "Padel Weerbericht");
             const formattedTime = formatMessageTime(m.timestamp, m.tijd);
-            const tijdWeergave = formattedTime ? `<span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${formattedTime}</span>` : '';
+            const tijdWeergave = formattedTime ? `<span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">${esc(formattedTime)}</span>` : '';
 
             let canDelete = (currentUserName === "Robert" || isSelf || (isSystem && currentUserName === "Robert"));
             let deleteBtnHtml = canDelete ? `<button class="delete-msg-btn" onclick="deleteMessage('${m.key}')" title="Verwijder bericht">✕</button>` : '';
@@ -4002,6 +4039,8 @@
             notifyServer(newMsgRef.key);
         } catch (error) {
             console.error("Fout bij opslaan in Firebase:", error);
+            showToast("Bericht niet verstuurd", "Het bericht kon niet worden opgeslagen. Je tekst staat er nog; probeer het opnieuw.", true);
+            return;
         }
 
         input.value = '';
