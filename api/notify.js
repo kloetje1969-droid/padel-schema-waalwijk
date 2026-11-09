@@ -47,6 +47,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Ongeldige sleutel.' });
     }
 
+    // Push Aan/Uit van Robert: de app controleert dit ook, maar een oude versie op een telefoon misschien niet
+    const pushSnap = await db.ref('padelData/settings/pushGloballyEnabled').once('value');
+    if (pushSnap.val() === false) {
+      return res.status(200).json({ status: 'Pushmeldingen staan uit, geen melding verstuurd.' });
+    }
+
     const snap = await db.ref(`padelData/messages/${key}`).once('value');
     const m = snap.val();
     if (!m) {
