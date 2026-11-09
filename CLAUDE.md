@@ -6,8 +6,6 @@ Antwoord altijd in het Nederlands. De app is voor een groep van zes vrienden die
 Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekingen, weer en pushmeldingen. De app bestaat uit `index.html` (de code), `stijl.css` (de opmaak) en `foutlog.js` (de foutenlog), met kleine serverfuncties op Vercel en Firebase Realtime Database (project `padel-app-b8362`) als opslag. Live op https://padel-schema-waalwijk.vercel.app. Elke wijziging op `main` zet Vercel vanzelf live.
 
 ## Werkwijze: eerst een voorbeeld, dan een pull request
-**Standaard Claude Code:** de eigenaar werkt voortaan standaard met Claude Code (claude.ai/code).
-
 1. **Eerst laten zien:** maak na een wijziging aan het uiterlijk of de werking schermafbeeldingen (telefoon 390 pixels en breed scherm 1280 pixels; zonder pincode alleen het inlogscherm met de app erachter) en stuur die in de chat. Bij een melding: laat de tekst zien zoals de code hem maakt. Bij alleen tekst in `CLAUDE.md` of een controle: laat de wijziging in de chat zien.
 2. **Pushen naar de branch mag meteen:** commit en push naar de branch van de sessie, nooit rechtstreeks naar `main`. Dat zet niets live; Vercel maakt er alleen een Preview van. Is de vorige pull request al samengevoegd, begin de branch dan opnieuw vanaf `main`. **Geen pull request voordat de eigenaar "ja" zegt.**
 3. **Pull request:** maak er een (na akkoord) en noem de Vercel-Preview (onder Deployments). Waarschuw dat die dezelfde database gebruikt: alleen kijken, geen uitslagen, afmeldingen of chatberichten invoeren. Inloggen in een Preview lukt niet: de geheimen staan in Vercel alleen bij Production, en dat blijft zo.
