@@ -44,7 +44,7 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 - `firebase-rules.json`: kopie van de databaseregels. Vercel zet die NIET live; de eigenaar plakt ze in de Firebase-console. De controles lezen dit bestand, dus houd het gelijk aan wat in Firebase staat.
 - `regels.test.mjs` en `structuur.test.mjs` staan in de **hoofdmap** (niet in een map `tests`); `.github/workflows/controle.yml` draait ze bij elke wijziging (25 controles).
 - `firebase-messaging-sw.js`, `manifest.json` (kleuren `#0b0f19`) en de iconen horen bij de pushmeldingen en de PWA. Er is geen `vercel.json`.
-- **Niet in de repository** (die is publiek): de pasfoto's en `fotos-import.json`, het Firebase-sleutelbestand (`…firebase-adminsdk….json`), de waarden van geheimen en de handleiding (die staat in de privé-repository `padel-handleiding`).
+- **Niet in de repository** (die is publiek): de pasfoto's en `fotos-import.json`, het Firebase-sleutelbestand (`firebase-key.json`), de waarden van geheimen en de handleiding (die staat in de privé-repository `padel-handleiding`).
 
 ## Hoe de app zich gedraagt (niet stukmaken)
 - **Verversen naar een nieuwe versie:** `checkAppVersion` kijkt elke 5 minuten en bij het openen van de app of `APP_VERSION` op de server anders is en herlaadt dan. Sinds 8.95 wacht hij daarmee als `gebruikerIsBezig()` waar is (tekst in de chat, een gekozen bijlage, een open venster of de cursor in een invoerveld); de volgende controle probeert het opnieuw.
@@ -83,4 +83,4 @@ Een webapp (PWA) met rooster, uitslagen, KingKong-klassement, chat, baanboekinge
 - Vercel maakt bij elke push naar een branch een Preview; inloggen werkt daar niet (geheimen alleen bij Production).
 
 ## Wat de eigenaar zelf doet
-Pushmeldingen echt testen op toestellen, de Firebase-regels plakken, geheimen in Vercel zetten en zelf veilig bewaren (Vercel laat ze niet meer zien; het Firebase-sleutelbestand heet ongeveer `padel-app-b8362-firebase-adminsdk-….json`), de cron-jobs bij cron-job.org instellen, foto's importeren in Firebase, pull requests samenvoegen en een eigen back-up bewaren buiten de telefoon (vooral na het podium aan het einde van een cyclus). Stel dit voor, doe het niet zelf.
+Pushmeldingen echt testen op toestellen, de Firebase-regels plakken, geheimen in Vercel zetten en zelf veilig bewaren (Vercel laat ze niet meer zien; het Firebase-sleutelbestand heet `firebase-key.json`, met `"project_id": "padel-app-b8362"`; vind de eigenaar het niet, dan blijft de app gewoon werken en maakt hij alleen bij nood een nieuwe sleutel in Firebase: Projectinstellingen, Serviceaccounts, Nieuwe privésleutel genereren), de cron-jobs bij cron-job.org instellen, foto's importeren in Firebase, pull requests samenvoegen en een eigen back-up bewaren buiten de telefoon (vooral na het podium aan het einde van een cyclus). Stel dit voor, doe het niet zelf.
