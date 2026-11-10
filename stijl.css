@@ -1720,6 +1720,101 @@
         .aw-afgelast { color: #fca5a5; font-weight: 700; font-size: 0.9rem; }
         .aw-telt { color: #6ee7b7; }
         .aw-telt-niet { color: var(--text-muted); }
+
+        /* ---------- Blok: BBQ en Borrel (datumprikker) ---------- */
+        @keyframes blinkYellow {
+            0% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #fbbf24; }
+            100% { opacity: 0.3; transform: scale(0.8); }
+        }
+        .bbq-stip {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            margin-left: 4px;
+            flex: 0 0 auto;
+        }
+        .bbq-stip-geel { background: #fbbf24; animation: blinkYellow 1.4s ease-in-out infinite; }
+        .bbq-stip-groen { background: #34d399; animation: blinkGreen 1.4s ease-in-out infinite; }
+        .bbq-maandkeuze { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .bbq-maandkeuze label { font-size: 0.85rem; color: var(--text-muted); }
+        .bbq-maandkeuze select {
+            flex: 1 1 140px;
+            min-width: 0;
+            background: var(--bg-color);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+        .bbq-uitleg { font-size: 0.85rem; color: var(--text-muted); margin: 0; }
+        .bbq-uitleg strong { color: var(--text-main); }
+        .bbq-todo { font-size: 0.88rem; font-weight: 700; color: #fbbf24; margin: 0; }
+        .bbq-klaar { font-size: 0.88rem; font-weight: 700; color: #6ee7b7; margin: 0; }
+        .bbq-gevonden {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            text-align: center;
+            padding: 12px 10px;
+            border-radius: 10px;
+            border: 1px solid #34d399;
+            background: var(--accent-green-bg);
+        }
+        .bbq-gevonden-datum { font-size: 1.15rem; font-weight: 800; color: #6ee7b7; }
+        .bbq-gevonden-tekst { font-size: 0.9rem; font-weight: 700; color: var(--text-main); }
+        .bbq-dagen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+        @media (min-width: 1000px) {
+            .bbq-dagen { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+        }
+        .bbq-dag {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .bbq-dag-gevonden { border-color: #34d399; background: rgba(52, 211, 153, 0.08); }
+        .bbq-dag-voorbij { opacity: 0.55; }
+        .bbq-dag-kop { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+        .bbq-dag-datum { font-size: 0.98rem; font-weight: 800; color: var(--text-main); }
+        .bbq-dag-telling { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; }
+        .bbq-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+        .bbq-chip {
+            font-size: 0.8rem;
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            background: rgba(0, 0, 0, 0.2);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .bbq-chip-ja { color: #6ee7b7; border-color: rgba(52, 211, 153, 0.6); background: rgba(52, 211, 153, 0.12); }
+        .bbq-chip-nee { color: #fca5a5; border-color: rgba(248, 113, 113, 0.6); background: rgba(248, 113, 113, 0.12); }
+        .bbq-chip-ik { font-weight: 800; }
+        .bbq-knoppen { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .bbq-knop {
+            padding: 9px 8px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            background: var(--btn-bg);
+            color: var(--text-main);
+            font-size: 0.92rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .bbq-knop-ja.actief { background: rgba(52, 211, 153, 0.25); border-color: #34d399; color: #6ee7b7; }
+        .bbq-knop-nee.actief { background: rgba(248, 113, 113, 0.25); border-color: #f87171; color: #fca5a5; }
+        .bbq-knop:disabled { opacity: 0.4; cursor: not-allowed; }
     
         /* ---------- Online-status op telefoon en tablet: 3 rijen van 2 gelijke blokken, schalen mee met het scherm ---------- */
         @media (max-width: 999.98px) {

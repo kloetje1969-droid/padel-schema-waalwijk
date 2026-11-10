@@ -133,6 +133,21 @@ test('databaseregels: de vormen van berichten, invalvragen en foutmeldingen zijn
   for (const v of invalvelden) assert.ok(invalToegestaan.includes(v), `invallers: veld ${v} ontbreekt in de regels`);
 });
 
+test('databaseregels: BBQ en Borrel laat alleen de zes namen, een datum en ja of nee toe', () => {
+  const bbq = regels.padelData.bbqBorrel;
+  assert.ok(bbq, 'de regels voor bbqBorrel ontbreken');
+  assert.equal(bbq['.write'], undefined, 'bbqBorrel mag niet in zijn geheel beschrijfbaar zijn');
+  assert.match(bbq.antwoorden.$naam['.write'], /auth\.token\.lid === true/);
+  for (const naam of ['Marcel', 'Mark', 'Ronald', 'Sander', 'Dennis', 'Robert']) {
+    assert.ok(bbq.antwoorden.$naam['.validate'].includes(`'${naam}'`), `bbqBorrel: ${naam} ontbreekt in de regels`);
+  }
+  assert.match(bbq.antwoorden.$naam.$datum['.validate'], /'ja'.*'nee'/);
+  assert.match(bbq.gemeld['.write'], /auth\.token\.lid === true/);
+  assert.equal(bbq.$other['.validate'], false);
+  assert.ok(regels.padelData.settings.bbqBorrelMaand['.validate'], 'de maand van BBQ en Borrel wordt niet gecontroleerd');
+  assert.ok(html.includes("padelData/settings/bbqBorrelMaand"), 'de app leest de maand niet uit settings/bbqBorrelMaand');
+});
+
 test('de app schrijft alleen naar plekken die de databaseregels kennen', () => {
   const toegestaan = Object.keys(regels.padelData).filter(k => !k.startsWith('.'));
   const gebruikt = new Set([...(html + '\n' + foutlogJs).matchAll(/padelData\/([A-Za-z]+)/g)].map(m => m[1]));
