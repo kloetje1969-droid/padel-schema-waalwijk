@@ -1737,6 +1737,7 @@
         }
         .bbq-stip-geel { background: #fbbf24; animation: blinkYellow 1.4s ease-in-out infinite; }
         .bbq-stip-groen { background: #34d399; animation: blinkGreen 1.4s ease-in-out infinite; }
+        .bbq-stip-blauw { background: #38bdf8; animation: blinkBlue 1.4s ease-in-out infinite; }
         .bbq-maandkeuze { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .bbq-maandkeuze label { font-size: 0.85rem; color: var(--text-muted); }
         .bbq-maandkeuze select {
@@ -1781,6 +1782,20 @@
             background: rgba(255, 255, 255, 0.03);
         }
         .bbq-dag-gevonden { border-color: #34d399; background: rgba(52, 211, 153, 0.08); }
+        .bbq-dag-kandidaat { border-color: #38bdf8; background: rgba(56, 189, 248, 0.08); }
+        .bbq-kandidaten {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            text-align: center;
+            padding: 12px 10px;
+            border-radius: 10px;
+            border: 1px solid #38bdf8;
+            background: rgba(56, 189, 248, 0.1);
+        }
+        .bbq-kandidaten-titel { font-size: 1rem; font-weight: 800; color: #7dd3fc; }
+        .bbq-kandidaten-tekst { font-size: 0.88rem; color: var(--text-main); }
         .bbq-dag-voorbij { opacity: 0.55; }
         .bbq-dag-kop { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
         .bbq-dag-datum { font-size: 0.98rem; font-weight: 800; color: var(--text-main); }
@@ -1815,6 +1830,7 @@
         .bbq-knop-ja.actief { background: rgba(52, 211, 153, 0.25); border-color: #34d399; color: #6ee7b7; }
         .bbq-knop-nee.actief { background: rgba(248, 113, 113, 0.25); border-color: #f87171; color: #fca5a5; }
         .bbq-knop:disabled { opacity: 0.4; cursor: not-allowed; }
+        .bbq-knop-kies { width: 100%; background: rgba(56, 189, 248, 0.2); border-color: #38bdf8; color: #7dd3fc; }
     
         /* ---------- Online-status op telefoon en tablet: 3 rijen van 2 gelijke blokken, schalen mee met het scherm ---------- */
         @media (max-width: 999.98px) {

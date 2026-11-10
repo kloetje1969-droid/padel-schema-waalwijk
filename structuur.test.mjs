@@ -143,6 +143,9 @@ test('databaseregels: BBQ en Borrel laat alleen de zes namen, een datum en ja of
   }
   assert.match(bbq.antwoorden.$naam.$datum['.validate'], /'ja'.*'nee'/);
   assert.match(bbq.gemeld['.write'], /auth\.token\.lid === true/);
+  assert.match(bbq.gemeld['.validate'], /\[MK\]:/, 'gemeld kent de stand K: (Robert kiest) niet');
+  assert.match(bbq.gekozen['.write'], /auth\.token\.robert === true/, 'alleen Robert mag de BBQ-datum kiezen');
+  assert.match(bbq.gekozen['.write'], /!newData\.exists\(\)/, 'leden mogen de gekozen datum alleen wissen');
   assert.equal(bbq.$other['.validate'], false);
   assert.ok(regels.padelData.settings.bbqBorrelMaand['.validate'], 'de maand van BBQ en Borrel wordt niet gecontroleerd');
   assert.ok(html.includes("padelData/settings/bbqBorrelMaand"), 'de app leest de maand niet uit settings/bbqBorrelMaand');
