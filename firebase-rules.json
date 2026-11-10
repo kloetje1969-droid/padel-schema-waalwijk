@@ -102,7 +102,28 @@
         }
       },
       "settings": {
-        ".write": "auth != null && auth.token.robert === true"
+        ".write": "auth != null && auth.token.robert === true",
+        "bbqBorrelMaand": {
+          ".validate": "newData.isString() && newData.val().matches(/^20[0-9]{2}-(0[1-9]|1[0-2])$/)"
+        }
+      },
+      "bbqBorrel": {
+        "antwoorden": {
+          "$naam": {
+            ".write": "auth != null && auth.token.lid === true",
+            ".validate": "$naam === 'Marcel' || $naam === 'Mark' || $naam === 'Ronald' || $naam === 'Sander' || $naam === 'Dennis' || $naam === 'Robert'",
+            "$datum": {
+              ".validate": "$datum.matches(/^20[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/) && newData.isString() && (newData.val() === 'ja' || newData.val() === 'nee')"
+            }
+          }
+        },
+        "gemeld": {
+          ".write": "auth != null && auth.token.lid === true",
+          ".validate": "newData.isString() && newData.val().matches(/^(M:20[0-9]{2}-(0[1-9]|1[0-2])|D:20[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]))$/)"
+        },
+        "$other": {
+          ".validate": false
+        }
       },
       "lastSeen": {
         ".write": "auth != null && auth.token.lid === true"

@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=8.97">
+    <link rel="stylesheet" href="stijl.css?v=8.98">
 </head>
 <body>
 
@@ -200,6 +200,19 @@
                         <tbody id="absenceTableBody"></tbody>
                     </table>
                 </div>
+            </div>
+        </details>
+    </div>
+
+    <!-- MODULE: BBQ EN BORREL (datumprikker) -->
+    <div class="card">
+        <details ontoggle="updateCollapseArrow(this)">
+            <summary class="card-header collapsible-header" style="list-style: none;">
+                <div class="section-title" style="font-size: 1.05rem;">🍖 BBQ en Borrel <span id="bbqStip" class="bbq-stip" style="display: none;"></span></div>
+                <span class="collapse-arrow">▼ Open</span>
+            </summary>
+            <div class="collapsible-body" id="bbqBody">
+                <p class="bbq-uitleg">Laden...</p>
             </div>
         </details>
     </div>
@@ -378,10 +391,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=8.97"></script>
+<script src="foutlog.js?v=8.98"></script>
 <script>
 
-    const APP_VERSION = "8.97"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.98"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -1004,6 +1017,23 @@
             updateGlobalPushToggleUI();
         });
 
+        db.ref('padelData/bbqBorrel').on('value', (snapshot) => {
+            const val = snapshot.val() || {};
+            bbqAntwoorden = val.antwoorden || {};
+            bbqGemeld = typeof val.gemeld === 'string' ? val.gemeld : '';
+            bbqGeladen.antwoorden = true;
+            renderBbqBorrel();
+            bbqPlanMeldingControle();
+        }, (err) => { console.warn('BBQ en Borrel laden mislukt:', err && err.code); });
+
+        db.ref('padelData/settings/bbqBorrelMaand').on('value', (snapshot) => {
+            const val = snapshot.val();
+            bbqStartMaand = (typeof val === 'string' && /^\d{4}-\d{2}$/.test(val)) ? val : '';
+            bbqGeladen.maand = true;
+            renderBbqBorrel();
+            bbqPlanMeldingControle();
+        }, (err) => { console.warn('BBQ en Borrel (maand) laden mislukt:', err && err.code); });
+
         setupOnlinePresence();
         setInterval(renderStatuses, 5000);
         setInterval(checkAndStoreCyclusWinner, 60 * 1000);
@@ -1178,6 +1208,257 @@
         document.querySelectorAll('details:not(.aw-rij)').forEach(d => { if (!d.open) d.open = true; });
         const body = document.getElementById('baanBoekingenBody');
         if (body && body.style.display !== 'flex') toggleBaanBoekingMenu();
+    }
+
+    // ---------- Blok: BBQ en Borrel (datumprikker) ----------
+    // Antwoorden: padelData/bbqBorrel/antwoorden/<naam>/<datum> = 'ja' of 'nee' (iedereen, alleen de eigen rij).
+    // Startmaand: padelData/settings/bbqBorrelMaand, bijvoorbeeld '2027-05' (alleen Robert).
+    // De actieve maand en de gevonden dag worden afgeleid uit de antwoorden. padelData/bbqBorrel/gemeld
+    // onthoudt alleen wat het laatst in de chat is gemeld ('M:2027-05' = prikken voor die maand,
+    // 'D:2027-05-08' = die dag kan iedereen), met een transaction zodat een melding nooit dubbel komt.
+    const BBQ_MAANDEN = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+    let bbqAntwoorden = {};
+    let bbqGemeld = '';
+    let bbqStartMaand = '';
+    const bbqGeladen = { antwoorden: false, maand: false };
+    let bbqMeldingTimer = null;
+    let bbqMeldingBezig = false;
+    let bbqLaatsteHtml = null;
+
+    function bbqTwee(n) { return String(n).padStart(2, '0'); }
+    function bbqVandaag() { const d = new Date(); return `${d.getFullYear()}-${bbqTwee(d.getMonth() + 1)}-${bbqTwee(d.getDate())}`; }
+    function bbqMaandNaam(maand) { const [j, m] = maand.split('-').map(Number); return `${BBQ_MAANDEN[m - 1]} ${j}`; }
+    function bbqDagNaam(datum, metJaar) { const [j, m, d] = datum.split('-').map(Number); return `zaterdag ${d} ${BBQ_MAANDEN[m - 1]}` + (metJaar ? ` ${j}` : ''); }
+    function bbqVolgendeMaand(maand) { const [j, m] = maand.split('-').map(Number); return m === 12 ? `${j + 1}-01` : `${j}-${bbqTwee(m + 1)}`; }
+
+    function bbqZaterdagen(maand) {
+        const [j, m] = maand.split('-').map(Number);
+        const uit = [];
+        const d = new Date(j, m - 1, 1);
+        while (d.getMonth() === m - 1) {
+            if (d.getDay() === 6) uit.push(`${j}-${bbqTwee(m)}-${bbqTwee(d.getDate())}`);
+            d.setDate(d.getDate() + 1);
+        }
+        return uit;
+    }
+
+    function bbqKeuze(naam, datum) {
+        const a = bbqAntwoorden[naam];
+        const k = a ? a[datum] : '';
+        return (k === 'ja' || k === 'nee') ? k : '';
+    }
+
+    function bbqAllenJa(datum) { return basePlayers.every(p => bbqKeuze(p, datum) === 'ja'); }
+
+    // Bepaalt de actieve maand en de dag waarop iedereen kan. Is in een maand alles ingevuld zonder
+    // gezamenlijke dag (of zijn alle zaterdagen voorbij), dan schuift de prikker door naar de volgende maand.
+    function bbqStatus() {
+        const leeg = { maand: '', dagen: [], gevonden: '', overgeslagen: [] };
+        if (!bbqStartMaand) return leeg;
+        const vandaag = bbqVandaag();
+        const eerder = bbqGemeld.indexOf('D:') === 0 ? bbqGemeld.slice(2) : '';
+        const overgeslagen = [];
+        let maand = bbqStartMaand;
+        for (let i = 0; i < 12; i++) {
+            const dagen = bbqZaterdagen(maand);
+            // Een eenmaal gemelde dag blijft de gekozen dag zolang iedereen daar nog ja op zegt
+            const gevonden = (eerder && dagen.includes(eerder) && bbqAllenJa(eerder)) ? eerder : (dagen.find(bbqAllenJa) || '');
+            if (gevonden) return { maand, dagen, gevonden, overgeslagen };
+            const open = dagen.filter(d => d >= vandaag);
+            const allesIngevuld = open.every(d => basePlayers.every(p => bbqKeuze(p, d) !== ''));
+            if (!allesIngevuld) return { maand, dagen, gevonden: '', overgeslagen };
+            overgeslagen.push(maand);
+            maand = bbqVolgendeMaand(maand);
+        }
+        return { maand, dagen: bbqZaterdagen(maand), gevonden: '', overgeslagen };
+    }
+
+    function bbqStaat(st) { return st.gevonden ? 'D:' + st.gevonden : (st.maand ? 'M:' + st.maand : ''); }
+
+    function bbqNamenTekst(namen) {
+        if (namen.length <= 1) return namen.join('');
+        return namen.slice(0, -1).join(', ') + ' en ' + namen[namen.length - 1];
+    }
+
+    // De tekst voor de chat (en de pushmelding) bij de overgang van wat het laatst gemeld is naar de nieuwe stand
+    function bbqMeldingTekst(vorige, st) {
+        const vorigeDag = vorige.indexOf('D:') === 0 ? vorige.slice(2) : '';
+        const afvallers = (vorigeDag && !bbqAllenJa(vorigeDag)) ? basePlayers.filter(p => bbqKeuze(p, vorigeDag) !== 'ja') : [];
+        const wie = afvallers.length ? `${bbqNamenTekst(afvallers)} ${afvallers.length > 1 ? 'kunnen' : 'kan'} ${bbqDagNaam(vorigeDag, false)} niet meer` : '';
+        if (st.gevonden) {
+            if (wie) return `🍖 BBQ en Borrel: ${wie}. Nieuwe datum: ${bbqDagNaam(st.gevonden, true)}, iedereen kan!`;
+            return `🍖 BBQ en Borrel: ${bbqDagNaam(st.gevonden, true)}, iedereen kan!`;
+        }
+        if (wie && vorigeDag.slice(0, 7) === st.maand) return `🍖 BBQ en Borrel: ${wie}, de datum vervalt.`;
+        if (wie) return `🍖 BBQ en Borrel: ${wie}, de datum vervalt. Prikken voor ${bbqMaandNaam(st.maand)}.`;
+        return `🍖 BBQ en Borrel: prikken voor ${bbqMaandNaam(st.maand)}. Vul in de app in welke zaterdagen je kunt.`;
+    }
+
+    // Even wachten na de laatste wijziging, zodat alle gegevens binnen zijn voordat er iets gemeld wordt
+    function bbqPlanMeldingControle() {
+        if (!bbqGeladen.antwoorden || !bbqGeladen.maand) return;
+        clearTimeout(bbqMeldingTimer);
+        bbqMeldingTimer = setTimeout(bbqMeldingControle, 1500 + Math.floor(Math.random() * 1000));
+    }
+
+    async function bbqMeldingControle() {
+        if (bbqMeldingBezig) return;
+        const st = bbqStatus();
+        const nieuw = bbqStaat(st);
+        if (!nieuw || nieuw === bbqGemeld) return;
+        bbqMeldingBezig = true;
+        try {
+            let vorige = '';
+            const result = await db.ref('padelData/bbqBorrel/gemeld').transaction((current) => {
+                if (current === nieuw) return; // een ander toestel heeft dit al gemeld
+                vorige = typeof current === 'string' ? current : '';
+                return nieuw;
+            });
+            if (result.committed) await addSystemMessageIfUnique(bbqMeldingTekst(vorige, st));
+        } catch (e) {
+            console.warn('BBQ en Borrel: melden mislukt:', e && e.code);
+        } finally {
+            bbqMeldingBezig = false;
+        }
+    }
+
+    function bbqHerteken() { bbqLaatsteHtml = null; renderBbqBorrel(); }
+
+    async function bbqKiesMaand(maand) {
+        if (!zichtbaarVoorRobert()) return;
+        if (!/^\d{4}-\d{2}$/.test(maand) || maand === bbqStartMaand) { bbqHerteken(); return; }
+        const ok = await bevestigDialoog({
+            stijl: 'info',
+            titel: 'Bevestigen',
+            regels: [`BBQ en Borrel: prikken voor ${bbqMaandNaam(maand)}?`, 'Iedereen krijgt een bericht in de chat en een pushmelding.'],
+            jaTekst: 'Ja, kiezen',
+            neeTekst: 'Annuleren'
+        });
+        if (!ok) { bbqHerteken(); return; }
+        try {
+            await db.ref('padelData/settings/bbqBorrelMaand').set(maand);
+        } catch (e) {
+            bbqHerteken();
+            toonMelding('De maand opslaan is niet gelukt. Probeer het opnieuw.');
+        }
+    }
+
+    const bbqOpslaanBezig = {};
+    async function bbqAntwoord(datum, keuze) {
+        const naam = currentUserName;
+        if (!basePlayers.includes(naam)) { toonMelding('Kies eerst je naam bovenin.'); return; }
+        if (keuze !== 'ja' && keuze !== 'nee') return;
+        const st = bbqStatus();
+        if (!st.dagen.includes(datum) || datum < bbqVandaag()) return;
+        if (bbqKeuze(naam, datum) === keuze || bbqOpslaanBezig[datum]) return;
+        bbqOpslaanBezig[datum] = true;
+        try {
+            if (st.gevonden === datum && keuze === 'nee') {
+                const ok = await bevestigDialoog({
+                    titel: '⚠️ Let op!',
+                    regels: [`Kun je ${bbqDagNaam(datum, true)} toch niet?`, 'Op deze dag kan iedereen. Zeg je Nee, dan vervalt de datum en krijgt iedereen een bericht.'],
+                    jaTekst: 'Ja, ik kan niet',
+                    neeTekst: 'Annuleren'
+                });
+                if (!ok) return;
+            }
+            await db.ref(`padelData/bbqBorrel/antwoorden/${naam}/${datum}`).set(keuze);
+        } catch (e) {
+            toonMelding('Je antwoord opslaan is niet gelukt. Probeer het opnieuw.');
+        } finally {
+            bbqOpslaanBezig[datum] = false;
+        }
+    }
+
+    function renderBbqBorrel() {
+        const body = document.getElementById('bbqBody');
+        const stip = document.getElementById('bbqStip');
+        if (!body || !stip) return;
+        if (!bbqGeladen.antwoorden || !bbqGeladen.maand) return;
+
+        const st = bbqStatus();
+        const vandaag = bbqVandaag();
+        const ik = basePlayers.includes(currentUserName) ? currentUserName : '';
+        const voorbij = !!(st.gevonden && st.gevonden < vandaag);
+
+        // Stip naast de titel: geel zolang er geen dag is waarop iedereen kan, groen als die er is
+        stip.className = 'bbq-stip ' + (st.gevonden ? 'bbq-stip-groen' : 'bbq-stip-geel');
+        stip.style.display = (st.maand && !voorbij) ? 'inline-block' : 'none';
+        stip.title = st.gevonden ? 'Er is een dag waarop iedereen kan' : 'Nog geen dag waarop iedereen kan';
+
+        let html = '';
+
+        if (zichtbaarVoorRobert()) {
+            const nu = new Date();
+            const maanden = [];
+            let m = `${nu.getFullYear()}-${bbqTwee(nu.getMonth() + 1)}`;
+            for (let i = 0; i < 12; i++) { maanden.push(m); m = bbqVolgendeMaand(m); }
+            if (bbqStartMaand && !maanden.includes(bbqStartMaand)) maanden.unshift(bbqStartMaand);
+            html += `<div class="bbq-maandkeuze">
+                <label for="bbqMaandSelect">Maand (alleen Robert):</label>
+                <select id="bbqMaandSelect" onchange="bbqKiesMaand(this.value)">
+                    <option value="">-- Kies een maand --</option>
+                    ${maanden.map(x => `<option value="${x}" ${x === bbqStartMaand ? 'selected' : ''}>${esc(bbqMaandNaam(x))}</option>`).join('')}
+                </select>
+            </div>`;
+        }
+
+        if (!st.maand) {
+            html += `<p class="bbq-uitleg">${zichtbaarVoorRobert() ? 'Kies hierboven een maand om het prikken te starten.' : 'Er is nog geen maand gekozen. Robert kiest de maand.'}</p>`;
+        } else {
+            if (st.gevonden) {
+                html += `<div class="bbq-gevonden">
+                    <span class="bbq-gevonden-datum">${voorbij ? '' : '🎉 '}Z${esc(bbqDagNaam(st.gevonden, true).slice(1))}</span>
+                    <span class="bbq-gevonden-tekst">${voorbij ? 'De BBQ en Borrel is geweest.' : 'Iedereen kan!'}</span>
+                </div>`;
+                if (!voorbij) html += `<p class="bbq-uitleg">Kun je toch niet? Tik dan Nee bij die dag.</p>`;
+            } else {
+                html += `<p class="bbq-uitleg">Prikken voor <strong>${esc(bbqMaandNaam(st.maand))}</strong>. Tik per zaterdag Ja of Nee.</p>`;
+                if (st.overgeslagen.length) {
+                    html += `<p class="bbq-uitleg">In ${esc(bbqNamenTekst(st.overgeslagen.map(bbqMaandNaam)))} was er geen zaterdag waarop iedereen kon.</p>`;
+                }
+                const open = st.dagen.filter(d => d >= vandaag);
+                if (!ik) {
+                    html += `<p class="bbq-todo">Kies eerst je naam bovenin om te kunnen tikken.</p>`;
+                } else {
+                    const nogTeDoen = open.filter(d => bbqKeuze(ik, d) === '').length;
+                    if (nogTeDoen > 0) {
+                        html += `<p class="bbq-todo">Jij moet nog ${nogTeDoen} ${nogTeDoen === 1 ? 'zaterdag' : 'zaterdagen'} invullen.</p>`;
+                    } else {
+                        const wachten = basePlayers.filter(p => open.some(d => bbqKeuze(p, d) === ''));
+                        html += `<p class="bbq-klaar">Je hebt alles ingevuld.${wachten.length ? ' Wachten op: ' + esc(bbqNamenTekst(wachten)) + '.' : ''}</p>`;
+                    }
+                }
+            }
+
+            html += '<div class="bbq-dagen">' + st.dagen.map(datum => {
+                const dagVoorbij = datum < vandaag;
+                const aantalJa = basePlayers.filter(p => bbqKeuze(p, datum) === 'ja').length;
+                const mijn = ik ? bbqKeuze(ik, datum) : '';
+                const uit = (!ik || dagVoorbij) ? 'disabled' : '';
+                const chips = basePlayers.map(p => {
+                    const k = bbqKeuze(p, datum);
+                    const teken = k === 'ja' ? '✓' : (k === 'nee' ? '✕' : '?');
+                    return `<span class="bbq-chip${k ? ' bbq-chip-' + k : ''}${p === ik ? ' bbq-chip-ik' : ''}">${teken} ${esc(p)}</span>`;
+                }).join('');
+                const titel = bbqDagNaam(datum, false);
+                return `<div class="bbq-dag${datum === st.gevonden ? ' bbq-dag-gevonden' : ''}${dagVoorbij ? ' bbq-dag-voorbij' : ''}">
+                    <div class="bbq-dag-kop">
+                        <span class="bbq-dag-datum">${esc(titel.charAt(0).toUpperCase() + titel.slice(1))}</span>
+                        <span class="bbq-dag-telling">${aantalJa} van ${basePlayers.length} kunnen</span>
+                    </div>
+                    <div class="bbq-chips">${chips}</div>
+                    <div class="bbq-knoppen">
+                        <button class="bbq-knop bbq-knop-ja${mijn === 'ja' ? ' actief' : ''}" ${uit} onclick="bbqAntwoord('${datum}', 'ja')">Ja, ik kan</button>
+                        <button class="bbq-knop bbq-knop-nee${mijn === 'nee' ? ' actief' : ''}" ${uit} onclick="bbqAntwoord('${datum}', 'nee')">Nee</button>
+                    </div>
+                </div>`;
+            }).join('') + '</div>';
+        }
+
+        if (html === bbqLaatsteHtml) return; // niets veranderd: het blok (en een open keuzelijst) met rust laten
+        bbqLaatsteHtml = html;
+        body.innerHTML = html;
     }
 
     // ---------- Blok: Alle wedstrijden ----------
@@ -2540,6 +2821,7 @@
         renderSetsRanking();
         renderBaanBoekingen();
         renderAlleWedstrijden();
+        renderBbqBorrel();
     }
 
     // Op een pc staan alle blokken standaard open: bij het laden en zodra het venster breed wordt
