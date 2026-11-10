@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=8.98">
+    <link rel="stylesheet" href="stijl.css?v=8.99">
 </head>
 <body>
 
@@ -391,10 +391,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=8.98"></script>
+<script src="foutlog.js?v=8.99"></script>
 <script>
 
-    const APP_VERSION = "8.98"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "8.99"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -1021,6 +1021,7 @@
             const val = snapshot.val() || {};
             bbqAntwoorden = val.antwoorden || {};
             bbqGemeld = typeof val.gemeld === 'string' ? val.gemeld : '';
+            bbqGekozen = (typeof val.gekozen === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.gekozen)) ? val.gekozen : '';
             bbqGeladen.antwoorden = true;
             renderBbqBorrel();
             bbqPlanMeldingControle();
@@ -1213,12 +1214,16 @@
     // ---------- Blok: BBQ en Borrel (datumprikker) ----------
     // Antwoorden: padelData/bbqBorrel/antwoorden/<naam>/<datum> = 'ja' of 'nee' (iedereen, alleen de eigen rij).
     // Startmaand: padelData/settings/bbqBorrelMaand, bijvoorbeeld '2027-05' (alleen Robert).
-    // De actieve maand en de gevonden dag worden afgeleid uit de antwoorden. padelData/bbqBorrel/gemeld
+    // Gekozen dag: padelData/bbqBorrel/gekozen, bijvoorbeeld '2027-05-08' (alleen Robert kiest; wie Nee zegt
+    // op de gekozen dag wist hem). Kan iedereen op een of meer zaterdagen, dan kiest Robert welke het wordt.
+    // De actieve maand en de dagen waarop iedereen kan worden afgeleid uit de antwoorden. padelData/bbqBorrel/gemeld
     // onthoudt alleen wat het laatst in de chat is gemeld ('M:2027-05' = prikken voor die maand,
-    // 'D:2027-05-08' = die dag kan iedereen), met een transaction zodat een melding nooit dubbel komt.
+    // 'K:2027-05' = er zijn dagen waarop iedereen kan, Robert kiest, 'D:2027-05-08' = de gekozen dag),
+    // met een transaction zodat een melding nooit dubbel komt.
     const BBQ_MAANDEN = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
     let bbqAntwoorden = {};
     let bbqGemeld = '';
+    let bbqGekozen = '';
     let bbqStartMaand = '';
     const bbqGeladen = { antwoorden: false, maand: false };
     let bbqMeldingTimer = null;
@@ -1250,30 +1255,37 @@
 
     function bbqAllenJa(datum) { return basePlayers.every(p => bbqKeuze(p, datum) === 'ja'); }
 
-    // Bepaalt de actieve maand en de dag waarop iedereen kan. Is in een maand alles ingevuld zonder
-    // gezamenlijke dag (of zijn alle zaterdagen voorbij), dan schuift de prikker door naar de volgende maand.
+    // Bepaalt de actieve maand, de zaterdagen waarop iedereen kan (kandidaten) en de door Robert gekozen dag.
+    // Is in een maand alles ingevuld zonder gezamenlijke dag (of zijn alle zaterdagen voorbij), dan schuift
+    // de prikker door naar de volgende maand.
     function bbqStatus() {
-        const leeg = { maand: '', dagen: [], gevonden: '', overgeslagen: [] };
+        const leeg = { maand: '', dagen: [], gevonden: '', kandidaten: [], overgeslagen: [] };
         if (!bbqStartMaand) return leeg;
         const vandaag = bbqVandaag();
-        const eerder = bbqGemeld.indexOf('D:') === 0 ? bbqGemeld.slice(2) : '';
         const overgeslagen = [];
         let maand = bbqStartMaand;
         for (let i = 0; i < 12; i++) {
             const dagen = bbqZaterdagen(maand);
-            // Een eenmaal gemelde dag blijft de gekozen dag zolang iedereen daar nog ja op zegt
-            const gevonden = (eerder && dagen.includes(eerder) && bbqAllenJa(eerder)) ? eerder : (dagen.find(bbqAllenJa) || '');
-            if (gevonden) return { maand, dagen, gevonden, overgeslagen };
+            const kandidaten = dagen.filter(d => d >= vandaag && bbqAllenJa(d));
+            // De gekozen dag blijft de datum zolang iedereen daar nog ja op zegt
+            if (bbqGekozen && dagen.includes(bbqGekozen) && bbqAllenJa(bbqGekozen)) return { maand, dagen, gevonden: bbqGekozen, kandidaten, overgeslagen };
+            if (kandidaten.length) return { maand, dagen, gevonden: '', kandidaten, overgeslagen };
             const open = dagen.filter(d => d >= vandaag);
             const allesIngevuld = open.every(d => basePlayers.every(p => bbqKeuze(p, d) !== ''));
-            if (!allesIngevuld) return { maand, dagen, gevonden: '', overgeslagen };
+            if (!allesIngevuld) return { maand, dagen, gevonden: '', kandidaten, overgeslagen };
             overgeslagen.push(maand);
             maand = bbqVolgendeMaand(maand);
         }
-        return { maand, dagen: bbqZaterdagen(maand), gevonden: '', overgeslagen };
+        return { maand, dagen: bbqZaterdagen(maand), gevonden: '', kandidaten: [], overgeslagen };
     }
 
-    function bbqStaat(st) { return st.gevonden ? 'D:' + st.gevonden : (st.maand ? 'M:' + st.maand : ''); }
+    function bbqStaat(st) {
+        if (st.gevonden) return 'D:' + st.gevonden;
+        if (st.kandidaten.length) return 'K:' + st.maand;
+        return st.maand ? 'M:' + st.maand : '';
+    }
+
+    function bbqDagenTekst(dagen) { return bbqNamenTekst(dagen.map(d => bbqDagNaam(d, false))); }
 
     function bbqNamenTekst(namen) {
         if (namen.length <= 1) return namen.join('');
@@ -1285,10 +1297,19 @@
         const vorigeDag = vorige.indexOf('D:') === 0 ? vorige.slice(2) : '';
         const afvallers = (vorigeDag && !bbqAllenJa(vorigeDag)) ? basePlayers.filter(p => bbqKeuze(p, vorigeDag) !== 'ja') : [];
         const wie = afvallers.length ? `${bbqNamenTekst(afvallers)} ${afvallers.length > 1 ? 'kunnen' : 'kan'} ${bbqDagNaam(vorigeDag, false)} niet meer` : '';
+        const vorigeKies = vorige.indexOf('K:') === 0 ? vorige.slice(2) : '';
         if (st.gevonden) {
             if (wie) return `🍖 BBQ en Borrel: ${wie}. Nieuwe datum: ${bbqDagNaam(st.gevonden, true)}, iedereen kan!`;
+            if (vorigeDag && vorigeDag !== st.gevonden) return `🍖 BBQ en Borrel: de datum is verplaatst naar ${bbqDagNaam(st.gevonden, true)}, iedereen kan!`;
             return `🍖 BBQ en Borrel: ${bbqDagNaam(st.gevonden, true)}, iedereen kan!`;
         }
+        if (st.kandidaten.length) {
+            const een = st.kandidaten.length === 1;
+            if (wie) return `🍖 BBQ en Borrel: ${wie}, de datum vervalt. Op ${bbqDagenTekst(st.kandidaten)} kan iedereen nog; Robert kiest een nieuwe datum.`;
+            return `🍖 BBQ en Borrel: op ${bbqDagenTekst(st.kandidaten)} kan iedereen. Robert kiest ${een ? 'of dat de datum wordt' : 'welke dag het wordt'}.`;
+        }
+        // Er was een dag waarop iedereen kon, maar die is weg (iemand zei Nee) in dezelfde maand: geen bericht
+        if (vorigeKies && vorigeKies === st.maand && !wie) return '';
         if (wie && vorigeDag.slice(0, 7) === st.maand) return `🍖 BBQ en Borrel: ${wie}, de datum vervalt.`;
         if (wie) return `🍖 BBQ en Borrel: ${wie}, de datum vervalt. Prikken voor ${bbqMaandNaam(st.maand)}.`;
         return `🍖 BBQ en Borrel: prikken voor ${bbqMaandNaam(st.maand)}. Vul in de app in welke zaterdagen je kunt.`;
@@ -1314,7 +1335,10 @@
                 vorige = typeof current === 'string' ? current : '';
                 return nieuw;
             });
-            if (result.committed) await addSystemMessageIfUnique(bbqMeldingTekst(vorige, st));
+            if (result.committed) {
+                const tekst = bbqMeldingTekst(vorige, st);
+                if (tekst) await addSystemMessageIfUnique(tekst);
+            }
         } catch (e) {
             console.warn('BBQ en Borrel: melden mislukt:', e && e.code);
         } finally {
@@ -1343,6 +1367,29 @@
         }
     }
 
+    // Robert kiest welke zaterdag (waarop iedereen kan) de datum wordt
+    async function bbqKiesDag(datum) {
+        if (!zichtbaarVoorRobert()) return;
+        const st = bbqStatus();
+        if (!st.kandidaten.includes(datum) || datum === st.gevonden) return;
+        const ok = await bevestigDialoog({
+            stijl: 'info',
+            titel: 'Bevestigen',
+            regels: [
+                st.gevonden ? `De datum verplaatsen van ${bbqDagNaam(st.gevonden, false)} naar ${bbqDagNaam(datum, true)}?` : `BBQ en Borrel op ${bbqDagNaam(datum, true)}?`,
+                'Iedereen krijgt een bericht in de chat en een pushmelding.'
+            ],
+            jaTekst: 'Ja, deze dag',
+            neeTekst: 'Annuleren'
+        });
+        if (!ok) return;
+        try {
+            await db.ref('padelData/bbqBorrel/gekozen').set(datum);
+        } catch (e) {
+            toonMelding('De datum opslaan is niet gelukt. Probeer het opnieuw.');
+        }
+    }
+
     const bbqOpslaanBezig = {};
     async function bbqAntwoord(datum, keuze) {
         const naam = currentUserName;
@@ -1356,13 +1403,18 @@
             if (st.gevonden === datum && keuze === 'nee') {
                 const ok = await bevestigDialoog({
                     titel: '⚠️ Let op!',
-                    regels: [`Kun je ${bbqDagNaam(datum, true)} toch niet?`, 'Op deze dag kan iedereen. Zeg je Nee, dan vervalt de datum en krijgt iedereen een bericht.'],
+                    regels: [`Kun je ${bbqDagNaam(datum, true)} toch niet?`, 'Dit is de gekozen datum. Zeg je Nee, dan vervalt de datum en krijgt iedereen een bericht.'],
                     jaTekst: 'Ja, ik kan niet',
                     neeTekst: 'Annuleren'
                 });
                 if (!ok) return;
             }
-            await db.ref(`padelData/bbqBorrel/antwoorden/${naam}/${datum}`).set(keuze);
+            if (keuze === 'nee' && bbqGekozen === datum) {
+                // Nee op de gekozen dag: het antwoord en het wissen van de keuze in één keer
+                await db.ref('padelData/bbqBorrel').update({ [`antwoorden/${naam}/${datum}`]: 'nee', gekozen: null });
+            } else {
+                await db.ref(`padelData/bbqBorrel/antwoorden/${naam}/${datum}`).set(keuze);
+            }
         } catch (e) {
             toonMelding('Je antwoord opslaan is niet gelukt. Probeer het opnieuw.');
         } finally {
@@ -1381,10 +1433,14 @@
         const ik = basePlayers.includes(currentUserName) ? currentUserName : '';
         const voorbij = !!(st.gevonden && st.gevonden < vandaag);
 
-        // Stip naast de titel: geel zolang er geen dag is waarop iedereen kan, groen als die er is
-        stip.className = 'bbq-stip ' + (st.gevonden ? 'bbq-stip-groen' : 'bbq-stip-geel');
+        const robert = zichtbaarVoorRobert();
+
+        // Stip naast de titel: geel = nog geen dag waarop iedereen kan, blauw = er is er een (Robert kiest),
+        // groen = Robert heeft de datum gekozen
+        const kleur = st.gevonden ? 'groen' : (st.kandidaten.length ? 'blauw' : 'geel');
+        stip.className = 'bbq-stip bbq-stip-' + kleur;
         stip.style.display = (st.maand && !voorbij) ? 'inline-block' : 'none';
-        stip.title = st.gevonden ? 'Er is een dag waarop iedereen kan' : 'Nog geen dag waarop iedereen kan';
+        stip.title = st.gevonden ? 'De datum staat vast' : (st.kandidaten.length ? 'Iedereen kan; Robert kiest de datum' : 'Nog geen dag waarop iedereen kan');
 
         let html = '';
 
@@ -1412,7 +1468,17 @@
                     <span class="bbq-gevonden-tekst">${voorbij ? 'De BBQ en Borrel is geweest.' : 'Iedereen kan!'}</span>
                 </div>`;
                 if (!voorbij) html += `<p class="bbq-uitleg">Kun je toch niet? Tik dan Nee bij die dag.</p>`;
+                if (!voorbij && robert && st.kandidaten.some(d => d !== st.gevonden)) {
+                    html += `<p class="bbq-uitleg">Op een andere zaterdag kan ook iedereen. Tik daar op <strong>Kies deze dag</strong> om de datum te verplaatsen.</p>`;
+                }
             } else {
+                if (st.kandidaten.length) {
+                    const een = st.kandidaten.length === 1;
+                    html += `<div class="bbq-kandidaten">
+                        <span class="bbq-kandidaten-titel">Iedereen kan op ${esc(bbqDagenTekst(st.kandidaten))}</span>
+                        <span class="bbq-kandidaten-tekst">${robert ? (een ? 'Tik bij die dag op <strong>Kies deze dag</strong> om de datum vast te zetten.' : 'Kies welke dag het wordt: tik bij die dag op <strong>Kies deze dag</strong>.') : (een ? 'Robert zet de datum vast.' : 'Robert kiest welke dag het wordt.')}</span>
+                    </div>`;
+                }
                 html += `<p class="bbq-uitleg">Prikken voor <strong>${esc(bbqMaandNaam(st.maand))}</strong>. Tik per zaterdag Ja of Nee.</p>`;
                 if (st.overgeslagen.length) {
                     html += `<p class="bbq-uitleg">In ${esc(bbqNamenTekst(st.overgeslagen.map(bbqMaandNaam)))} was er geen zaterdag waarop iedereen kon.</p>`;
@@ -1442,16 +1508,18 @@
                     return `<span class="bbq-chip${k ? ' bbq-chip-' + k : ''}${p === ik ? ' bbq-chip-ik' : ''}">${teken} ${esc(p)}</span>`;
                 }).join('');
                 const titel = bbqDagNaam(datum, false);
-                return `<div class="bbq-dag${datum === st.gevonden ? ' bbq-dag-gevonden' : ''}${dagVoorbij ? ' bbq-dag-voorbij' : ''}">
+                const kandidaat = datum !== st.gevonden && st.kandidaten.includes(datum);
+                const kiesKnop = (robert && kandidaat && !dagVoorbij) ? `<button class="bbq-knop bbq-knop-kies" onclick="bbqKiesDag('${datum}')">${st.gevonden ? 'Kies deze dag (verplaatsen)' : 'Kies deze dag'}</button>` : '';
+                return `<div class="bbq-dag${datum === st.gevonden ? ' bbq-dag-gevonden' : ''}${kandidaat ? ' bbq-dag-kandidaat' : ''}${dagVoorbij ? ' bbq-dag-voorbij' : ''}">
                     <div class="bbq-dag-kop">
                         <span class="bbq-dag-datum">${esc(titel.charAt(0).toUpperCase() + titel.slice(1))}</span>
-                        <span class="bbq-dag-telling">${aantalJa} van ${basePlayers.length} kunnen</span>
+                        <span class="bbq-dag-telling">${datum === st.gevonden ? '✓ gekozen' : `${aantalJa} van ${basePlayers.length} kunnen`}</span>
                     </div>
                     <div class="bbq-chips">${chips}</div>
                     <div class="bbq-knoppen">
                         <button class="bbq-knop bbq-knop-ja${mijn === 'ja' ? ' actief' : ''}" ${uit} onclick="bbqAntwoord('${datum}', 'ja')">Ja, ik kan</button>
                         <button class="bbq-knop bbq-knop-nee${mijn === 'nee' ? ' actief' : ''}" ${uit} onclick="bbqAntwoord('${datum}', 'nee')">Nee</button>
-                    </div>
+                    </div>${kiesKnop}
                 </div>`;
             }).join('') + '</div>';
         }
