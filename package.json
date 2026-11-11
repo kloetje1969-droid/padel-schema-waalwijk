@@ -4,6 +4,6 @@
   "description": "Padel schema en team chat voor Waalwijk",
   "type": "module",
   "dependencies": {
-    "firebase-admin": "^14.5.0"
+    "firebase-admin": "^13.10.0"
   }
 }
