@@ -1,4 +1,4 @@
-import admin from 'firebase-admin';
+import { ServerValue } from 'firebase-admin/database';
 import {
   db,
   isCronAuthorized,
@@ -118,7 +118,7 @@ async function verwerkCycli(nowMs) {
       await msgRef.set({
         author: 'Systeem',
         text: tekst,
-        timestamp: admin.database.ServerValue.TIMESTAMP,
+        timestamp: ServerValue.TIMESTAMP,
         tijd: amsterdamTijd(nowMs),
         type: 'system'
       });
