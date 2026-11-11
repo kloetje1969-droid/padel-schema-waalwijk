@@ -13,9 +13,9 @@
         }
       },
       "cyclusWinnaars": {
-        ".write": "auth != null && auth.token.lid === true",
         "$cyclusIdx": {
-          ".validate": true
+          ".write": "auth != null && ((auth.token.lid === true && !data.child('winner').exists()) || auth.token.robert === true)",
+          ".validate": "$cyclusIdx.matches(/^[0-9]{1,3}$/)"
         }
       },
       "scheduleOverrides": {

@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=8.99">
+    <link rel="stylesheet" href="stijl.css?v=9.00">
 </head>
 <body>
 
@@ -391,10 +391,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=8.99"></script>
+<script src="foutlog.js?v=9.00"></script>
 <script>
 
-    const APP_VERSION = "8.99"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "9.00"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -2270,9 +2270,13 @@
             jaTekst: 'Ja, verwijderen',
             neeTekst: 'Annuleren'
         });
-        if (ok) {
+        if (!ok) return;
+        try {
             await db.ref(`padelData/baanBoekingenList/${id}`).remove();
             showToast("Boeking verwijderd", "De baanboeking is weggehaald.");
+        } catch (err) {
+            console.error("Boeking verwijderen mislukt:", err);
+            showToast("Niet verwijderd", "De boeking kon niet worden verwijderd. Controleer je internetverbinding en probeer het opnieuw.", true);
         }
     }
 
@@ -4158,7 +4162,13 @@
                 neeTekst: 'Annuleren'
             });
             if (!wilAfmelden) return;
-            await db.ref(path).set(newVal);
+            try {
+                await db.ref(path).set(newVal);
+            } catch (err) {
+                console.error("Afmelden/aanmelden opslaan mislukt:", err);
+                showToast(newVal ? "Niet afgemeld" : "Niet aangemeld", "Het opslaan is niet gelukt. Controleer je internetverbinding en probeer het opnieuw.", true);
+                return;
+            }
 
             // Afgemeld: de groep vragen wie kan invallen. Aangemeld: een openstaande vraag weghalen.
             let invalTekst = '';
@@ -4417,9 +4427,13 @@
             jaTekst: 'Ja, verwijderen',
             neeTekst: 'Annuleren'
         });
-        if (ok) {
+        if (!ok) return;
+        try {
             await db.ref(`padelData/messages/${key}`).remove();
             showToast("Bericht verwijderd", "Het bericht is weggehaald.");
+        } catch (err) {
+            console.error("Bericht verwijderen mislukt:", err);
+            showToast("Niet verwijderd", "Het bericht kon niet worden verwijderd. Controleer je internetverbinding en probeer het opnieuw.", true);
         }
     }
 
@@ -4434,9 +4448,13 @@
             jaTekst: 'Ja, alles wissen',
             neeTekst: 'Annuleren'
         });
-        if (ok) {
+        if (!ok) return;
+        try {
             await db.ref('padelData/messages').remove();
             showToast("Chat gewist", "Alle berichten zijn verwijderd.");
+        } catch (err) {
+            console.error("Chat wissen mislukt:", err);
+            showToast("Niet gewist", "De chat kon niet worden gewist. Controleer je internetverbinding en probeer het opnieuw.", true);
         }
     }
 

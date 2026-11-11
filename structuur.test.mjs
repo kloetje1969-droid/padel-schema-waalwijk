@@ -119,6 +119,9 @@ test('databaseregels: schrijven vraagt een lidmaatschap en instellingen alleen R
   for (const r of schrijfRegels) assert.match(String(r.waarde), /auth != null/, `${r.pad} controleert de inlog niet`);
   assert.match(regels.padelData.settings['.write'], /auth\.token\.robert === true/);
   assert.match(regels.padelData.foutlog['.write'], /auth\.token\.robert === true/);
+  // Een bekendgemaakt podium kan alleen Robert nog wijzigen (de app en de server overschrijven het nooit)
+  assert.equal(regels.padelData.cyclusWinnaars['.write'], undefined, 'cyclusWinnaars mag niet in zijn geheel beschrijfbaar zijn');
+  assert.match(regels.padelData.cyclusWinnaars.$cyclusIdx['.write'], /!data\.child\('winner'\)\.exists\(\)/, 'een bestaand podium is niet beschermd');
 });
 
 test('databaseregels: de vormen van berichten, invalvragen en foutmeldingen zijn begrensd', () => {
