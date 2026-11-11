@@ -10,7 +10,7 @@ const BADGE = '/badge-96.png';
 // meteen doorkomt); alleen als dat niet lukt, de bewaarde kopie. De server (/api/) en de database gaan nooit via de kopie.
 const APP_KOPIE = 'padel-app';
 const APP_BESTANDEN = ['/index.html', '/stijl.css', '/foutlog.js', '/padel-regels.js', '/offline.js', '/manifest.json', '/icon-192.png'];
-const FIREBASE_SDK = ['app', 'database', 'auth', 'messaging'].map(n => `https://www.gstatic.com/firebasejs/9.23.0/firebase-${n}-compat.js`);
+const FIREBASE_SDK = ['app', 'database', 'auth', 'messaging'].map(n => `https://www.gstatic.com/firebasejs/13.2.0/firebase-${n}-compat.js`);
 
 // Eén vaste sleutel per bestand: zonder ?v=... (en / is index.html), zodat altijd de laatst opgehaalde versie bewaard staat
 function kopieSleutel(url) {
