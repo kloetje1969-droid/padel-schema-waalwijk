@@ -1874,6 +1874,7 @@
             align-items: baseline;
             flex: 1 1 auto;
             min-width: 0;
+            max-width: 380px; /* op een breed scherm blijven de nummers bij elkaar */
             font-variant-numeric: tabular-nums;
         }
         .vw-label { font-size: 0.95rem; font-weight: 700; color: #e5e7eb; padding-right: 6px; }
