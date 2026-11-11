@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=9.02">
+    <link rel="stylesheet" href="stijl.css?v=9.03">
 </head>
 <body>
 
@@ -403,10 +403,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=9.02"></script>
+<script src="foutlog.js?v=9.03"></script>
 <script>
 
-    const APP_VERSION = "9.02"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "9.03"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -1205,9 +1205,52 @@
     // Sinds 9.02 staan de volgende weken samen in één blok; open = alle volgende weken open.
     let volgendeWekenOpen = false;
 
+    // Rood stipje bij een volgende week waarin iets bijzonders speelt (sinds 9.03). Per week een "vingerafdruk"
+    // van de bijzonderheden; wat dit toestel al gezien heeft staat in localStorage (padel_weken_gezien).
+    // Openklappen van het blok = alle volgende weken gezien. Verandert de vingerafdruk, dan komt het stipje terug.
+    let volgendeVingers = {};
+    // Wat gezien was op het moment van openklappen: zolang het blok open is, blijven de stipjes bij de kopjes van de
+    // weken staan, zodat je ziet welke week veranderd was. Na dichtklappen zijn ze weg.
+    let wekenGezienBijOpenen = null;
+
+    function wekenGezienLezen() {
+        try { return JSON.parse(localStorage.getItem('padel_weken_gezien') || '{}') || {}; } catch (e) { return {}; }
+    }
+
+    function wekenMarkeerGezien() {
+        try { localStorage.setItem('padel_weken_gezien', JSON.stringify(volgendeVingers)); } catch (e) {}
+        document.querySelectorAll('#scheduleContainer .vw-raster .vw-stip').forEach(el => el.remove());
+    }
+
     function onVolgendeWekenToggle(el) {
         volgendeWekenOpen = el.open;
         updateCollapseArrow(el);
+        if (el.open) {
+            wekenGezienBijOpenen = wekenGezienLezen();
+            wekenMarkeerGezien();
+        } else {
+            wekenGezienBijOpenen = null;
+            document.querySelectorAll('#scheduleContainer .vw-week .vw-stip').forEach(stip => stip.remove());
+        }
+    }
+
+    // Wat er in een week anders is dan normaal: afgemeld, invalvraag of invaller, andere opstelling, andere dag of tijd,
+    // afgelast of een regenwaarschuwing. Lege tekst = niets bijzonders.
+    function weekVingerafdruk(uniqueWeekKey, slots) {
+        const delen = [];
+        const lijst = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
+        slots.forEach(({ slot, afgelast, dag, tijd, spelers, standaard, regen }) => {
+            const nu = lijst(spelers);
+            if (afgelast) delen.push(`${slot}:afgelast`);
+            if (dag !== slot) delen.push(`${slot}:dag=${dag}`);
+            if (tijd !== STANDAARD_TIJD) delen.push(`${slot}:tijd=${tijd}`);
+            if (nu.join(',') !== lijst(standaard).join(',')) delen.push(`${slot}:spelers=${nu.join(',')}`);
+            nu.forEach(n => { if (checkPlayerAbsent(n, uniqueWeekKey, slot)) delen.push(`${slot}:afwezig=${n}`); });
+            const vragen = invallers[`${uniqueWeekKey}_${slot}`] || {};
+            Object.keys(vragen).sort().forEach(n => delen.push(`${slot}:inval=${n}/${(vragen[n] && vragen[n].status) || ''}`));
+            if (regen) delen.push(`${slot}:regen`);
+        });
+        return delen.join('|');
     }
 
     // ---------- Blok: BBQ en Borrel (datumprikker) ----------
@@ -2983,6 +3026,9 @@
         let volgendeHtml = '';
         const volgendeWeekNrs = [];
         const volgendeSchemaNrs = [];
+        const volgendeStippen = [];
+        const nieuweVingers = {};
+        const wekenGezien = wekenGezienLezen();
 
         for (let i = 0; i < 6; i++) {
             let weekStart = new Date(currentMonday);
@@ -3057,8 +3103,26 @@
             let diRes = matchResults[diMatchId] || { t1s1:'', t2s1:'', t1s2:'', t2s2:'', t1s3:'', t2s3:'' };
             let doRes = matchResults[doMatchId] || { t1s1:'', t2s1:'', t1s2:'', t2s2:'', t1s3:'', t2s3:'' };
 
-            let dinsdagBodyHtml = `<div class="players-container">${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag', diCancelled)}</div>`;
-            let donderdagBodyHtml = `<div class="players-container">${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag', doCancelled)}</div>`;
+            // Winnend team (groene rand) en de wedstrijd van vandaag (fellere rand), sinds 9.03
+            const diWinnaar = diCancelled ? 0 : winnendTeam(matchResults[diMatchId]);
+            const doWinnaar = doCancelled ? 0 : winnendTeam(matchResults[doMatchId]);
+            const vandaagTekst = new Date().toDateString();
+            const diVandaagKlasse = (!diCancelled && dinsdagDate.toDateString() === vandaagTekst) ? ' vandaag vandaag-dinsdag' : '';
+            const doVandaagKlasse = (!doCancelled && donderdagDate.toDateString() === vandaagTekst) ? ' vandaag vandaag-donderdag' : '';
+
+            let dinsdagBodyHtml = `<div class="players-container">${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag', diCancelled, diWinnaar)}</div>`;
+            let donderdagBodyHtml = `<div class="players-container">${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag', doCancelled, doWinnaar)}</div>`;
+
+            const weekVinger = i === 0 ? '' : weekVingerafdruk(uniqueWeekKey, [
+                { slot: 'dinsdag', afgelast: diCancelled, dag: activeDinsdag, tijd: activeDinsdagTijd, spelers: dinsdagPlayers, standaard: tpl.dinsdag, regen: !!dinsdagRainAlert },
+                { slot: 'donderdag', afgelast: doCancelled, dag: activeDonderdag, tijd: activeDonderdagTijd, spelers: donderdagPlayers, standaard: tpl.donderdag, regen: !!donderdagRainAlert }
+            ]);
+            if (i > 0) nieuweVingers[uniqueWeekKey] = weekVinger;
+            const stipHtml = '<span class="vw-stip" title="Er is iets veranderd in deze week"></span>';
+            const weekStip = (i > 0 && weekVinger && !volgendeWekenOpen && wekenGezien[uniqueWeekKey] !== weekVinger) ? stipHtml : '';
+            const kopjeStip = (i > 0 && weekVinger && (volgendeWekenOpen
+                ? (wekenGezienBijOpenen && wekenGezienBijOpenen[uniqueWeekKey] !== weekVinger)
+                : wekenGezien[uniqueWeekKey] !== weekVinger)) ? stipHtml : '';
 
             let dayOptions = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
             let makeDaySelect = (currentVal, slotKey) => {
@@ -3086,7 +3150,7 @@
 
             let matchesContent = `
                 <div class="matches-pair">
-                <div class="match-row-wrapper">
+                <div class="match-row-wrapper${diVandaagKlasse}">
                     <div class="match-row">
                         <div class="match-header-line">
                             <div class="match-day-date">
@@ -3146,7 +3210,7 @@
                     </div>
                 </div>
 
-                <div class="match-row-wrapper">
+                <div class="match-row-wrapper${doVandaagKlasse}">
                     <div class="match-row">
                         <div class="match-header-line">
                             <div class="match-day-date">
@@ -3223,10 +3287,11 @@
             } else {
                 volgendeWeekNrs.push(currentWeekNum);
                 volgendeSchemaNrs.push(schemaWeekNum);
+                volgendeStippen.push(weekStip);
                 volgendeHtml += `
                     <div class="vw-week">
                         <div class="week-header vw-week-kop">
-                            <span class="week-title-text">Week ${currentWeekNum}</span>
+                            <span class="week-title-text">Week ${currentWeekNum}${kopjeStip}</span>
                             <div class="week-header-right">
                                 <span class="schema-week-tag">Week ${schemaWeekNum}</span>
                             </div>
@@ -3240,7 +3305,7 @@
         // De volgende weken in één blok: in de kop per week een kolom met het weeknummer en daaronder
         // het weeknummer van het standaardschema; open = alle weken meteen open
         if (volgendeWeekNrs.length) {
-            const kolommen = volgendeWeekNrs.map((nr, k) => `<span class="vw-nr" style="grid-column: ${k + 2}; grid-row: 1;">${nr}</span><span class="vw-nr vw-schema" style="grid-column: ${k + 2}; grid-row: 2;">${volgendeSchemaNrs[k]}</span>`).join('');
+            const kolommen = volgendeWeekNrs.map((nr, k) => `<span class="vw-nr" style="grid-column: ${k + 2}; grid-row: 1;"><span class="vw-getal">${nr}${volgendeStippen[k]}</span></span><span class="vw-nr vw-schema" style="grid-column: ${k + 2}; grid-row: 2;"><span class="vw-getal">${volgendeSchemaNrs[k]}</span></span>`).join('');
             html += `
                 <div class="week-card volgende-weken">
                     <details ${volgendeWekenOpen ? 'open' : ''} ontoggle="onVolgendeWekenToggle(this)">
@@ -3264,6 +3329,8 @@
         const actiefId = (actief && /^tijd[um]_/.test(actief.id || '')) ? actief.id : null;
         const cursorPos = actiefId ? actief.selectionStart : null;
         container.innerHTML = html;
+        volgendeVingers = nieuweVingers;
+        if (volgendeWekenOpen) wekenMarkeerGezien();
         fitOneLineRows();
         if (actiefId) {
             const terug = document.getElementById(actiefId);
@@ -3453,10 +3520,26 @@
         }
     }
 
-    function renderPlayerChips(players, uniqueWeekKey, day, isCancelled) {
+    // Welk team won (1 of 2): eerst de meeste sets, bij gelijke sets de meeste games (zoals Alle wedstrijden). 0 = geen uitslag of gelijk.
+    function winnendTeam(res) {
+        if (!res) return 0;
+        let sets1 = 0, sets2 = 0, games1 = 0, games2 = 0, iets = false;
+        [[res.t1s1, res.t2s1], [res.t1s2, res.t2s2], [res.t1s3, res.t2s3]].forEach(([a, b]) => {
+            a = Number(a) || 0; b = Number(b) || 0;
+            if (a > 0 || b > 0) iets = true;
+            games1 += a; games2 += b;
+            if (a > b) sets1++; else if (b > a) sets2++;
+        });
+        if (!iets) return 0;
+        if (sets1 !== sets2) return sets1 > sets2 ? 1 : 2;
+        if (games1 !== games2) return games1 > games2 ? 1 : 2;
+        return 0;
+    }
+
+    function renderPlayerChips(players, uniqueWeekKey, day, isCancelled, winnaarTeam) {
         if (!players || players.length < 4) return '';
 
-        const createChip = (p) => {
+        const createChip = (p, team) => {
             const isMe = (p === currentUserName);
             const isSub = !basePlayers.includes(p);
             const isAbsent = checkPlayerAbsent(p, uniqueWeekKey, day);
@@ -3468,13 +3551,14 @@
                 if (isMe) cls += " me";
                 else if (isSub) cls += " sub";
                 if (isAbsent) cls += " absent-player";
+                if (winnaarTeam && team === winnaarTeam) cls += " winnaar";
             }
 
-            return `<span class="${cls}">${esc(p)}</span>`;
+            return `<span class="${cls}"${winnaarTeam && team === winnaarTeam ? ' title="Winnaar"' : ''}>${esc(p)}</span>`;
         };
 
-        const team1 = players.slice(0, 2).map(createChip).join('');
-        const team2 = players.slice(2, 4).map(createChip).join('');
+        const team1 = players.slice(0, 2).map(p => createChip(p, 1)).join('');
+        const team2 = players.slice(2, 4).map(p => createChip(p, 2)).join('');
         return `${team1} <span class="vs-text">vs</span> ${team2}`;
     }
 
