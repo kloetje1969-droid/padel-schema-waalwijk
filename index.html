@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=9.00">
+    <link rel="stylesheet" href="stijl.css?v=9.01">
 </head>
 <body>
 
@@ -391,10 +391,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=9.00"></script>
+<script src="foutlog.js?v=9.01"></script>
 <script>
 
-    const APP_VERSION = "9.00"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "9.01"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -1188,27 +1188,17 @@
         return j1 === j2 ? `${j1}` : `${j1}/${j2}`;
     }
 
-    // ---------- Breed scherm (pc): alle blokken staan standaard open ----------
+    // ---------- Open en dicht: op elk scherm staan de blokken standaard dicht (sinds 9.01) ----------
+    // Wat iemand zelf open- of dichtklapt blijft zo tot de pagina opnieuw laadt. De huidige week is altijd open.
     let weekOpenState = {};
 
-    function isBreedScherm() {
-        return window.matchMedia('(min-width: 1000px)').matches;
-    }
-
     function weekIsOpen(weekKey) {
-        return weekOpenState[weekKey] !== undefined ? weekOpenState[weekKey] : isBreedScherm();
+        return weekOpenState[weekKey] === true;
     }
 
     function onWeekToggle(weekKey, el) {
         weekOpenState[weekKey] = el.open;
         updateCollapseArrow(el);
-    }
-
-    function openAllesOpBreedScherm() {
-        if (!isBreedScherm()) return;
-        document.querySelectorAll('details:not(.aw-rij)').forEach(d => { if (!d.open) d.open = true; });
-        const body = document.getElementById('baanBoekingenBody');
-        if (body && body.style.display !== 'flex') toggleBaanBoekingMenu();
     }
 
     // ---------- Blok: BBQ en Borrel (datumprikker) ----------
@@ -1845,7 +1835,7 @@
 
                 const podiumRijen = bouwPodiumRijen(eerste, tweede, derde, gamesVan, wedstrijdenVan);
 
-                const isOpen = geopendeCycli[idx] === undefined ? isBreedScherm() : !!geopendeCycli[idx];
+                const isOpen = !!geopendeCycli[idx];
                 return `
                     <div style="display: flex; flex-direction: column; gap: 3px; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--card-border);">
                         <div onclick="toggleCyclusWedstrijden(${jsArg(idx)})" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
@@ -2896,14 +2886,10 @@
         renderBbqBorrel();
     }
 
-    // Op een pc staan alle blokken standaard open: bij het laden en zodra het venster breed wordt
+    // Wisselt het venster tussen smal en breed, dan opnieuw tekenen; wat open of dicht staat blijft zo
     (function () {
-        const start = () => openAllesOpBreedScherm();
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
         const breed = window.matchMedia('(min-width: 1000px)');
-        const bijWijziging = (e) => {
-            if (e.matches) { weekOpenState = {}; geopendeCycli = {}; openAllesOpBreedScherm(); renderAll(); }
-        };
+        const bijWijziging = () => renderAll();
         if (breed.addEventListener) breed.addEventListener('change', bijWijziging); else if (breed.addListener) breed.addListener(bijWijziging);
     })();
 
