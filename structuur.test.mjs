@@ -15,6 +15,11 @@ const foutlogJs = lees('foutlog.js');
 const apiBestanden = fs.readdirSync(path.join(ROOT, 'api')).filter(f => f.endsWith('.js'));
 const regels = JSON.parse(lees('firebase-rules.json')).rules;
 
+// Eigen scriptbestanden die index.html laadt (niet die van Google/Firebase), bijvoorbeeld foutlog.js of een nieuwe functie
+function eigenScripts(tekst) {
+  return [...tekst.matchAll(/<script[^>]*\bsrc="([^":]+?\.js)(?:\?v=([^"]*))?"/g)].map(m => ({ bestand: m[1], versie: m[2] }));
+}
+
 function inlineScripts(tekst) {
   return [...tekst.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
 }
@@ -24,6 +29,11 @@ test('index.html: de scripts hebben geen syntaxisfouten', () => {
   assert.ok(scripts.length >= 1);
   scripts.forEach((code, i) => assert.doesNotThrow(() => new vm.Script(code, { filename: `index.html (script ${i + 1})` })));
   assert.doesNotThrow(() => new vm.Script(foutlogJs, { filename: 'foutlog.js' }));
+  // Elk eigen scriptbestand (ook een nieuw functiebestand) moet bestaan en mag geen syntaxisfouten hebben
+  for (const { bestand } of eigenScripts(html)) {
+    assert.ok(fs.existsSync(path.join(ROOT, bestand)), `index.html laadt ${bestand}, maar dat bestand bestaat niet`);
+    assert.doesNotThrow(() => new vm.Script(lees(bestand), { filename: bestand }));
+  }
 });
 
 test('padel-regels.js: geen syntaxisfouten', () => {
@@ -44,6 +54,12 @@ test('versienummer: precies een plek, en nergens vastgetypt in titel of voetteks
   assert.equal(treffers.length, 1, 'APP_VERSION moet precies een keer voorkomen');
     const versieIngetypt = html.replace(/const APP_VERSION = "\d+\.\d+"/, '').match(/\bV\d+\.\d+\b/g);
   assert.equal(versieIngetypt, null, `versienummer staat ook ergens anders: ${versieIngetypt}`);
+  // Elk eigen scriptbestand krijgt ?v=<APP_VERSION>, zodat telefoons het bij een nieuwe versie verversen
+  // (padel-regels.js is de enige uitzondering: dat wordt ook door de server geïmporteerd en zonder ?v= geladen)
+  const versie = (html.match(/const APP_VERSION = "(\d+\.\d+)"/) || [])[1];
+  for (const s of eigenScripts(html).filter(s => s.bestand !== 'padel-regels.js')) {
+    assert.equal(s.versie, versie, `index.html moet ${s.bestand}?v=${versie} laden (hetzelfde nummer als APP_VERSION)`);
+  }
 });
 
 test('stijl.css: bestaat, klopt (accolades) en index.html laadt hem met het huidige versienummer', () => {
