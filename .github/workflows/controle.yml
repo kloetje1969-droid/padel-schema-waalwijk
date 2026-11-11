@@ -13,6 +13,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24  # gelijk aan Vercel (Settings, Build and Deployment, Node.js Version: 24.x)
       - name: Tests draaien
         run: node --test regels.test.mjs structuur.test.mjs
