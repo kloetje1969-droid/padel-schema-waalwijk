@@ -1893,3 +1893,12 @@
             background: rgba(255, 255, 255, 0.02);
             box-shadow: none !important;
         }
+
+        /* "Historische uitslagen" / "KingKong" op twee regels; KingKong begint precies onder de H */
+        .section-title.us-titel-twee { display: flex; align-items: flex-start; gap: 0.3em; line-height: 1.25; }
+        .us-titel-twee .us-icoon { flex: 0 0 auto; }
+        .us-titel-twee .us-tekst { display: block; min-width: 0; white-space: nowrap; }
+        /* Op de smalste telefoons de letters iets kleiner, zodat "Historische uitslagen" op één regel blijft */
+        @media (max-width: 359px) {
+            .section-title.us-titel-twee { font-size: 0.9rem !important; }
+        }
