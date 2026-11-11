@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=9.04">
+    <link rel="stylesheet" href="stijl.css?v=9.05">
 </head>
 <body>
 
@@ -109,9 +109,9 @@
     <header>
         <div class="app-header-wrapper">
             <h1>
-                <span class="emoji-icon" id="headerIcon1">🥎</span>
+                <span class="emoji-icon" id="headerIcon1"><img class="padel-icoon" src="icon-192.png" alt=""></span>
                 Padelschema 
-                <span class="emoji-icon" id="headerIcon2">🥎</span>
+                <span class="emoji-icon" id="headerIcon2"><img class="padel-icoon" src="icon-192.png" alt=""></span>
             </h1>
         </div>
         
@@ -200,7 +200,7 @@
     <div class="card">
         <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
             <div class="section-title" style="font-size: 1.05rem;">
-                <span class="emoji-icon dynamic-ball-icon">🥎</span>
+                <span class="emoji-icon dynamic-ball-icon"><img class="padel-icoon" src="icon-192.png" alt=""></span>
                 Baan Boeken
             </div>
             <span id="collapseArrow" class="collapse-arrow">▼ Open</span>
@@ -403,10 +403,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=9.04"></script>
+<script src="foutlog.js?v=9.05"></script>
 <script>
 
-    const APP_VERSION = "9.04"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "9.05"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -443,7 +443,8 @@
         if ((month === 12 && day === 31) || (month === 1 && day === 1)) {
             return '🥂';
         }
-        return '🥎';
+        // De rest van het jaar: het padelracket met bal, hetzelfde icoontje als bij de pushmeldingen (sinds 9.05)
+        return '<img class="padel-icoon" src="icon-192.png" alt="">';
     }
 
     const emojiIconHtml = `<span class="emoji-icon dynamic-ball-icon">${getPadelIcon()}</span>`;
@@ -4588,7 +4589,7 @@
         document.getElementById('imageModal').style.display = 'none';
     }
 </script>
-<script src="offline.js?v=9.04"></script>
+<script src="offline.js?v=9.05"></script>
 
 </body>
 </html>
