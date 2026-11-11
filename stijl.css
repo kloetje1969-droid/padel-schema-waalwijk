@@ -1863,3 +1863,32 @@
                 overflow-wrap: anywhere;
             }
         }
+
+        /* ---------- Volgende weken in één blok (sinds 9.02) ---------- */
+        /* De kop: per week een kolom met het weeknummer en precies daaronder het weeknummer van het standaardschema */
+        .vw-kop { align-items: center; padding-top: 10px; padding-bottom: 10px; }
+        .vw-raster {
+            display: grid;
+            column-gap: 4px;
+            row-gap: 2px;
+            align-items: baseline;
+            flex: 1 1 auto;
+            min-width: 0;
+            font-variant-numeric: tabular-nums;
+        }
+        .vw-label { font-size: 0.95rem; font-weight: 700; color: #e5e7eb; padding-right: 6px; }
+        .vw-nr { text-align: center; font-size: 1.05rem; font-weight: 700; color: #e5e7eb; }
+        .vw-raster .vw-schema { font-size: 0.85rem; font-weight: 700; color: var(--accent-blue); text-shadow: none; }
+        .vw-lijst { display: flex; flex-direction: column; }
+        .vw-week + .vw-week { border-top: 1px solid var(--card-border); }
+        .vw-week-kop { background: rgba(255, 255, 255, 0.04); }
+
+        /* ---------- Uitslagen en Stand: vier blokken in één blok (sinds 9.02) ---------- */
+        #uitslagenStandCard .us-lijst { gap: 10px; }
+        .card.us-blok {
+            padding: 10px;
+            border-radius: 10px;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            box-shadow: none !important;
+        }

@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=9.01">
+    <link rel="stylesheet" href="stijl.css?v=9.02">
 </head>
 <body>
 
@@ -160,30 +160,6 @@
     <div class="card">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
-                <div class="section-title" id="statsTitel" style="font-size: 1.05rem;">📊 Statistieken Cyclus</div>
-                <span class="collapse-arrow">▼ Open</span>
-            </summary>
-            <div class="collapsible-body">
-                <div class="table-scroll-wrapper">
-                    <table class="stats-table">
-                        <thead>
-                            <tr>
-                                <th style="text-align: left;">Speler</th>
-                                <th style="color: var(--accent-green);">Dinsdag</th>
-                                <th style="color: var(--accent-orange);">Donderdag</th>
-                                <th>Totaal</th>
-                            </tr>
-                        </thead>
-                        <tbody id="statsTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </details>
-    </div>
-
-    <div class="card">
-        <details ontoggle="updateCollapseArrow(this)">
-            <summary class="card-header collapsible-header" style="list-style: none;">
                 <div class="section-title" style="font-size: 1.05rem;">📅 Afwezigheid / Vakantie</div>
                 <span class="collapse-arrow">▼ Open</span>
             </summary>
@@ -269,46 +245,82 @@
         </div>
     </div>
 
-    <!-- Klassement gewonnen games -->
-    <div class="card">
+    <!-- Uitslagen en Stand (sinds 9.02): statistieken, KingKong, historie en alle wedstrijden in één blok;
+         de vier blokken erin klappen elk apart open en dicht -->
+    <div class="card" id="uitslagenStandCard">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
-                <div class="section-title" style="font-size: 1.05rem;">🦧 KingKong of the Court 🦧</div>
+                <div class="section-title" style="font-size: 1.05rem;">🏆 Uitslagen en Stand</div>
                 <span class="collapse-arrow">▼ Open</span>
             </summary>
-            <div class="collapsible-body" id="setsRankingContainer" style="display: flex; flex-direction: column; gap: 6px;">
-                <div style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">Games berekenen...</div>
-            </div>
-        </details>
-    </div>
-
-    <!-- Aparte Blok: Historische uitslagen -->
-    <div class="card">
-        <details ontoggle="updateCollapseArrow(this)">
-            <summary class="card-header collapsible-header" style="list-style: none;">
-                <div class="section-title" style="font-size: 1.05rem;">🏆 Historische uitslagen</div>
-                <span class="collapse-arrow">▼ Open</span>
-            </summary>
-            <div class="collapsible-body" id="historischeUitslagenContainer" style="display: flex; flex-direction: column; gap: 6px;">
-                <div style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">Historie laden...</div>
-            </div>
-        </details>
-    </div>
-
-    <!-- Aparte Blok: Alle wedstrijden -->
-    <div class="card" id="alleWedstrijdenCard">
-        <details ontoggle="updateCollapseArrow(this)">
-            <summary class="card-header collapsible-header" style="list-style: none;">
-                <div class="section-title" style="font-size: 1.05rem;">📚 Alle wedstrijden</div>
-                <span class="collapse-arrow">▼ Open</span>
-            </summary>
-            <div class="collapsible-body" style="display: flex; flex-direction: column; gap: 8px;">
-                <div class="aw-filters">
-                    <select id="awCyclus" onchange="awKiesCyclus(this.value)"></select>
-                    <select id="awSpeler" onchange="awKiesSpeler(this.value)"></select>
+            <div class="collapsible-body us-lijst">
+                <div class="card us-blok">
+                    <details ontoggle="updateCollapseArrow(this)">
+                        <summary class="card-header collapsible-header" style="list-style: none;">
+                            <div class="section-title" id="statsTitel" style="font-size: 1.05rem;">📊 Statistieken Cyclus</div>
+                            <span class="collapse-arrow">▼ Open</span>
+                        </summary>
+                        <div class="collapsible-body">
+                            <div class="table-scroll-wrapper">
+                                <table class="stats-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="text-align: left;">Speler</th>
+                                            <th style="color: var(--accent-green);">Dinsdag</th>
+                                            <th style="color: var(--accent-orange);">Donderdag</th>
+                                            <th>Totaal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="statsTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </details>
                 </div>
-                <div id="awSamenvatting" class="aw-samenvatting"></div>
-                <div id="awLijst" style="display: flex; flex-direction: column; gap: 6px;"></div>
+
+                <!-- Klassement gewonnen games -->
+                <div class="card us-blok">
+                    <details ontoggle="updateCollapseArrow(this)">
+                        <summary class="card-header collapsible-header" style="list-style: none;">
+                            <div class="section-title" style="font-size: 1.05rem;">🦧 KingKong of the Court 🦧</div>
+                            <span class="collapse-arrow">▼ Open</span>
+                        </summary>
+                        <div class="collapsible-body" id="setsRankingContainer" style="display: flex; flex-direction: column; gap: 6px;">
+                            <div style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">Games berekenen...</div>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Aparte Blok: Historische uitslagen -->
+                <div class="card us-blok">
+                    <details ontoggle="updateCollapseArrow(this)">
+                        <summary class="card-header collapsible-header" style="list-style: none;">
+                            <div class="section-title" style="font-size: 1.05rem;">🏆 Historische uitslagen KingKong</div>
+                            <span class="collapse-arrow">▼ Open</span>
+                        </summary>
+                        <div class="collapsible-body" id="historischeUitslagenContainer" style="display: flex; flex-direction: column; gap: 6px;">
+                            <div style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">Historie laden...</div>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Aparte Blok: Alle wedstrijden -->
+                <div class="card us-blok" id="alleWedstrijdenCard">
+                    <details ontoggle="updateCollapseArrow(this)">
+                        <summary class="card-header collapsible-header" style="list-style: none;">
+                            <div class="section-title" style="font-size: 1.05rem;">📚 Alle wedstrijden</div>
+                            <span class="collapse-arrow">▼ Open</span>
+                        </summary>
+                        <div class="collapsible-body" style="display: flex; flex-direction: column; gap: 8px;">
+                            <div class="aw-filters">
+                                <select id="awCyclus" onchange="awKiesCyclus(this.value)"></select>
+                                <select id="awSpeler" onchange="awKiesSpeler(this.value)"></select>
+                            </div>
+                            <div id="awSamenvatting" class="aw-samenvatting"></div>
+                            <div id="awLijst" style="display: flex; flex-direction: column; gap: 6px;"></div>
+                        </div>
+                    </details>
+                </div>
             </div>
         </details>
     </div>
@@ -391,10 +403,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=9.01"></script>
+<script src="foutlog.js?v=9.02"></script>
 <script>
 
-    const APP_VERSION = "9.01"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "9.02"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -1190,14 +1202,11 @@
 
     // ---------- Open en dicht: op elk scherm staan de blokken standaard dicht (sinds 9.01) ----------
     // Wat iemand zelf open- of dichtklapt blijft zo tot de pagina opnieuw laadt. De huidige week is altijd open.
-    let weekOpenState = {};
+    // Sinds 9.02 staan de volgende weken samen in één blok; open = alle volgende weken open.
+    let volgendeWekenOpen = false;
 
-    function weekIsOpen(weekKey) {
-        return weekOpenState[weekKey] === true;
-    }
-
-    function onWeekToggle(weekKey, el) {
-        weekOpenState[weekKey] = el.open;
+    function onVolgendeWekenToggle(el) {
+        volgendeWekenOpen = el.open;
         updateCollapseArrow(el);
     }
 
@@ -2971,6 +2980,9 @@
         let referenceMonday = refMaandag(); 
 
         let html = '';
+        let volgendeHtml = '';
+        const volgendeWeekNrs = [];
+        const volgendeSchemaNrs = [];
 
         for (let i = 0; i < 6; i++) {
             let weekStart = new Date(currentMonday);
@@ -3209,23 +3221,43 @@
                     </div>
                 `;
             } else {
-                html += `
-                    <div class="week-card">
-                        <details ${weekIsOpen(uniqueWeekKey) ? 'open' : ''} ontoggle="onWeekToggle('${uniqueWeekKey}', this)">
-                            <summary class="week-header collapsible-header" style="list-style: none;">
-                                <span class="week-title-text">Week ${currentWeekNum}</span>
-                                <div class="week-header-right">
-                                    <span class="schema-week-tag">Week ${schemaWeekNum}</span>
-                                    <span class="collapse-arrow">${weekIsOpen(uniqueWeekKey) ? '▲ Sluiten' : '▼ Open'}</span>
-                                </div>
-                            </summary>
-                            <div class="collapsible-body" style="margin-top: 0;">
-                                ${matchesContent}
+                volgendeWeekNrs.push(currentWeekNum);
+                volgendeSchemaNrs.push(schemaWeekNum);
+                volgendeHtml += `
+                    <div class="vw-week">
+                        <div class="week-header vw-week-kop">
+                            <span class="week-title-text">Week ${currentWeekNum}</span>
+                            <div class="week-header-right">
+                                <span class="schema-week-tag">Week ${schemaWeekNum}</span>
                             </div>
-                        </details>
+                        </div>
+                        ${matchesContent}
                     </div>
                 `;
             }
+        }
+
+        // De volgende weken in één blok: in de kop per week een kolom met het weeknummer en daaronder
+        // het weeknummer van het standaardschema; open = alle weken meteen open
+        if (volgendeWeekNrs.length) {
+            const kolommen = volgendeWeekNrs.map((nr, k) => `<span class="vw-nr" style="grid-column: ${k + 2}; grid-row: 1;">${nr}</span><span class="vw-nr vw-schema" style="grid-column: ${k + 2}; grid-row: 2;">${volgendeSchemaNrs[k]}</span>`).join('');
+            html += `
+                <div class="week-card volgende-weken">
+                    <details ${volgendeWekenOpen ? 'open' : ''} ontoggle="onVolgendeWekenToggle(this)">
+                        <summary class="week-header collapsible-header vw-kop" style="list-style: none;">
+                            <div class="vw-raster" style="grid-template-columns: auto repeat(${volgendeWeekNrs.length}, minmax(0, 1fr));" aria-label="Volgende weken">
+                                <span class="vw-label" style="grid-column: 1; grid-row: 1;">Week</span>
+                                <span class="vw-label vw-schema" style="grid-column: 1; grid-row: 2;">Schema</span>
+                                ${kolommen}
+                            </div>
+                            <span class="collapse-arrow">${volgendeWekenOpen ? '▲ Sluiten' : '▼ Open'}</span>
+                        </summary>
+                        <div class="vw-lijst">
+                            ${volgendeHtml}
+                        </div>
+                    </details>
+                </div>
+            `;
         }
 
         const actief = document.activeElement;
