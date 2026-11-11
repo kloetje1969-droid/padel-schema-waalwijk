@@ -1954,3 +1954,5 @@
             vertical-align: -0.22em;
             display: inline-block;
         }
+        /* In de titel staat het rechter racket gespiegeld: twee spiegelbeelden aan weerskanten (alleen het racket, niet de feestdagen-icoontjes) */
+        #headerIcon2 .padel-icoon { transform: scaleX(-1); }
