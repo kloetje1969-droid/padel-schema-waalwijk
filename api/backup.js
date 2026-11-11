@@ -7,7 +7,56 @@ import { db, TZ, isCronAuthorized } from '../lib/padel.js';
 
 const BEWAAR_AANTAL = 8;
 const FOUTLOG_DAGEN = 30;
+const MARKERING_DAGEN = 60;  // "al verstuurd"-markeringen ouder dan dit worden opgeruimd
 const DAG_MS = 24 * 60 * 60 * 1000;
+const PUSH_TEKENS = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+
+// Tijdstip (ms) uit een Firebase-pushsleutel (de eerste 8 tekens), of null als het geen pushsleutel is
+export function tijdUitPushSleutel(k) {
+  if (typeof k !== 'string' || k.length < 8) return null;
+  let t = 0;
+  for (let i = 0; i < 8; i++) {
+    const w = PUSH_TEKENS.indexOf(k.charAt(i));
+    if (w < 0) return null;
+    t = t * 64 + w;
+  }
+  return t;
+}
+
+// Tijdstip (ms) uit '2026-11-10_dinsdag' of '2026_w45_dinsdag', of null als de vorm onbekend is
+export function tijdUitDatumSleutel(k) {
+  let m = /^(\d{4})-(\d{2})-(\d{2})_/.exec(k);
+  if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3]);
+  m = /^(\d{4})_w(\d{1,2})_/.exec(k);
+  if (m) {
+    const jan4 = Date.UTC(+m[1], 0, 4);
+    const dag = (new Date(jan4).getUTCDay() + 6) % 7;
+    return jan4 - dag * DAG_MS + (+m[2] - 1) * 7 * DAG_MS;
+  }
+  return null;
+}
+
+// Welke markeringen in padelData weg mogen (los te testen: geen database nodig).
+// Sleutels met een onbekende vorm blijven staan.
+export function oudeMarkeringen(data, nu = Date.now()) {
+  const grens = nu - MARKERING_DAGEN * DAG_MS;
+  const weg = {};
+  const lijsten = {
+    notified: tijdUitPushSleutel,
+    sentMatchReminders: tijdUitDatumSleutel,
+    sentWeatherPushes: tijdUitDatumSleutel,
+    sentResultReminders: tijdUitDatumSleutel
+  };
+  for (const [plek, tijdVan] of Object.entries(lijsten)) {
+    const lijst = data && data[plek];
+    if (!lijst || typeof lijst !== 'object') continue;
+    for (const k of Object.keys(lijst)) {
+      const t = tijdVan(k);
+      if (t !== null && t < grens) weg[`padelData/${plek}/${k}`] = null;
+    }
+  }
+  return weg;
+}
 
 export function sleutelNu(now = new Date()) {
   const delen = new Intl.DateTimeFormat('en-GB', {
@@ -70,7 +119,8 @@ export default async function handler(req, res) {
 
   try {
     const snap = await db.ref('padelData').once('value');
-    const data = schoonDataOp(snap.val());
+    const ruw = snap.val() || {};
+    const data = schoonDataOp(ruw);
     const json = JSON.stringify(data);
     const sleutel = sleutelNu();
 
@@ -106,8 +156,24 @@ export default async function handler(req, res) {
       console.error('Foutenlog opruimen mislukt:', e);
     }
 
-    console.log('BACKUP', JSON.stringify({ sleutel, kb, bewaard: sleutels.length - weg.length, verwijderd: weg.length, github: github.gedaan, opgeruimd }));
-    return res.status(200).json({ status: 'Back-up gemaakt', sleutel, kb, bewaard: sleutels.length - weg.length, verwijderd: weg.length, github, foutmeldingenOpgeruimd: opgeruimd });
+    // Oude "al verstuurd"-markeringen (meldingen, herinneringen, weer) en oude inlogpogingen opruimen
+    let markeringen = 0;
+    try {
+      const upd = oudeMarkeringen(ruw);
+      const pogingen = (await db.ref('loginAttempts').once('value')).val() || {};
+      const dagGeleden = Date.now() - DAG_MS;
+      Object.keys(pogingen).forEach(k => {
+        const p = pogingen[k];
+        if (!p || !(p.since > dagGeleden)) upd[`loginAttempts/${k}`] = null;
+      });
+      markeringen = Object.keys(upd).length;
+      if (markeringen) await db.ref().update(upd);
+    } catch (e) {
+      console.error('Markeringen opruimen mislukt:', e);
+    }
+
+    console.log('BACKUP', JSON.stringify({ sleutel, kb, bewaard: sleutels.length - weg.length, verwijderd: weg.length, github: github.gedaan, opgeruimd, markeringen }));
+    return res.status(200).json({ status: 'Back-up gemaakt', sleutel, kb, bewaard: sleutels.length - weg.length, verwijderd: weg.length, github, foutmeldingenOpgeruimd: opgeruimd, markeringenOpgeruimd: markeringen });
   } catch (error) {
     console.error('Fout bij back-up:', error);
     return res.status(500).json({ error: 'De back-up is mislukt.' });
