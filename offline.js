@@ -125,6 +125,7 @@ function offlineStart() {
     const pin = document.getElementById('pinOverlay');
     if (pin) pin.style.display = 'none';
     try { initUserSelect(); } catch (e) {}
+    try { firebaseConnected = false; updateConnectionIndicator(); } catch (e) {} // bovenin "Verbroken" in plaats van "Live verbonden"
     try { renderAll(); } catch (e) { console.warn('Offline tekenen mislukt:', e); }
     try { renderChat(); renderStatuses(); updateAlertUI(); } catch (e) {}
     offlineWerkBalkBij();
