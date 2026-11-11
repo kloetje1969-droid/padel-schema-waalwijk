@@ -5,8 +5,53 @@
 const ICON = '/icon-192.png';
 const BADGE = '/badge-96.png';
 
-self.addEventListener('install', () => self.skipWaiting());
+// ---- Zonder internet (sinds 9.04) ----
+// De bestanden van de app worden ook op het toestel bewaard. Altijd EERST van internet (zodat een nieuwe versie
+// meteen doorkomt); alleen als dat niet lukt, de bewaarde kopie. De server (/api/) en de database gaan nooit via de kopie.
+const APP_KOPIE = 'padel-app';
+const APP_BESTANDEN = ['/index.html', '/stijl.css', '/foutlog.js', '/padel-regels.js', '/offline.js', '/manifest.json', '/icon-192.png'];
+const FIREBASE_SDK = ['app', 'database', 'auth', 'messaging'].map(n => `https://www.gstatic.com/firebasejs/9.23.0/firebase-${n}-compat.js`);
+
+// Eén vaste sleutel per bestand: zonder ?v=... (en / is index.html), zodat altijd de laatst opgehaalde versie bewaard staat
+function kopieSleutel(url) {
+  const u = new URL(url);
+  if (u.origin !== self.location.origin) return u.href;
+  return u.origin + (u.pathname === '/' ? '/index.html' : u.pathname);
+}
+
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  event.waitUntil(caches.open(APP_KOPIE).then(async (kopie) => {
+    for (const pad of APP_BESTANDEN) {
+      try { const r = await fetch(pad, { cache: 'no-store' }); if (r.ok) await kopie.put(kopieSleutel(new URL(pad, self.location.origin).href), r); } catch (e) { /* later opnieuw */ }
+    }
+    for (const url of FIREBASE_SDK) {
+      try { const r = await fetch(url, { mode: 'no-cors' }); await kopie.put(url, r); } catch (e) { /* later opnieuw */ }
+    }
+  }).catch(() => {}));
+});
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  const eigen = url.origin === self.location.origin;
+  const sdk = url.hostname === 'www.gstatic.com' && url.pathname.startsWith('/firebasejs/');
+  if (!eigen && !sdk) return;                     // database, inloggen, weer en pushdienst: gewoon via internet
+  if (eigen && url.pathname.startsWith('/api/')) return;
+  const sleutel = kopieSleutel(req.url);
+  event.respondWith(
+    fetch(req).then((antwoord) => {
+      if (antwoord && (antwoord.ok || antwoord.type === 'opaque')) {
+        const kopie = antwoord.clone();
+        caches.open(APP_KOPIE).then(c => c.put(sleutel, kopie)).catch(() => {});
+      }
+      return antwoord;
+    }).catch(() => caches.match(sleutel).then(r => r || (req.mode === 'navigate' ? caches.match(kopieSleutel(self.location.origin + '/index.html')) : undefined))
+      .then(r => r || Response.error()))
+  );
+});
 
 self.addEventListener('push', (event) => {
   let payload = {};

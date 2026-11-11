@@ -10,6 +10,8 @@
         try {
             const b = foutKort(bericht, 300);
             if (!b) return;
+            // Zonder internet mislukt van alles (weer, inloggen); dat zijn geen fouten in de app (sinds 9.04)
+            if (navigator.onLine === false) return;
             // Onschuldig bericht van de browser over het opnieuw meten van blokken, geen echte fout
             if (/^ResizeObserver loop (completed with undelivered notifications|limit exceeded)/i.test(b)) return;
             const sleutel = b + '|' + foutKort(bron, 80) + '|' + regel;

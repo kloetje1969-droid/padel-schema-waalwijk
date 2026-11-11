@@ -89,6 +89,12 @@ test('foutlog.js: wordt vóór de hoofdcode geladen met het huidige versienummer
 
 test('index.html laadt de gedeelde regels en gebruikt geen browserpopups', () => {
   assert.match(html, /<script[^>]*src="padel-regels\.js"/);
+  // Zonder internet (sinds 9.04): de servicemedewerker haalt eerst van internet en laat de server en de database met rust
+  const sw = lees('firebase-messaging-sw.js');
+  assert.match(sw, /addEventListener\('fetch'/, 'de servicemedewerker bewaart de app niet voor gebruik zonder internet');
+  assert.match(sw, /fetch\(req\)\.then[\s\S]*\.catch\(\(\) => caches\.match/, 'de servicemedewerker moet eerst internet proberen en pas daarna de bewaarde kopie');
+  assert.match(sw, /startsWith\('\/api\/'\)\) return/, '/api/ mag nooit uit de bewaarde kopie komen');
+  assert.match(sw, /'push'/, 'de pushmeldingen in de servicemedewerker zijn verdwenen');
   const zonderTekstregels = inlineScripts(html).join('\n') + '\n' + foutlogJs;
   assert.equal(/(?<![A-Za-z_.$])(alert|confirm|prompt)\(/.test(zonderTekstregels), false, 'gebruik toonMelding of bevestigDialoog in plaats van alert/confirm');
 });
