@@ -1977,3 +1977,10 @@
         }
         /* In de titel staat het rechter racket gespiegeld: twee spiegelbeelden aan weerskanten (alleen het racket, niet de feestdagen-icoontjes) */
         #headerIcon2 .padel-icoon { transform: scaleX(-1); }
+
+        /* ---------- Grote schermen (tv, sinds 9.11): de hele app in stappen vergroten ----------
+           Onder 2200 pixels verandert niets. Een 4K-tv zonder vergroting (3840) ziet er zo uit als Full HD.
+           Browsers die zoom niet kennen, tonen de app gewoon zoals op een pc. */
+        @media (min-width: 2200px) { body { zoom: 1.3; } }
+        @media (min-width: 2900px) { body { zoom: 1.6; } }
+        @media (min-width: 3600px) { body { zoom: 2; } }
