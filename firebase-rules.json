@@ -206,6 +206,15 @@
         "$naam": {
           ".validate": "($naam === 'Marcel' || $naam === 'Mark' || $naam === 'Ronald' || $naam === 'Sander' || $naam === 'Dennis' || $naam === 'Robert') && newData.isString() && newData.val().length <= 20000 && newData.val().matches(/^data:image\\/jpeg;base64,[A-Za-z0-9+\\/=]+$/)"
         }
+      },
+      "gezien": {
+        "$match": {
+          ".write": "auth != null && auth.token.lid === true",
+          ".validate": "$match.matches(/^20[0-9]{2}_w[0-9]{1,2}_(dinsdag|donderdag)$/)",
+          "$naam": {
+            ".validate": "($naam === 'Marcel' || $naam === 'Mark' || $naam === 'Ronald' || $naam === 'Sander' || $naam === 'Dennis' || $naam === 'Robert') && newData.isString() && newData.val().length <= 16"
+          }
+        }
       }
     },
     "onlineSessies": {

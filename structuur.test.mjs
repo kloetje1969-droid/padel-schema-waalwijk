@@ -178,7 +178,9 @@ test('databaseregels: BBQ en Borrel laat alleen de zes namen, een datum en ja of
 
 test('de app schrijft alleen naar plekken die de databaseregels kennen', () => {
   const toegestaan = Object.keys(regels.padelData).filter(k => !k.startsWith('.'));
-  const gebruikt = new Set([...(html + '\n' + foutlogJs).matchAll(/padelData\/([A-Za-z]+)/g)].map(m => m[1]));
+  // ook de functiebestanden (offline.js, uitgelicht.js, ...) die index.html laadt
+  const functieBestanden = [...html.matchAll(/<script src="([a-z-]+\.js)\?v=/g)].map(m => lees(m[1])).join('\n');
+  const gebruikt = new Set([...(html + '\n' + foutlogJs + '\n' + functieBestanden).matchAll(/padelData\/([A-Za-z]+)/g)].map(m => m[1]));
   for (const g of gebruikt) assert.ok(toegestaan.includes(g), `de app gebruikt padelData/${g}, maar de regels kennen die plek niet`);
   // plekken buiten padelData (alleen schrijven, lezen doet de server)
   const buiten = new Set([...html.matchAll(/db\.ref\('([A-Za-z]+)'\)/g)].map(m => m[1]).filter(k => k !== 'padelData'));

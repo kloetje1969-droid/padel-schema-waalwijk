@@ -1903,24 +1903,43 @@
             .section-title.us-titel-twee { font-size: 0.9rem !important; }
         }
 
-        /* ---------- Rood pulserend stipje bij een volgende week waarin iets speelt (sinds 9.03) ---------- */
+        /* ---------- Blok "Gewijzigd": gewijzigde wedstrijden uit de volgende weken onder de huidige week (sinds 9.08, uitgelicht.js) ---------- */
         .vw-getal { position: relative; display: inline-block; }
-        .vw-stip {
-            position: absolute;
-            left: 100%;
-            top: 0;
-            margin-left: 2px;
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            background: #ef4444;
-            animation: stipPuls 1.3s ease-in-out infinite;
+        .week-card.uitgelicht {
+            border: 2px solid rgba(239, 68, 68, 0.6);
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.25);
         }
-        .week-title-text .vw-stip { position: static; display: inline-block; margin-left: 8px; vertical-align: middle; }
-        @keyframes stipPuls {
-            0%, 100% { transform: scale(0.75); opacity: 0.75; box-shadow: 0 0 2px rgba(239, 68, 68, 0.5); }
-            50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px rgba(239, 68, 68, 0.95); }
+        .week-card.uitgelicht .week-header { background: rgba(239, 68, 68, 0.08); }
+        .week-card.uitgelicht .week-title-text { color: #fca5a5; }
+        .uitg-item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .uitg-kop { font-weight: 800; font-size: calc(0.95rem * var(--s, 1)); padding: 0 4px; }
+        .uitg-kop.slot-dinsdag { color: var(--accent-green); }
+        .uitg-kop.slot-donderdag { color: var(--accent-orange); }
+        .uitg-redenen { color: #fca5a5; font-size: calc(0.85rem * var(--s, 1)); padding: 0 4px; line-height: 1.35; }
+        .uitg-item > .match-row-wrapper { margin-bottom: 0; }
+        .uitg-gezien {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px 10px;
+            padding: 0 4px;
+            color: var(--text-muted);
+            font-size: calc(0.85rem * var(--s, 1));
         }
+        .btn-gezien {
+            background: var(--accent-blue);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 7px 14px;
+            font-weight: 700;
+            font-size: calc(0.9rem * var(--s, 1));
+            cursor: pointer;
+        }
+        .btn-gezien:hover { filter: brightness(1.1); }
+        .uitg-ik { color: var(--accent-green); font-weight: 700; }
+        .uitg-lijst { display: flex; flex-direction: column; gap: 16px; padding: 10px 8px 12px; }
 
         /* ---------- De wedstrijd van vandaag: rand in precies de kleur van de dag (sinds 9.03; sinds 9.07 dezelfde kleur als "Dinsdag"/"Donderdag") ---------- */
         .match-row-wrapper.vandaag { border-width: 3.5px; padding: 11px; }
