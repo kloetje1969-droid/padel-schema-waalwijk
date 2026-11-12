@@ -1922,14 +1922,16 @@
             50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px rgba(239, 68, 68, 0.95); }
         }
 
-        /* ---------- De wedstrijd van vandaag: fellere rand in de kleur van de dag (sinds 9.03) ---------- */
+        /* ---------- De wedstrijd van vandaag: rand in precies de kleur van de dag (sinds 9.03; sinds 9.07 dezelfde kleur als "Dinsdag"/"Donderdag") ---------- */
         .match-row-wrapper.vandaag { border-width: 3.5px; padding: 11px; }
-        .match-row-wrapper.vandaag-dinsdag { border-color: #34d399; box-shadow: 0 0 16px rgba(52, 211, 153, 0.6), inset 0 0 10px rgba(52, 211, 153, 0.18); }
-        .match-row-wrapper.vandaag-donderdag { border-color: #fb923c; box-shadow: 0 0 16px rgba(251, 146, 60, 0.6), inset 0 0 10px rgba(251, 146, 60, 0.18); }
+        .match-row-wrapper.vandaag-dinsdag { border-color: var(--accent-green); box-shadow: 0 0 16px rgba(5, 150, 105, 0.75), inset 0 0 10px rgba(5, 150, 105, 0.25); }
+        .match-row-wrapper.vandaag-donderdag { border-color: var(--accent-orange); box-shadow: 0 0 16px rgba(194, 65, 12, 0.75), inset 0 0 10px rgba(194, 65, 12, 0.25); }
 
-        /* ---------- Winnend team na een uitslag: groene rand (sinds 9.03; box-shadow, zodat de maat niet verandert) ---------- */
-        .player-chip.winnaar { border-color: #34d399; box-shadow: 0 0 0 1px #34d399, 0 0 9px rgba(52, 211, 153, 0.55); }
-        .player-chip.me.winnaar { border-color: #34d399; box-shadow: 0 0 0 1px #34d399, 0 0 9px rgba(52, 211, 153, 0.55), 0 0 10px rgba(56, 189, 248, 0.4); }
+        /* ---------- Winnend team na een uitslag: rand in de kleur van de dag (sinds 9.03; sinds 9.07 per dag; box-shadow, zodat de maat niet verandert) ---------- */
+        .player-chip.winnaar-dinsdag { border-color: var(--accent-green); box-shadow: 0 0 0 1px var(--accent-green), 0 0 9px rgba(5, 150, 105, 0.7); }
+        .player-chip.winnaar-donderdag { border-color: var(--accent-orange); box-shadow: 0 0 0 1px var(--accent-orange), 0 0 9px rgba(194, 65, 12, 0.7); }
+        .player-chip.me.winnaar-dinsdag { border-color: var(--accent-green); box-shadow: 0 0 0 1px var(--accent-green), 0 0 9px rgba(5, 150, 105, 0.7), 0 0 10px rgba(56, 189, 248, 0.4); }
+        .player-chip.me.winnaar-donderdag { border-color: var(--accent-orange); box-shadow: 0 0 0 1px var(--accent-orange), 0 0 9px rgba(194, 65, 12, 0.7), 0 0 10px rgba(56, 189, 248, 0.4); }
 
         /* ---------- Zonder internet (sinds 9.04): balk bovenin, gemaakt door offline.js ---------- */
         #offlineBalk {
