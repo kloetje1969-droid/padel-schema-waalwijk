@@ -17,7 +17,8 @@ const OFFLINE_PADEN = {
     lastSeen: 'padelData/lastSeen',
     bbqBorrel: 'padelData/bbqBorrel',
     bbqBorrelMaand: 'padelData/settings/bbqBorrelMaand',
-    pushGloballyEnabled: 'padelData/settings/pushGloballyEnabled'
+    pushGloballyEnabled: 'padelData/settings/pushGloballyEnabled',
+    gezien: 'padelData/gezien'
 };
 const OFFLINE_MELDING = 'Geen internet: dit kan nu niet. Probeer het opnieuw als je weer verbinding hebt.';
 
@@ -121,6 +122,7 @@ function offlineStart() {
     bbqStartMaand = (typeof d.bbqBorrelMaand === 'string' && /^\d{4}-\d{2}$/.test(d.bbqBorrelMaand)) ? d.bbqBorrelMaand : '';
     bbqGeladen.antwoorden = true;
     bbqGeladen.maand = true;
+    if (typeof uitgGezien !== 'undefined') { uitgGezien = d.gezien || {}; uitgGeladen = true; } // blok "Gewijzigd" (uitgelicht.js)
 
     const pin = document.getElementById('pinOverlay');
     if (pin) pin.style.display = 'none';

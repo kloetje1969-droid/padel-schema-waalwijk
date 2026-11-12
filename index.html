@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=9.07">
+    <link rel="stylesheet" href="stijl.css?v=9.08">
 </head>
 <body>
 
@@ -403,10 +403,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=9.07"></script>
+<script src="foutlog.js?v=9.08"></script>
 <script>
 
-    const APP_VERSION = "9.07"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "9.08"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -1059,6 +1059,7 @@
 
         setupOnlinePresence();
         if (typeof startOffline === 'function') startOffline(); // kopie voor gebruik zonder internet (offline.js)
+        if (typeof startUitgelicht === 'function') startUitgelicht(); // blok "Gewijzigd" onder de huidige week (uitgelicht.js)
         setInterval(renderStatuses, 5000);
         setInterval(checkAndStoreCyclusWinner, 60 * 1000);
     }
@@ -1216,52 +1217,10 @@
     // Sinds 9.02 staan de volgende weken samen in één blok; open = alle volgende weken open.
     let volgendeWekenOpen = false;
 
-    // Rood stipje bij een volgende week waarin iets bijzonders speelt (sinds 9.03). Per week een "vingerafdruk"
-    // van de bijzonderheden; wat dit toestel al gezien heeft staat in localStorage (padel_weken_gezien).
-    // Openklappen van het blok = alle volgende weken gezien. Verandert de vingerafdruk, dan komt het stipje terug.
-    let volgendeVingers = {};
-    // Wat gezien was op het moment van openklappen: zolang het blok open is, blijven de stipjes bij de kopjes van de
-    // weken staan, zodat je ziet welke week veranderd was. Na dichtklappen zijn ze weg.
-    let wekenGezienBijOpenen = null;
-
-    function wekenGezienLezen() {
-        try { return JSON.parse(localStorage.getItem('padel_weken_gezien') || '{}') || {}; } catch (e) { return {}; }
-    }
-
-    function wekenMarkeerGezien() {
-        try { localStorage.setItem('padel_weken_gezien', JSON.stringify(volgendeVingers)); } catch (e) {}
-        document.querySelectorAll('#scheduleContainer .vw-raster .vw-stip').forEach(el => el.remove());
-    }
-
+    // Sinds 9.08 is het rode stipje vervangen door het blok "Gewijzigd" onder de huidige week (uitgelicht.js).
     function onVolgendeWekenToggle(el) {
         volgendeWekenOpen = el.open;
         updateCollapseArrow(el);
-        if (el.open) {
-            wekenGezienBijOpenen = wekenGezienLezen();
-            wekenMarkeerGezien();
-        } else {
-            wekenGezienBijOpenen = null;
-            document.querySelectorAll('#scheduleContainer .vw-week .vw-stip').forEach(stip => stip.remove());
-        }
-    }
-
-    // Wat er in een week anders is dan normaal: afgemeld, invalvraag of invaller, andere opstelling, andere dag of tijd,
-    // afgelast of een regenwaarschuwing. Lege tekst = niets bijzonders.
-    function weekVingerafdruk(uniqueWeekKey, slots) {
-        const delen = [];
-        const lijst = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
-        slots.forEach(({ slot, afgelast, dag, tijd, spelers, standaard, regen }) => {
-            const nu = lijst(spelers);
-            if (afgelast) delen.push(`${slot}:afgelast`);
-            if (dag !== slot) delen.push(`${slot}:dag=${dag}`);
-            if (tijd !== STANDAARD_TIJD) delen.push(`${slot}:tijd=${tijd}`);
-            if (nu.join(',') !== lijst(standaard).join(',')) delen.push(`${slot}:spelers=${nu.join(',')}`);
-            nu.forEach(n => { if (checkPlayerAbsent(n, uniqueWeekKey, slot)) delen.push(`${slot}:afwezig=${n}`); });
-            const vragen = invallers[`${uniqueWeekKey}_${slot}`] || {};
-            Object.keys(vragen).sort().forEach(n => delen.push(`${slot}:inval=${n}/${(vragen[n] && vragen[n].status) || ''}`));
-            if (regen) delen.push(`${slot}:regen`);
-        });
-        return delen.join('|');
     }
 
     // ---------- Blok: BBQ en Borrel (datumprikker) ----------
@@ -3037,9 +2996,8 @@
         let volgendeHtml = '';
         const volgendeWeekNrs = [];
         const volgendeSchemaNrs = [];
-        const volgendeStippen = [];
-        const nieuweVingers = {};
-        const wekenGezien = wekenGezienLezen();
+        let huidigeHtml = '';
+        const uitgKandidaten = []; // wedstrijden uit de volgende weken voor het blok "Gewijzigd" (uitgelicht.js)
 
         for (let i = 0; i < 6; i++) {
             let weekStart = new Date(currentMonday);
@@ -3124,17 +3082,6 @@
             let dinsdagBodyHtml = `<div class="players-container">${renderPlayerChips(dinsdagPlayers, uniqueWeekKey, 'dinsdag', diCancelled, diWinnaar)}</div>`;
             let donderdagBodyHtml = `<div class="players-container">${renderPlayerChips(donderdagPlayers, uniqueWeekKey, 'donderdag', doCancelled, doWinnaar)}</div>`;
 
-            const weekVinger = i === 0 ? '' : weekVingerafdruk(uniqueWeekKey, [
-                { slot: 'dinsdag', afgelast: diCancelled, dag: activeDinsdag, tijd: activeDinsdagTijd, spelers: dinsdagPlayers, standaard: tpl.dinsdag, regen: !!dinsdagRainAlert },
-                { slot: 'donderdag', afgelast: doCancelled, dag: activeDonderdag, tijd: activeDonderdagTijd, spelers: donderdagPlayers, standaard: tpl.donderdag, regen: !!donderdagRainAlert }
-            ]);
-            if (i > 0) nieuweVingers[uniqueWeekKey] = weekVinger;
-            const stipHtml = '<span class="vw-stip" title="Er is iets veranderd in deze week"></span>';
-            const weekStip = (i > 0 && weekVinger && !volgendeWekenOpen && wekenGezien[uniqueWeekKey] !== weekVinger) ? stipHtml : '';
-            const kopjeStip = (i > 0 && weekVinger && (volgendeWekenOpen
-                ? (wekenGezienBijOpenen && wekenGezienBijOpenen[uniqueWeekKey] !== weekVinger)
-                : wekenGezien[uniqueWeekKey] !== weekVinger)) ? stipHtml : '';
-
             let dayOptions = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
             let makeDaySelect = (currentVal, slotKey) => {
                 let slotClass = slotKey === 'dinsdag' ? 'slot-dinsdag' : 'slot-donderdag';
@@ -3154,13 +3101,13 @@
                         <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" aria-label="Uur" id="tijdu_${tijdKey}" class="tijd-vak" value="${uurWaarde}" oninput="onTijdTyp(this, '${uniqueWeekKey}', '${slotKey}', 'h')">
                         <span class="tijd-sep">:</span>
                         <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" aria-label="Minuten" id="tijdm_${tijdKey}" class="tijd-vak" value="${minWaarde}" oninput="onTijdTyp(this, '${uniqueWeekKey}', '${slotKey}', 'm')">
-                        <button class="btn-edit" onclick="saveSpeelTijd('${uniqueWeekKey}', '${slotKey}')" title="Speeltijd opslaan" style="padding: 5px 6px; font-size: calc(1.05rem * var(--s, 1));">💾</button>
+                        <button class="btn-edit" onclick="saveSpeelTijd('${uniqueWeekKey}', '${slotKey}', this)" title="Speeltijd opslaan" style="padding: 5px 6px; font-size: calc(1.05rem * var(--s, 1));">💾</button>
                     </div>
                 `;
             };
 
-            let matchesContent = `
-                <div class="matches-pair">
+            // Elke kaart apart, zodat het blok "Gewijzigd" een kopie zonder sets kan tonen (sinds 9.08)
+            const diKaart = (metSets) => `
                 <div class="match-row-wrapper${diVandaagKlasse}">
                     <div class="match-row">
                         <div class="match-header-line">
@@ -3185,7 +3132,7 @@
                         ${dinsdagAbsenceAlert}
                         ${dinsdagInvalBanner}
 
-                        ${!diCancelled ? `
+                        ${metSets && !diCancelled ? `
                         <div class="match-score-section">
                             <div class="sets-inputs-grid">
                                 <div class="set-column-wrapper">
@@ -3220,7 +3167,8 @@
                         </div>` : ''}
                     </div>
                 </div>
-
+            `;
+            const doKaart = (metSets) => `
                 <div class="match-row-wrapper${doVandaagKlasse}">
                     <div class="match-row">
                         <div class="match-header-line">
@@ -3245,7 +3193,7 @@
                         ${donderdagAbsenceAlert}
                         ${donderdagInvalBanner}
 
-                        ${!doCancelled ? `
+                        ${metSets && !doCancelled ? `
                         <div class="match-score-section">
                             <div class="sets-inputs-grid">
                                 <div class="set-column-wrapper">
@@ -3280,11 +3228,16 @@
                         </div>` : ''}
                     </div>
                 </div>
+            `;
+            let matchesContent = `
+                <div class="matches-pair">
+                ${diKaart(true)}
+                ${doKaart(true)}
                 </div>
             `;
 
             if (i === 0) {
-                html += `
+                huidigeHtml += `
                     <div class="week-card">
                         <div class="week-header">
                             <span class="week-title-text">Week ${currentWeekNum} - Huidige week</span>
@@ -3298,11 +3251,15 @@
             } else {
                 volgendeWeekNrs.push(currentWeekNum);
                 volgendeSchemaNrs.push(schemaWeekNum);
-                volgendeStippen.push(weekStip);
+                const kopie = (kaart) => kaart.replace(/ id="/g, ' id="uitg_'); // geen dubbele id's in de kopie
+                uitgKandidaten.push(
+                    { matchId: diMatchId, weekKey: uniqueWeekKey, weekNr: currentWeekNum, slot: 'dinsdag', afgelast: diCancelled, dag: activeDinsdag, tijd: activeDinsdagTijd, spelers: dinsdagPlayers, standaard: tpl.dinsdag, regen: !!dinsdagRainAlert, datum: dinsdagFormattedStr, kaart: kopie(diKaart(false)) },
+                    { matchId: doMatchId, weekKey: uniqueWeekKey, weekNr: currentWeekNum, slot: 'donderdag', afgelast: doCancelled, dag: activeDonderdag, tijd: activeDonderdagTijd, spelers: donderdagPlayers, standaard: tpl.donderdag, regen: !!donderdagRainAlert, datum: donderdagFormattedStr, kaart: kopie(doKaart(false)) }
+                );
                 volgendeHtml += `
                     <div class="vw-week">
                         <div class="week-header vw-week-kop">
-                            <span class="week-title-text">Week ${currentWeekNum}${kopjeStip}</span>
+                            <span class="week-title-text">Week ${currentWeekNum}</span>
                             <div class="week-header-right">
                                 <span class="schema-week-tag">Week ${schemaWeekNum}</span>
                             </div>
@@ -3313,10 +3270,16 @@
             }
         }
 
+        // Onder de huidige week: gewijzigde wedstrijden uit de volgende weken (uitgelicht.js, sinds 9.08)
+        html += huidigeHtml;
+        if (typeof uitgelichtHtml === 'function') {
+            try { html += uitgelichtHtml(uitgKandidaten); } catch (e) { console.warn('Blok Gewijzigd mislukt:', e); }
+        }
+
         // De volgende weken in één blok: in de kop per week een kolom met het weeknummer en daaronder
         // het weeknummer van het standaardschema; open = alle weken meteen open
         if (volgendeWeekNrs.length) {
-            const kolommen = volgendeWeekNrs.map((nr, k) => `<span class="vw-nr" style="grid-column: ${k + 2}; grid-row: 1;"><span class="vw-getal">${nr}${volgendeStippen[k]}</span></span><span class="vw-nr vw-schema" style="grid-column: ${k + 2}; grid-row: 2;"><span class="vw-getal">${volgendeSchemaNrs[k]}</span></span>`).join('');
+            const kolommen = volgendeWeekNrs.map((nr, k) => `<span class="vw-nr" style="grid-column: ${k + 2}; grid-row: 1;"><span class="vw-getal">${nr}</span></span><span class="vw-nr vw-schema" style="grid-column: ${k + 2}; grid-row: 2;"><span class="vw-getal">${volgendeSchemaNrs[k]}</span></span>`).join('');
             html += `
                 <div class="week-card volgende-weken">
                     <details ${volgendeWekenOpen ? 'open' : ''} ontoggle="onVolgendeWekenToggle(this)">
@@ -3337,11 +3300,9 @@
         }
 
         const actief = document.activeElement;
-        const actiefId = (actief && /^tijd[um]_/.test(actief.id || '')) ? actief.id : null;
+        const actiefId = (actief && /^(uitg_)?tijd[um]_/.test(actief.id || '')) ? actief.id : null;
         const cursorPos = actiefId ? actief.selectionStart : null;
         container.innerHTML = html;
-        volgendeVingers = nieuweVingers;
-        if (volgendeWekenOpen) wekenMarkeerGezien();
         fitOneLineRows();
         if (actiefId) {
             const terug = document.getElementById(actiefId);
@@ -3461,16 +3422,19 @@
     function onTijdTyp(el, uniqueWeekKey, slotKey, deel) {
         el.value = el.value.replace(/\D/g, '').slice(0, 2);
         const tijdKey = `${uniqueWeekKey}_${slotKey}`;
-        const uurEl = document.getElementById(`tijdu_${tijdKey}`);
-        const minEl = document.getElementById(`tijdm_${tijdKey}`);
+        // Binnen de eigen kaart zoeken: dezelfde wedstrijd kan ook in het blok "Gewijzigd" staan (sinds 9.08)
+        const vak = el.closest('.tijd-input-wrapper');
+        const uurEl = vak.querySelector('input[aria-label="Uur"]');
+        const minEl = vak.querySelector('input[aria-label="Minuten"]');
         tijdConcepten[tijdKey] = { h: uurEl.value, m: minEl.value };
         if (deel === 'h' && el.value.length === 2) { minEl.focus(); minEl.select(); }
     }
 
-    async function saveSpeelTijd(uniqueWeekKey, slotKey) {
+    async function saveSpeelTijd(uniqueWeekKey, slotKey, knop) {
         const tijdKey = `${uniqueWeekKey}_${slotKey}`;
-        const uurEl = document.getElementById(`tijdu_${tijdKey}`);
-        const minEl = document.getElementById(`tijdm_${tijdKey}`);
+        const vak = knop && knop.closest ? knop.closest('.tijd-input-wrapper') : null;
+        const uurEl = vak ? vak.querySelector('input[aria-label="Uur"]') : document.getElementById(`tijdu_${tijdKey}`);
+        const minEl = vak ? vak.querySelector('input[aria-label="Minuten"]') : document.getElementById(`tijdm_${tijdKey}`);
         if (!uurEl || !minEl) return;
 
         const uur = parseInt(uurEl.value, 10);
@@ -3495,10 +3459,9 @@
                 neeTekst: 'Annuleren'
             });
             if (!wilTijdWijzigen) {
-                const uurNu = document.getElementById(`tijdu_${tijdKey}`);
-                const minNu = document.getElementById(`tijdm_${tijdKey}`);
-                if (uurNu) uurNu.value = opgeslagenTijd.slice(0, 2);
-                if (minNu) minNu.value = opgeslagenTijd.slice(3, 5);
+                // Alle tijdvelden van deze wedstrijd terugzetten (ook de kopie in het blok "Gewijzigd")
+                document.querySelectorAll(`#tijdu_${tijdKey}, #uitg_tijdu_${tijdKey}`).forEach(el => { el.value = opgeslagenTijd.slice(0, 2); });
+                document.querySelectorAll(`#tijdm_${tijdKey}, #uitg_tijdm_${tijdKey}`).forEach(el => { el.value = opgeslagenTijd.slice(3, 5); });
                 delete tijdConcepten[tijdKey];
                 return;
             }
@@ -4589,7 +4552,8 @@
         document.getElementById('imageModal').style.display = 'none';
     }
 </script>
-<script src="offline.js?v=9.07"></script>
+<script src="offline.js?v=9.08"></script>
+<script src="uitgelicht.js?v=9.08"></script>
 
 </body>
 </html>
