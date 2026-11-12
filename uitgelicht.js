@@ -1,12 +1,13 @@
 // uitgelicht.js — blok "Gewijzigd" onder de huidige week (sinds 9.08, vervangt het rode stipje van 9.03).
 // Zie CLAUDE.md, "Gewijzigde wedstrijden onder de huidige week".
 // 1. Is in een wedstrijd van de vijf volgende weken iets anders dan normaal (afgelast, andere dag of tijd, andere
-//    opstelling, afgemeld zonder invalvraag of regen), dan staat een kopie van die wedstrijdkaart onder de huidige week.
+//    opstelling of afgemeld zonder invalvraag), dan staat een kopie van die wedstrijdkaart onder de huidige week.
 //    Per speler (sinds 9.09): tikt iemand op "Gezien", dan verdwijnt hij bij hem; bij wie nog niet tikte blijft hij
 //    staan. Verandert er daarna weer iets, dan komt hij bij iedereen terug.
 // 2. Een open invalvraag houdt de wedstrijd daar altijd, ook als iedereen hem gezien heeft. Tikt iemand op
 //    "Ik kan invallen", dan is het opgelost: de wissel zelf laat de wedstrijd niet opnieuw verschijnen.
 // 3. Wie wat gezien heeft staat in padelData/gezien/<wedstrijd>/<naam> = code van de wijzigingen.
+// 4. Regen telt nooit mee (sinds 9.10): de balk op de kaart en de pushmelding blijven, het blok niet.
 // De kaart zelf maakt renderSchedule in index.html (kopie zonder sets, id's met "uitg_"); dit bestand kiest welke
 // wedstrijden er staan en tekent het blok eromheen. Gebruikt uit de hoofdcode: db, currentUserName, basePlayers,
 // esc, showToast, invallers, checkPlayerAbsent, invalvraagActief, matchStartMs, renderSchedule en STANDAARD_TIJD.
@@ -60,10 +61,12 @@ function uitgWijzigingen(k) {
             delen.push(`afwezig=${n}`);
             redenen.push(`Afgemeld: ${n}`);
         });
-        if (k.regen) { delen.push('regen'); redenen.push('Kans op regen'); }
     }
     open.forEach(n => redenen.push(`${n} zoekt een invaller`));
-    return { code: delen.length ? uitgCode(`${k.matchId}|${delen.join('|')}`) : '', redenen, open };
+    // Regen telt sinds 9.10 niet meer mee. Wie in 9.09 op Gezien tikte terwijl er ook regen bij stond, kreeg een
+    // code mét regen: die blijft ook gelden, zodat zo'n wedstrijd niet opnieuw verschijnt.
+    const oudeCode = (k.regen && !k.afgelast && delen.length) ? uitgCode(`${k.matchId}|${[...delen, 'regen'].join('|')}`) : '';
+    return { code: delen.length ? uitgCode(`${k.matchId}|${delen.join('|')}`) : '', oudeCode, redenen, open };
 }
 
 // Vanuit renderSchedule: HTML van het blok (leeg als er niets te melden is)
@@ -76,7 +79,7 @@ function uitgelichtHtml(kandidaten) {
         if (Date.now() > matchStartMs(k.weekKey, k.slot)) return;
         const w = uitgWijzigingen(k);
         const gezienDoor = uitgGezien[k.matchId] || {};
-        const nietGezien = w.code ? basePlayers.filter(n => gezienDoor[n] !== w.code) : [];
+        const nietGezien = w.code ? basePlayers.filter(n => gezienDoor[n] !== w.code && !(w.oudeCode && gezienDoor[n] === w.oudeCode)) : [];
         // Per speler: wie zelf op Gezien tikte ziet hem niet meer (behalve bij een open invalvraag).
         // Zonder gekozen naam: zolang iemand hem nog niet gezien heeft.
         const voorMij = ikBenSpeler ? nietGezien.includes(ik) : nietGezien.length > 0;
