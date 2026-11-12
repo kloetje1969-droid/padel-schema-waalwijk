@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=9.11">
+    <link rel="stylesheet" href="stijl.css?v=9.12">
 </head>
 <body>
 
@@ -403,10 +403,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=9.11"></script>
+<script src="foutlog.js?v=9.12"></script>
 <script>
 
-    const APP_VERSION = "9.11"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "9.12"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -2689,6 +2689,7 @@
 
     function saveCurrentSessionLastSeen() {
         if (!currentUserName) return;
+        if (document.visibilityState === 'hidden') return; // sinds 9.12: alleen tijd in beeld telt
         const myRealName = myOriginalUserName || currentUserName;
         db.ref(`padelData/lastSeen/${myRealName}`).set(Date.now());
     }
@@ -2746,7 +2747,6 @@
         if (!sessionStartTime) sessionStartTime = Date.now();
 
         presenceRef = db.ref(`padelData/presence/${myRealName}_${userSessionId}`);
-        const userLastSeenRef = db.ref(`padelData/lastSeen/${myRealName}`);
         presenceConnectedRef = db.ref('.info/connected');
 
         presenceConnectedHandler = (snapshot) => {
@@ -2770,21 +2770,44 @@
 
             startOnlineSessie(myRealName);
 
-            const updatePresenceData = () => {
-                if (!presenceRef) return;
-                presenceRef.set({ name: myRealName, timestamp: Date.now() }).catch(() => {});
-            };
-
-            presenceRef.onDisconnect().remove().then(() => {
-                userLastSeenRef.set(Date.now());
-                updatePresenceData();
-                if (presenceHeartbeat) clearInterval(presenceHeartbeat);
-                presenceHeartbeat = setInterval(updatePresenceData, PRESENCE_HEARTBEAT_MS);
-            }).catch(() => {});
+            // Sinds 9.12: groen en "laatst gezien" alleen zolang de app in beeld is (zie presenceInBeeld)
+            presenceRef.onDisconnect().remove().then(() => presenceInBeeld()).catch(() => {});
         };
 
         presenceConnectedRef.on('value', presenceConnectedHandler);
     }
+
+    // ---------- Online-status alleen in beeld (sinds 9.12) ----------
+    // Net als de online-melding aan Robert telt alleen de tijd dat de app in beeld is: op de achtergrond
+    // (ander scherm, telefoon op slot) is een speler grijs, en "laatst gezien" is het laatste moment in beeld.
+    function presenceInBeeld() {
+        if (!presenceRef || !firebaseConnected || document.visibilityState === 'hidden') return;
+        const naam = myOriginalUserName || currentUserName;
+        if (!naam) return;
+        const ref = presenceRef;
+        const tik = () => {
+            if (document.visibilityState === 'hidden' || ref !== presenceRef) return;
+            ref.set({ name: naam, timestamp: Date.now() }).catch(() => {});
+        };
+        db.ref(`padelData/lastSeen/${naam}`).set(Date.now()).catch(() => {});
+        tik();
+        if (presenceHeartbeat) clearInterval(presenceHeartbeat);
+        presenceHeartbeat = setInterval(tik, PRESENCE_HEARTBEAT_MS);
+    }
+
+    function presenceUitBeeld() {
+        if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
+        if (!presenceRef || !firebaseConnected) return;
+        const naam = myOriginalUserName || currentUserName;
+        if (naam) db.ref(`padelData/lastSeen/${naam}`).set(Date.now()).catch(() => {});
+        presenceRef.remove().catch(() => {});
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') presenceUitBeeld();
+        else presenceInBeeld();
+    });
+    window.addEventListener('pagehide', () => presenceUitBeeld());
 
     window.addEventListener('beforeunload', () => {
         saveCurrentSessionLastSeen();
@@ -4552,8 +4575,8 @@
         document.getElementById('imageModal').style.display = 'none';
     }
 </script>
-<script src="offline.js?v=9.11"></script>
-<script src="uitgelicht.js?v=9.11"></script>
+<script src="offline.js?v=9.12"></script>
+<script src="uitgelicht.js?v=9.12"></script>
 
 </body>
 </html>
