@@ -102,6 +102,7 @@ export default async function handler(req, res) {
       const activePlayers = match.players.filter(p => !(absences[p] && absences[p][`${week.key}_${match.slot}`]));
       const tokens = tokensOf(await getTokensByPlayer(), activePlayers);
       if (tokens.length === 0) {
+        console.log('WEER-PUSH', JSON.stringify({ slot: match.slot, start: match.timeString, spelers: activePlayers, gelukt: 0, reden: 'geen toestellen bekend' }));
         results.push({ ...info, status: 'Geen pushtokens gevonden', spelers: activePlayers });
         continue;
       }
@@ -120,6 +121,8 @@ export default async function handler(req, res) {
           body: `Vandaag om ${match.timeString} uur padel. Regenkans ${forecast.probability}% (${forecast.precipitation} mm).`,
           tag: `padel-weather-${nl.dateKey}-${match.slot}`
         });
+        // Zichtbaar in Vercel bij Logs (sinds 12 november 2026)
+        console.log('WEER-PUSH', JSON.stringify({ slot: match.slot, start: match.timeString, spelers: activePlayers, regenkans: forecast.probability, mm: forecast.precipitation, gelukt: result.successCount, fouten: result.errorCodes || [] }));
 
         if (Number(result.successCount || 0) > 0) {
           await lockRef.update({ status: 'sent', sentAt: Date.now(), successCount: result.successCount });

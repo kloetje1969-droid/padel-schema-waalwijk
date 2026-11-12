@@ -82,6 +82,7 @@ export default async function handler(req, res) {
 
         if (tokens.length === 0) {
           await flagRef.remove();
+          console.log('MATCH-REMINDER', JSON.stringify({ slot: match.slot, start: match.timeString, spelers: activePlayers, gelukt: 0, reden: 'geen toestellen bekend' }));
           results.push({ ...info, status: 'Geen tokens gevonden voor de spelers.', spelers: activePlayers });
           continue;
         }
@@ -91,6 +92,8 @@ export default async function handler(req, res) {
           body: `Over een uur (${match.timeString} uur) staat je padelwedstrijd gepland!`,
           tag: `padel-reminder-${nl.dateKey}-${match.slot}`
         });
+        // Zichtbaar in Vercel bij Logs (sinds 12 november 2026)
+        console.log('MATCH-REMINDER', JSON.stringify({ slot: match.slot, start: match.timeString, spelers: activePlayers, gelukt: result.successCount, fouten: result.errorCodes || [] }));
 
         if (result.successCount === 0) {
           await flagRef.remove();
