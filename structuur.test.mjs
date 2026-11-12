@@ -95,6 +95,10 @@ test('index.html laadt de gedeelde regels en gebruikt geen browserpopups', () =>
   assert.match(sw, /fetch\(req\)\.then[\s\S]*\.catch\(\(\) => caches\.match/, 'de servicemedewerker moet eerst internet proberen en pas daarna de bewaarde kopie');
   assert.match(sw, /startsWith\('\/api\/'\)\) return/, '/api/ mag nooit uit de bewaarde kopie komen');
   assert.match(sw, /'push'/, 'de pushmeldingen in de servicemedewerker zijn verdwenen');
+  // Elk eigen scriptbestand dat index.html laadt, staat ook in de bewaarlijst; anders werkt het niet zonder internet
+  for (const [, f] of html.matchAll(/<script src="([a-z-]+\.js)(?:\?v=[^"]*)?"/g)) {
+    assert.ok(sw.includes(`'/${f}'`), `${f} staat niet in APP_BESTANDEN van firebase-messaging-sw.js: zonder internet werkt het dan niet`);
+  }
   const zonderTekstregels = inlineScripts(html).join('\n') + '\n' + foutlogJs;
   assert.equal(/(?<![A-Za-z_.$])(alert|confirm|prompt)\(/.test(zonderTekstregels), false, 'gebruik toonMelding of bevestigDialoog in plaats van alert/confirm');
 });
