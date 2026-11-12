@@ -112,6 +112,7 @@ export default async function handler(req, res) {
 
           if (tokens.length === 0) {
             await flagRef.remove();
+            console.log('UITSLAG-HERINNERING', JSON.stringify({ wedstrijd: matchId, ontvangers, gelukt: 0, reden: 'geen toestellen bekend' }));
             results.push({ ...info, status: 'Geen tokens gevonden voor de ontvangers.', ontvangers });
             continue;
           }
@@ -122,6 +123,8 @@ export default async function handler(req, res) {
             body: `De padelwedstrijd ${wanneer} (${match.timeString} uur) is afgelopen. Vul je de uitslag in?`,
             tag: `padel-uitslag-${matchId}`
           });
+          // Zichtbaar in Vercel bij Logs (sinds 12 november 2026)
+          console.log('UITSLAG-HERINNERING', JSON.stringify({ wedstrijd: matchId, ontvangers, gelukt: result.successCount, fouten: result.errorCodes || [] }));
 
           if (result.successCount === 0) {
             await flagRef.remove();
