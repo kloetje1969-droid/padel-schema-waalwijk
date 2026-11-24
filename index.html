@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=9.13">
+    <link rel="stylesheet" href="stijl.css?v=9.14">
 </head>
 <body>
 
@@ -44,7 +44,7 @@
     <div class="pin-box">
         <h2>🔒 Padel App</h2>
         <p>Voer de pincode in om toegang te krijgen:</p>
-        <input type="password" id="pinInput" maxlength="32" placeholder="••••••" autocomplete="off" onkeypress="handlePinKey(event)">
+        <div class="pin-veld"><input type="password" id="pinInput" maxlength="32" placeholder="••••••" autocomplete="off" onkeypress="handlePinKey(event)"><button type="button" class="pin-oog" onclick="pinOogWissel(this)" aria-label="Pincode tonen" title="Pincode tonen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><line class="pin-oog-streep" x1="3" y1="3" x2="21" y2="21"/></svg></button></div>
         <div id="pinError" class="pin-error">Onjuiste pincode. Probeer het opnieuw.</div>
         <button class="btn-primary" onclick="checkPin()">Ontgrendelen</button>
     </div>
@@ -54,7 +54,7 @@
     <div class="pin-box">
         <h2>🔒 Beveiligd</h2>
         <p>Voer de pincode voor Robert in:</p>
-        <input type="password" id="robertPinInput" maxlength="32" placeholder="••••••" autocomplete="off" onkeypress="handleRobertPinKey(event)">
+        <div class="pin-veld"><input type="password" id="robertPinInput" maxlength="32" placeholder="••••••" autocomplete="off" onkeypress="handleRobertPinKey(event)"><button type="button" class="pin-oog" onclick="pinOogWissel(this)" aria-label="Pincode tonen" title="Pincode tonen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><line class="pin-oog-streep" x1="3" y1="3" x2="21" y2="21"/></svg></button></div>
         <div id="robertPinError" class="pin-error">Onjuiste pincode voor Robert.</div>
         <div class="modal-buttons" style="justify-content: center; margin-top: 10px;">
             <button class="btn-cancel" onclick="cancelRobertSelect()">Annuleren</button>
@@ -157,7 +157,7 @@
     </div>
     <div id="scheduleContainer" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">Laden van schema...</div>
 
-    <div class="card">
+    <div class="card tb-paneel" id="afwezigCard">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
                 <div class="section-title" style="font-size: 1.05rem;">📅 Afwezigheid / Vakantie</div>
@@ -181,7 +181,7 @@
     </div>
 
     <!-- MODULE: BBQ EN BORREL (datumprikker) -->
-    <div class="card">
+    <div class="card tb-paneel" id="bbqCard">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
                 <div class="section-title" style="font-size: 1.05rem;">🍖 BBQ en Borrel <span id="bbqStip" class="bbq-stip" style="display: none;"></span></div>
@@ -197,7 +197,7 @@
     </div>
 
 <div class="kolom-zij">
-    <div class="card">
+    <div class="card tb-paneel" id="baanBoekenCard">
         <div class="card-header collapsible-header" onclick="toggleBaanBoekingMenu()">
             <div class="section-title" style="font-size: 1.05rem;">
                 <span class="emoji-icon dynamic-ball-icon"><img class="padel-icoon" src="icon-192.png" alt=""></span>
@@ -247,7 +247,7 @@
 
     <!-- Uitslagen en Stand (sinds 9.02): statistieken, KingKong, historie en alle wedstrijden in één blok;
          de vier blokken erin klappen elk apart open en dicht -->
-    <div class="card" id="uitslagenStandCard">
+    <div class="card tb-paneel" id="uitslagenStandCard">
         <details ontoggle="updateCollapseArrow(this)">
             <summary class="card-header collapsible-header" style="list-style: none;">
                 <div class="section-title" style="font-size: 1.05rem;">🏆 Uitslagen en Stand</div>
@@ -325,7 +325,7 @@
         </details>
     </div>
 
-    <div class="card" id="chatCardSection">
+    <div class="card tb-paneel" id="chatCardSection">
         <div class="card-header">
             <div class="section-title" style="font-size: 1.05rem;">💬 Team Chat</div>
             <button class="btn-edit" id="clearAllChatBtn" onclick="clearAllChat()" style="display: none;">Alles wissen</button>
@@ -342,6 +342,30 @@
     </div>
 
     </div>
+
+    <!-- Balk onderin (sinds 9.14, alleen telefoon en tablet; werking in tabbalk.js, opmaak in stijl.css) -->
+    <nav id="tabBalk" aria-label="Onderdelen">
+        <button type="button" class="tb-knop" data-paneel="afwezigCard" aria-label="Afwezigheid">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="9.5" y1="12.5" x2="14.5" y2="17.5"/><line x1="14.5" y1="12.5" x2="9.5" y2="17.5"/></svg>
+            <span>Afwezig</span>
+        </button>
+        <button type="button" class="tb-knop" data-paneel="bbqCard" aria-label="BBQ en Borrel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10h17a8.5 8.5 0 0 1-17 0z"/><line x1="8" y1="17.5" x2="6" y2="22"/><line x1="16" y1="17.5" x2="18" y2="22"/><path d="M9 7c-1-1.2-1-2.4 0-3.5"/><path d="M12 7c-1-1.2-1-2.4 0-3.5"/><path d="M15 7c-1-1.2-1-2.4 0-3.5"/></svg>
+            <span>BBQ</span><i class="tb-stip" id="tbBbqStip"></i>
+        </button>
+        <button type="button" class="tb-knop" data-paneel="baanBoekenCard" aria-label="Baan boeken">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            <span>Boeken</span>
+        </button>
+        <button type="button" class="tb-knop" data-paneel="uitslagenStandCard" aria-label="Uitslagen en Stand">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 3.9"/><path d="M17 6h2.5a2.5 2.5 0 0 1-2.6 3.9"/><line x1="12" y1="14" x2="12" y2="17.5"/><path d="M8 21h8l-1-3.5H9z"/></svg>
+            <span>Stand</span>
+        </button>
+        <button type="button" class="tb-knop" data-paneel="chatCardSection" aria-label="Team Chat">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5a2 2 0 0 1-2 2H8l-4.5 4v-14a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg>
+            <span>Chat</span><b class="tb-getal" id="tbChatGetal"></b>
+        </button>
+    </nav>
 
     <div class="app-footer-row">
         <span id="appVersieLabel">Padelschema</span>
@@ -403,10 +427,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=9.13"></script>
+<script src="foutlog.js?v=9.14"></script>
 <script>
 
-    const APP_VERSION = "9.13"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "9.14"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -916,6 +940,25 @@
         pulling = false;
     });
 
+    // Oogje bij de pincode (sinds 9.14): tonen of verbergen; standaard verborgen
+    function pinOogWissel(knop) {
+        const input = knop.parentElement.querySelector('input');
+        const tonen = input.type === 'password';
+        input.type = tonen ? 'text' : 'password';
+        knop.classList.toggle('zichtbaar', tonen);
+        knop.setAttribute('aria-label', tonen ? 'Pincode verbergen' : 'Pincode tonen');
+        knop.title = knop.getAttribute('aria-label');
+        input.focus();
+    }
+
+    function pinOogVerberg(id) {
+        const input = document.getElementById(id);
+        if (!input) return;
+        input.type = 'password';
+        const knop = input.parentElement.querySelector('.pin-oog');
+        if (knop) { knop.classList.remove('zichtbaar'); knop.setAttribute('aria-label', 'Pincode tonen'); knop.title = 'Pincode tonen'; }
+    }
+
     async function checkPin() {
         if (loginBezig) return;
         const input = document.getElementById('pinInput');
@@ -929,6 +972,7 @@
             localStorage.setItem('padel_login_time', Date.now().toString());
             errDiv.style.display = 'none';
             input.value = '';
+            pinOogVerberg('pinInput');
             document.getElementById('pinOverlay').style.display = 'none';
             naUnlockControle();
             authResolve();
@@ -2629,6 +2673,7 @@
         if (gekozenNaam === "Robert" && currentUserName !== "Robert") {
             document.getElementById('pinModal').style.display = 'flex';
             document.getElementById('robertPinInput').value = '';
+            pinOogVerberg('robertPinInput');
             document.getElementById('robertPinError').style.display = 'none';
             document.getElementById('robertPinInput').focus();
             return;
@@ -2655,6 +2700,7 @@
             localStorage.setItem('padel_login_time', Date.now().toString());
             errDiv.style.display = 'none';
             input.value = '';
+            pinOogVerberg('robertPinInput');
             document.getElementById('pinModal').style.display = 'none';
             completeUserChange("Robert");
         } catch (e) {
@@ -2669,6 +2715,7 @@
 
     function cancelRobertSelect() {
         document.getElementById('pinModal').style.display = 'none';
+        pinOogVerberg('robertPinInput');
         const select = document.getElementById('userSelect');
         select.value = currentUserName;
     }
@@ -4575,8 +4622,9 @@
         document.getElementById('imageModal').style.display = 'none';
     }
 </script>
-<script src="offline.js?v=9.13"></script>
-<script src="uitgelicht.js?v=9.13"></script>
+<script src="offline.js?v=9.14"></script>
+<script src="uitgelicht.js?v=9.14"></script>
+<script src="tabbalk.js?v=9.14"></script>
 
 </body>
 </html>

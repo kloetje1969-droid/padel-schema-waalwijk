@@ -182,7 +182,7 @@ window.addEventListener('offline', offlineWerkBalkBij);
 // Zonder internet wijzigingen tegenhouden: een melding in plaats van een knop die blijft hangen.
 // Open- en dichtklappen, de filters van Alle wedstrijden, foto's bekijken en de vensters zelf blijven werken.
 function offlineMagWel(el) {
-    return !!el.closest('summary, .collapsible-header, .aw-filters, #bevestigModal, #imageModal, #globalChatAlertBtn');
+    return !!el.closest('summary, .collapsible-header, .aw-filters, #bevestigModal, #imageModal, #globalChatAlertBtn, #tabBalk, .tb-sluit, .pin-oog');
 }
 
 document.addEventListener('click', (e) => {
