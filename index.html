@@ -30,7 +30,7 @@
         }
     </script>
     
-    <link rel="stylesheet" href="stijl.css?v=9.14">
+    <link rel="stylesheet" href="stijl.css?v=9.15">
 </head>
 <body>
 
@@ -427,10 +427,10 @@
     </div>
 </div>
 
-<script src="foutlog.js?v=9.14"></script>
+<script src="foutlog.js?v=9.15"></script>
 <script>
 
-    const APP_VERSION = "9.14"; // HET ENIGE versienummer: titel en voettekst nemen dit over
+    const APP_VERSION = "9.15"; // HET ENIGE versienummer: titel en voettekst nemen dit over
     document.title = 'Padelschema - Rooster & Chat (V' + APP_VERSION + ')';
     (function () { const el = document.getElementById('appVersieLabel'); if (el) el.textContent = 'Padelschema V' + APP_VERSION; })();
     const VAPID_KEY = 'BBuJzbxybFwf4UN4SZQFBiHhYQqtEpvt8759qIRYfoCbG-hPotXxFka4sKjT2_zovS6UOqC2TeSh_Bm6C3qf0Eg';
@@ -1492,7 +1492,7 @@
         const robert = zichtbaarVoorRobert();
 
         // Stip naast de titel: geel = nog geen dag waarop iedereen kan, blauw = er is er een (Robert kiest),
-        // groen = Robert heeft de datum gekozen
+        // groen = Robert heeft de datum gekozen (sinds 9.15 stil, zonder knipperen)
         const kleur = st.gevonden ? 'groen' : (st.kandidaten.length ? 'blauw' : 'geel');
         stip.className = 'bbq-stip bbq-stip-' + kleur;
         stip.style.display = (st.maand && !voorbij) ? 'inline-block' : 'none';
@@ -4622,9 +4622,9 @@
         document.getElementById('imageModal').style.display = 'none';
     }
 </script>
-<script src="offline.js?v=9.14"></script>
-<script src="uitgelicht.js?v=9.14"></script>
-<script src="tabbalk.js?v=9.14"></script>
+<script src="offline.js?v=9.15"></script>
+<script src="uitgelicht.js?v=9.15"></script>
+<script src="tabbalk.js?v=9.15"></script>
 
 </body>
 </html>
